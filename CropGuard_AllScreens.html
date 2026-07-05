@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CropGuard AI — All Screens</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1A7A3C; --greenL: #25A84F; --greenXL: #4FCB78; --lime: #A8E63D;
+    --dark: #0F1A10; --darkM: #162318; --card: #1C2E1E; --cardL: #243328;
+    --warn: #E8A020; --danger: #D94040; --info: #3DAFE8;
+    --muted: #8BA88E; --border: #2E4530; --white: #FFFFFF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; font-family: 'Outfit', sans-serif; padding: 40px 20px; }
+
+  .page-title {
+    text-align: center; color: var(--white); font-size: 32px; font-weight: 800;
+    margin-bottom: 6px; letter-spacing: -0.02em;
+  }
+  .page-subtitle {
+    text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 48px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 32px; max-width: 1400px; margin: 0 auto;
+  }
+  .phone {
+    width: 260px; height: 520px; background: var(--dark);
+    border-radius: 36px; overflow: hidden; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 5px #1a1a1a;
+    flex-shrink: 0;
+  }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .phone-label { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 70px; height: 18px; background: #0a0a0a;
+    border-radius: 0 0 12px 12px; z-index: 10;
+  }
+  .screen { width: 100%; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; }
+
+  /* ── Shared ── */
+  .muted { color: var(--muted); }
+  .badge { border-radius: 6px; padding: 2px 7px; font-size: 9px; font-weight: 700; }
+  .badge-diseased { background: #4A1A1A; color: var(--danger); }
+  .badge-healthy { background: #1A4A2A; color: var(--greenXL); }
+  .badge-warning { background: #4A3A10; color: var(--warn); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--greenL), var(--green));
+    color: #fff; border: none; border-radius: 10px;
+    padding: 8px 14px; font-size: 12px; font-weight: 700;
+    font-family: 'Outfit', sans-serif; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-lime {
+    background: linear-gradient(135deg, var(--lime), #8BC620);
+    color: #0F1A10; border: none; border-radius: 8px;
+    padding: 7px 12px; font-size: 11px; font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+  }
+  .btn-ghost { background: transparent; border: none; color: var(--muted); font-size: 11px; font-family: 'Outfit', sans-serif; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; }
+  .bottom-nav {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--darkM); border-top: 1px solid var(--border);
+    display: flex; padding: 6px 0 10px;
+  }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .nav-item span { font-size: 8px; font-weight: 600; color: var(--muted); }
+  .nav-item.active span { color: var(--greenXL); }
+  .nav-icon { font-size: 16px; opacity: 0.5; }
+  .nav-icon.active { opacity: 1; }
+  .nav-scan-btn {
+    width: 34px; height: 34px; border-radius: 10px; margin-top: -14px;
+    background: linear-gradient(135deg, var(--greenL), var(--green));
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    border: 2px solid var(--dark);
+  }
+  .section-label { font-size: 8px; color: var(--muted); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .conf-bar-wrap { margin-bottom: 5px; }
+  .conf-bar-header { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .conf-bar-header span { font-size: 9px; color: var(--muted); }
+  .conf-bar-header strong { font-size: 9px; color: var(--greenXL); }
+  .conf-bar-track { background: var(--border); border-radius: 99px; height: 4px; }
+  .conf-bar-fill { height: 4px; border-radius: 99px; background: linear-gradient(90deg, var(--greenL), var(--lime)); }
+  .tab-row { display: flex; background: var(--card); border-radius: 8px; padding: 3px; margin-bottom: 8px; }
+  .tab-item { flex: 1; text-align: center; font-size: 9px; font-weight: 600; padding: 5px 2px; border-radius: 6px; cursor: pointer; }
+  .tab-item.active { background: var(--greenL); color: #fff; }
+  .tab-item:not(.active) { color: var(--muted); }
+  .toggle { width: 28px; height: 15px; border-radius: 99px; background: var(--greenL); position: relative; }
+  .toggle::after { content: ''; position: absolute; width: 11px; height: 11px; border-radius: 99px; background: white; top: 2px; left: 15px; }
+  .toggle.off { background: var(--border); }
+  .toggle.off::after { left: 2px; }
+  .input-field {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; color: #fff; font-size: 10px; width: 100%; margin-bottom: 8px;
+    font-family: 'Outfit', sans-serif;
+  }
+  .strength-bar { display: flex; gap: 3px; margin-bottom: 8px; }
+  .strength-segment { height: 3px; flex: 1; border-radius: 99px; }
+  .progress-ring { transform: rotate(-90deg); }
+</style>
+</head>
+<body>
+
+<div class="page-title">🌾 CropGuard AI</div>
+<div class="page-subtitle">All 13 Screens — Android Studio Build Reference (Enhanced Student Edition)</div>
+
+<div class="grid">
+
+<!-- ─── 1. SPLASH ────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 35%,#1A7A3C22 0%,transparent 70%)"></div>
+      <div style="font-size:8px;color:#ffffff08;position:absolute;top:15%;left:10%">🌿</div>
+      <div style="font-size:12px;color:#ffffff06;position:absolute;top:25%;right:12%">🌿</div>
+      <div style="font-size:6px;color:#ffffff05;position:absolute;bottom:35%;left:20%">🌿</div>
+      <div style="position:relative;text-align:center;z-index:1">
+        <div style="width:62px;height:62px;border-radius:18px;background:linear-gradient(135deg,var(--greenL),var(--green));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 0 40px #1A7A3C66;font-size:28px">🌾</div>
+        <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">CropGuard</div>
+        <div style="color:var(--lime);font-size:8px;font-weight:700;letter-spacing:0.18em;margin-top:3px">AI DISEASE DETECTION</div>
+        <div style="display:flex;gap:5px;justify-content:center;margin-top:24px">
+          <div style="width:5px;height:5px;border-radius:99px;background:var(--greenXL);animation:none;opacity:1"></div>
+          <div style="width:5px;height:5px;border-radius:99px;background:var(--greenXL);opacity:0.5"></div>
+          <div style="width:5px;height:5px;border-radius:99px;background:var(--greenXL);opacity:0.25"></div>
+        </div>
+        <div style="font-size:8px;color:var(--muted);margin-top:40px">v2.3.1</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">1 — Splash</div>
+</div>
+
+<!-- ─── 2. ONBOARDING ─────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column;padding:28px 16px 16px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+        <div style="font-size:56px;margin-bottom:16px">📸</div>
+        <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:8px">Snap & Detect</div>
+        <div style="color:var(--muted);font-size:10px;line-height:1.7;max-width:180px">Point your camera at any crop leaf and our CNN model identifies diseases in under 3 seconds with 95%+ accuracy.</div>
+        <div style="display:flex;gap:5px;margin-top:20px">
+          <div style="width:18px;height:4px;border-radius:99px;background:var(--greenXL)"></div>
+          <div style="width:6px;height:4px;border-radius:99px;background:var(--border)"></div>
+          <div style="width:6px;height:4px;border-radius:99px;background:var(--border)"></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn-primary" style="width:100%;justify-content:center;padding:10px">Next →</button>
+        <button class="btn-ghost" style="width:100%;text-align:center;padding:6px">Skip</button>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">2 — Onboarding</div>
+</div>
+
+<!-- ─── 3. LOGIN ──────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:30px 16px 16px;text-align:center">
+        <div style="font-size:28px;margin-bottom:6px">🌾</div>
+        <div style="font-size:16px;font-weight:800;color:#fff">Welcome Back</div>
+        <div style="color:var(--muted);font-size:9px;margin-top:2px">Sign in to your CropGuard account</div>
+      </div>
+      <div style="padding:14px 14px 16px">
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:4px">EMAIL ADDRESS</div>
+        <div class="input-field" style="color:var(--muted)">you@example.com</div>
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:4px">PASSWORD</div>
+        <div class="input-field" style="color:var(--muted)">••••••••</div>
+        <div style="text-align:right;margin-bottom:10px"><span style="color:var(--info);font-size:9px">Forgot password?</span></div>
+        <button class="btn-primary" style="width:100%;justify-content:center;padding:10px;margin-bottom:10px">Sign In</button>
+        <div style="text-align:center;color:var(--muted);font-size:9px">No account? <span style="color:var(--greenXL);font-weight:700">Sign Up</span></div>
+        <div style="margin-top:12px;background:var(--cardL);border-radius:8px;padding:8px;display:flex;gap:6px;align-items:center">
+          <span style="font-size:14px">👆</span>
+          <div>
+            <div style="font-size:9px;color:#fff;font-weight:600">Use Biometrics</div>
+            <div style="font-size:8px;color:var(--muted)">Sign in with fingerprint</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">3 — Login</div>
+</div>
+
+<!-- ─── 4. REGISTER ───────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:28px 16px 12px;text-align:center">
+        <div style="font-size:16px;font-weight:800;color:#fff">Create Account</div>
+        <div style="color:var(--muted);font-size:9px;margin-top:2px">Start protecting your crops today</div>
+      </div>
+      <div style="padding:12px 14px">
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:3px">FULL NAME</div>
+        <div class="input-field" style="color:var(--muted)">John Mensah</div>
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:3px">EMAIL</div>
+        <div class="input-field" style="color:var(--muted)">you@example.com</div>
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:3px">PASSWORD</div>
+        <div class="input-field" style="color:var(--muted)">••••••••••</div>
+        <div class="strength-bar">
+          <div class="strength-segment" style="background:var(--danger)"></div>
+          <div class="strength-segment" style="background:var(--warn)"></div>
+          <div class="strength-segment" style="background:var(--greenXL)"></div>
+          <div class="strength-segment" style="background:var(--border)"></div>
+        </div>
+        <div style="font-size:8px;color:var(--warn);margin-bottom:8px">Medium strength</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+          <div style="width:12px;height:12px;border-radius:3px;background:var(--greenL);display:flex;align-items:center;justify-content:center;font-size:8px">✓</div>
+          <span style="font-size:8px;color:var(--muted)">I agree to Terms & Privacy Policy</span>
+        </div>
+        <button class="btn-primary" style="width:100%;justify-content:center;padding:9px">Create Account</button>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">4 — Register</div>
+</div>
+
+<!-- ─── 5. HOME ───────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow:hidden">
+      <!-- Header -->
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:22px 12px 10px;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="color:var(--muted);font-size:7px;font-weight:700;letter-spacing:0.06em">GOOD MORNING</div>
+          <div style="font-size:14px;font-weight:800;color:#fff;margin-top:1px">John Mensah 👋</div>
+        </div>
+        <div style="width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,var(--greenL),var(--green));display:flex;align-items:center;justify-content:center;font-size:14px">👨‍🌾</div>
+      </div>
+      <!-- Enhanced Stats -->
+      <div class="card" style="margin:0 10px 8px;display:flex;align-items:center;gap:15px;padding:12px;background:linear-gradient(135deg,var(--darkM),var(--card))">
+        <div style="position:relative;width:54px;height:54px">
+          <svg width="54" height="54" viewBox="0 0 54 54">
+            <circle cx="27" cy="27" r="23" fill="none" stroke="var(--border)" stroke-width="4"/>
+            <circle cx="27" cy="27" r="23" fill="none" stroke="var(--greenXL)" stroke-width="4" stroke-dasharray="100 144" stroke-linecap="round" transform="rotate(-90 27 27)"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">74%</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:7px;color:var(--muted);font-weight:700">FARM HEALTH SCORE</div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <div><div style="font-size:11px;font-weight:800;color:#fff">24</div><div style="font-size:6px;color:var(--muted)">Scans</div></div>
+            <div><div style="font-size:11px;font-weight:800;color:var(--greenXL)">16</div><div style="font-size:6px;color:var(--muted)">Healthy</div></div>
+            <div><div style="font-size:11px;font-weight:800;color:var(--danger)">8</div><div style="font-size:6px;color:var(--muted)">Diseased</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Achievements CTA -->
+      <div style="margin:0 10px 8px;background:var(--cardL);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:1px solid var(--border)">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:14px">🏆</span>
+          <div>
+            <div style="font-size:9px;color:#fff;font-weight:700">Achievements</div>
+            <div style="font-size:7px;color:var(--muted)">4 of 10 badges unlocked</div>
+          </div>
+        </div>
+        <span style="color:var(--greenXL);font-size:10px">→</span>
+      </div>
+      <!-- Scan CTA -->
+      <div style="margin:0 10px 8px;background:linear-gradient(135deg,var(--green) 0%,#0D5A28 100%);border-radius:14px;padding:12px;position:relative;overflow:hidden;border:1px solid #25A84F44">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:0.08">🌿</div>
+        <div style="font-size:7px;color:var(--lime);font-weight:700;letter-spacing:0.1em;margin-bottom:3px">AI DETECTION</div>
+        <div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:2px">Scan Your Crops</div>
+        <div style="color:#ffffff88;font-size:8px;margin-bottom:8px">Detect diseases in under 3 seconds</div>
+        <button class="btn-lime" style="font-size:9px;padding:5px 10px">📷 Open Camera</button>
+      </div>
+      <!-- Recent -->
+      <div style="padding:0 10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:7px;color:var(--muted);font-weight:700;letter-spacing:0.08em">RECENT SCANS</div>
+          <span style="font-size:8px;color:var(--greenXL);font-weight:700">View All</span>
+        </div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;margin-bottom:5px;padding:7px">
+          <div style="font-size:22px">🌽</div>
+          <div style="flex:1">
+            <div style="font-size:10px;font-weight:700;color:#fff">Leaf Blight</div>
+            <div style="font-size:8px;color:var(--muted)">Maize • 2024-03-15</div>
+          </div>
+          <span class="badge badge-diseased">Diseased</span>
+        </div>
+        <div class="card" style="display:flex;align-items:center;gap:8px;padding:7px">
+          <div style="font-size:22px">🍅</div>
+          <div style="flex:1">
+            <div style="font-size:10px;font-weight:700;color:#fff">Powdery Mildew</div>
+            <div style="font-size:8px;color:var(--muted)">Tomato • 2024-03-12</div>
+          </div>
+          <span class="badge badge-warning">At Risk</span>
+        </div>
+      </div>
+      <!-- Nav -->
+      <div class="bottom-nav">
+        <div class="nav-item active"><span class="nav-icon active">🏠</span><span class="active" style="color:var(--greenXL)">Home</span></div>
+        <div class="nav-item"><div class="nav-scan-btn">📷</div><span>Scan</span></div>
+        <div class="nav-item"><span class="nav-icon">📋</span><span>History</span></div>
+        <div class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">5 — Home</div>
+</div>
+
+<!-- ─── 6. SCANNER ────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column">
+      <div style="padding:22px 12px 8px">
+        <div style="font-size:15px;font-weight:800;color:#fff">Scan Crop</div>
+        <div style="color:var(--muted);font-size:9px;margin-top:1px">Select crop type and scan for diseases</div>
+      </div>
+      <!-- Crop chips -->
+      <div style="padding:0 10px 8px;display:flex;gap:5px;overflow:hidden">
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--greenL);background:#1A7A3C33;color:var(--greenXL);font-size:8px;font-weight:600;white-space:nowrap">Maize</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600;white-space:nowrap">Tomato</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600;white-space:nowrap">Cassava</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600;white-space:nowrap">Yam</div>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex;padding:0 10px;gap:3px;margin-bottom:8px">
+        <div style="flex:1;padding:7px;border-radius:8px;background:var(--card);text-align:center;color:#fff;font-size:9px;font-weight:600">📷 Camera</div>
+        <div style="flex:1;padding:7px;border-radius:8px;background:transparent;text-align:center;color:var(--muted);font-size:9px;font-weight:600">⬆ Upload</div>
+      </div>
+      <!-- Viewfinder -->
+        <!-- Live Inference Badge (Enhanced) -->
+        <div style="position:absolute;bottom:15px;left:50%;transform:translateX(-50%);background:var(--green);border-radius:20px;padding:4px 10px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 15px rgba(0,0,0,0.5);white-space:nowrap;border:1px solid var(--greenL)">
+          <span style="font-size:10px">🌿</span>
+          <div style="text-align:left">
+            <div style="font-size:8px;font-weight:800;color:#fff">Healthy Maize</div>
+            <div style="font-size:6px;color:#fff;opacity:0.8">92% confidence</div>
+          </div>
+        </div>
+        <div style="text-align:center;opacity:0.5">
+          <div style="font-size:32px;margin-bottom:5px">📷</div>
+          <div style="color:var(--muted);font-size:9px">Position leaf within frame</div>
+        </div>
+        <!-- Scan line -->
+        <div style="position:absolute;left:20px;right:20px;height:1.5px;background:linear-gradient(90deg,transparent,var(--greenXL),transparent);top:50%"></div>
+      </div>
+      <!-- Privacy -->
+      <div style="display:flex;gap:5px;align-items:center;padding:6px 12px">
+        <span style="font-size:9px">🔒</span><span style="font-size:8px;color:var(--muted)">Processed locally. Not stored without consent.</span>
+      </div>
+      <!-- Scan btn -->
+      <div style="padding:0 10px 56px">
+        <button class="btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:12px">🔬 Scan Now</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item"><div class="nav-scan-btn">📷</div><span>Scan</span></div>
+        <div class="nav-item"><span class="nav-icon">📋</span><span>History</span></div>
+        <div class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">6 — Scanner</div>
+</div>
+
+<!-- ─── 7. ANALYZING ──────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+      <div style="position:relative;width:120px;height:120px;margin-bottom:20px">
+        <svg width="120" height="120" style="position:absolute;inset:0">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#2E4530" stroke-width="3"/>
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#4FCB78" stroke-width="3"
+            stroke-dasharray="270 70" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:28px">🔬</div>
+          <div style="font-size:16px;font-weight:800;color:#fff">79%</div>
+        </div>
+      </div>
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px;text-align:center">Analyzing Disease…</div>
+      <div style="color:var(--muted);font-size:10px;text-align:center;margin-bottom:20px">CNN model processing leaf patterns</div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--greenXL)">✓</span>
+          <span style="font-size:10px;color:var(--muted)">Feature extraction (ResNet-50)</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--greenXL)">✓</span>
+          <span style="font-size:10px;color:var(--muted)">Pattern matching</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;opacity:0.3">
+          <span style="font-size:11px;color:var(--muted)">○</span>
+          <span style="font-size:10px;color:var(--muted)">Confidence scoring</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">7 — Analyzing</div>
+</div>
+
+<!-- ─── 8. RESULT ─────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <!-- Header -->
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:22px 12px 12px">
+        <div style="display:flex;gap:3px;align-items:center;margin-bottom:10px;color:var(--muted);font-size:9px">← Back</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="font-size:38px">🌽</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">Leaf Blight</div>
+            <div style="color:var(--muted);font-size:9px">Maize • 2024-03-15</div>
+            <div style="margin-top:4px;display:flex;gap:5px">
+              <span class="badge badge-diseased">Diseased</span>
+              <span class="badge" style="background:#4A1A1A;color:var(--danger)">High Severity</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Confidence -->
+      <div style="padding:0 10px 6px">
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">MODEL CONFIDENCE</div>
+          <div class="conf-bar-wrap"><div class="conf-bar-header"><span>Detection Accuracy</span><strong>94%</strong></div><div class="conf-bar-track"><div class="conf-bar-fill" style="width:94%"></div></div></div>
+          <div class="conf-bar-wrap"><div class="conf-bar-header"><span>Classification Score</span><strong>89%</strong></div><div class="conf-bar-track"><div class="conf-bar-fill" style="width:89%"></div></div></div>
+          <div class="conf-bar-wrap"><div class="conf-bar-header"><span>Severity Assessment</span><strong>83%</strong></div><div class="conf-bar-track"><div class="conf-bar-fill" style="width:83%"></div></div></div>
+        </div>
+        <!-- Tabs -->
+        <div class="tab-row">
+          <div class="tab-item active">Treatment</div>
+          <div class="tab-item">Prevention</div>
+          <div class="tab-item">Details</div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div style="display:flex;gap:5px;margin-bottom:6px"><span>⚡</span><span style="font-size:10px;font-weight:700;color:#fff">Treatment Plan</span></div>
+          <div style="color:var(--muted);font-size:9px;line-height:1.7">Apply copper-based fungicide every 7 days. Remove infected leaves. Ensure adequate plant spacing.</div>
+        </div>
+        <!-- Danger alert -->
+        <div style="background:#4A1A1A;border:1px solid #D9404044;border-radius:10px;padding:8px;display:flex;gap:6px;margin-bottom:8px">
+          <span style="font-size:11px">⚠️</span>
+          <div>
+            <div style="font-size:9px;font-weight:700;color:var(--danger)">Urgent Action Required</div>
+            <div style="font-size:8px;color:#E88888;margin-top:2px">Begin treatment within 48 hours.</div>
+          </div>
+        </div>
+        <!-- Treatment Reminder (Enhanced) -->
+        <div style="background:var(--cardL);border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;gap:8px;align-items:center">
+          <span style="font-size:14px">📅</span>
+          <div>
+            <div style="font-size:9px;color:#fff;font-weight:700">Recovery Plan Scheduled</div>
+            <div style="font-size:7px;color:var(--muted)">Reminders set for Day 1, 3, and 7</div>
+          </div>
+        </div>
+      </div>
+      <!-- Actions -->
+      <div style="display:flex;gap:6px;padding:6px 10px 50px">
+        <button class="btn-primary" style="flex:1;justify-content:center;padding:8px;font-size:10px">💾 Save Result</button>
+        <button style="background:var(--card);border:1.5px solid var(--border);border-radius:9px;color:var(--greenXL);font-size:10px;font-family:'Outfit',sans-serif;font-weight:600;padding:8px 12px">Share</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item"><div class="nav-scan-btn">📷</div><span>Scan</span></div>
+        <div class="nav-item"><span class="nav-icon">📋</span><span>History</span></div>
+        <div class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">8 — Result</div>
+</div>
+
+<!-- ─── 9. HISTORY ────────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column">
+      <div style="padding:22px 12px 8px">
+        <div style="font-size:15px;font-weight:800;color:#fff">Scan History</div>
+        <div style="color:var(--muted);font-size:9px">4 total scans</div>
+      </div>
+      <!-- Filters -->
+      <div style="padding:0 10px 8px;display:flex;gap:5px">
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--greenL);background:#1A7A3C33;color:var(--greenXL);font-size:8px;font-weight:600">All</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600">Healthy</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600">Diseased</div>
+        <div style="padding:4px 9px;border-radius:7px;border:1.5px solid var(--border);color:var(--muted);font-size:8px;font-weight:600">At Risk</div>
+      </div>
+      <!-- List -->
+      <div style="flex:1;overflow:hidden;padding:0 10px 56px;display:flex;flex-direction:column;gap:6px">
+        <div class="card" style="display:flex;gap:8px;align-items:center;padding:8px">
+          <div style="font-size:22px">🌽</div>
+          <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#fff">Leaf Blight</div><div style="font-size:8px;color:var(--muted)">Maize • Field A • 2024-03-15</div><div style="margin-top:3px"><span class="badge badge-diseased">Diseased</span></div></div>
+          <div style="text-align:right"><div style="font-size:10px;color:var(--greenXL);font-weight:700">94%</div><div style="font-size:14px;color:var(--muted);margin-top:3px">🗑</div></div>
+        </div>
+        <div class="card" style="display:flex;gap:8px;align-items:center;padding:8px">
+          <div style="font-size:22px">🍅</div>
+          <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#fff">Powdery Mildew</div><div style="font-size:8px;color:var(--muted)">Tomato • Field B • 2024-03-12</div><div style="margin-top:3px"><span class="badge badge-warning">At Risk</span></div></div>
+          <div style="text-align:right"><div style="font-size:10px;color:var(--greenXL);font-weight:700">87%</div><div style="font-size:14px;color:var(--muted);margin-top:3px">🗑</div></div>
+        </div>
+        <div class="card" style="display:flex;gap:8px;align-items:center;padding:8px">
+          <div style="font-size:22px">🌿</div>
+          <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#fff">Healthy</div><div style="font-size:8px;color:var(--muted)">Cassava • Field C • 2024-03-10</div><div style="margin-top:3px"><span class="badge badge-healthy">Healthy</span></div></div>
+          <div style="text-align:right"><div style="font-size:10px;color:var(--greenXL);font-weight:700">98%</div><div style="font-size:14px;color:var(--muted);margin-top:3px">🗑</div></div>
+        </div>
+        <div class="card" style="display:flex;gap:8px;align-items:center;padding:8px">
+          <div style="font-size:22px">🍠</div>
+          <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#fff">Root Rot</div><div style="font-size:8px;color:var(--muted)">Yam • Field D • 2024-03-08</div><div style="margin-top:3px"><span class="badge badge-diseased">Diseased</span></div></div>
+          <div style="text-align:right"><div style="font-size:10px;color:var(--greenXL);font-weight:700">91%</div><div style="font-size:14px;color:var(--muted);margin-top:3px">🗑</div></div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item"><div class="nav-scan-btn">📷</div><span>Scan</span></div>
+        <div class="nav-item active"><span class="nav-icon active">📋</span><span class="active" style="color:var(--greenXL)">History</span></div>
+        <div class="nav-item"><span class="nav-icon">👤</span><span>Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">9 — History</div>
+</div>
+
+<!-- ─── 10. PROFILE ───────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:28px 16px 16px;text-align:center">
+        <div style="width:46px;height:46px;border-radius:99px;background:linear-gradient(135deg,var(--greenL),var(--green));margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:22px">👨‍🌾</div>
+        <div style="font-size:14px;font-weight:800;color:#fff">John Mensah</div>
+        <div style="color:var(--muted);font-size:9px">john.mensah@example.com</div>
+        <span style="background:#1A7A3C44;color:var(--greenXL);border-radius:6px;padding:2px 8px;font-size:8px;font-weight:700;letter-spacing:0.08em">PRO FARMER</span>
+      </div>
+      <div style="padding:0 10px 8px">
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">ACCOUNT</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;height:24px;border-radius:7px;background:var(--cardL);display:flex;align-items:center;justify-content:center;font-size:11px">👤</div>
+            <span style="flex:1;font-size:10px;color:#fff">Edit Profile</span><span style="color:var(--muted);font-size:10px">→</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0">
+            <div style="width:24px;height:24px;border-radius:7px;background:var(--cardL);display:flex;align-items:center;justify-content:center;font-size:11px">🔒</div>
+            <span style="flex:1;font-size:10px;color:#fff">Privacy & Security</span><span style="color:var(--muted);font-size:10px">→</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">PREFERENCES</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;height:24px;border-radius:7px;background:var(--cardL);display:flex;align-items:center;justify-content:center;font-size:11px">🔔</div>
+            <span style="flex:1;font-size:10px;color:#fff">Disease Alerts</span><div class="toggle"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;height:24px;border-radius:7px;background:var(--cardL);display:flex;align-items:center;justify-content:center;font-size:11px">📴</div>
+            <span style="flex:1;font-size:10px;color:#fff">Offline Mode</span><div class="toggle off"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+            <div style="width:24px;height:24px;border-radius:7px;background:var(--cardL);display:flex;align-items:center;justify-content:center;font-size:11px">🔬</div>
+            <span style="flex:1;font-size:10px;color:#fff">High Quality Scan</span><div class="toggle"></div>
+          </div>
+        </div>
+        <button style="width:100%;background:transparent;border:none;color:var(--danger);font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;padding:8px;display:flex;align-items:center;justify-content:center;gap:5px">🚪 Sign Out</button>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item"><div class="nav-scan-btn">📷</div><span>Scan</span></div>
+        <div class="nav-item"><span class="nav-icon">📋</span><span>History</span></div>
+        <div class="nav-item active"><span class="nav-icon active">👤</span><span class="active" style="color:var(--greenXL)">Profile</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">10 — Profile</div>
+</div>
+
+<!-- ─── 11. SETTINGS ──────────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <div style="padding:26px 12px 12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+          <span style="color:var(--muted);font-size:10px">←</span>
+          <div style="font-size:15px;font-weight:800;color:#fff">Settings</div>
+        </div>
+        <!-- Notifications -->
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">NOTIFICATIONS</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:13px">🔔</span><span style="flex:1;font-size:10px;color:#fff">Push Notifications</span><div class="toggle"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+            <span style="font-size:13px">📱</span><span style="flex:1;font-size:10px;color:#fff">SMS Alerts</span><div class="toggle off"></div>
+          </div>
+        </div>
+        <!-- App -->
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">APP</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:13px">🌙</span><span style="flex:1;font-size:10px;color:#fff">Dark Mode</span><div class="toggle"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:13px">🌐</span><span style="flex:1;font-size:10px;color:#fff">Language</span><span style="color:var(--muted);font-size:9px">English →</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+            <span style="font-size:13px">🗑</span><span style="flex:1;font-size:10px;color:#fff">Clear Cache</span><span style="color:var(--muted);font-size:9px">42MB →</span>
+          </div>
+        </div>
+        <!-- Model -->
+        <div class="card" style="margin-bottom:8px">
+          <div class="section-label">AI MODEL</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:13px">🧠</span><span style="flex:1;font-size:10px;color:#fff">Model Version</span><span style="color:var(--greenXL);font-size:9px;font-weight:700">v2.3.1</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0">
+            <span style="font-size:13px">⚡</span><span style="flex:1;font-size:10px;color:#fff">GPU Acceleration</span><div class="toggle"></div>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--muted);font-size:9px;margin-top:8px">CropGuard AI v2.3.1 • Build 2024.03</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">11 — Settings</div>
+</div>
+
+<!-- ─── 12. FORGOT PASSWORD ────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);display:flex;flex-direction:column;padding:28px 16px 24px">
+      <div style="margin-bottom:24px">
+        <div style="color:var(--muted);font-size:10px;margin-bottom:14px">← Back to Login</div>
+        <div style="font-size:22px;margin-bottom:10px">🔑</div>
+        <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">Reset Password</div>
+        <div style="color:var(--muted);font-size:10px;line-height:1.6">Enter your email address and we'll send you an OTP code to reset your password.</div>
+      </div>
+      <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:4px">EMAIL ADDRESS</div>
+      <div class="input-field" style="color:var(--muted)">you@example.com</div>
+      <!-- OTP Step -->
+      <div style="margin:12px 0">
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:0.08em;margin-bottom:6px">ENTER OTP CODE</div>
+        <div style="display:flex;gap:6px;justify-content:center">
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--greenL);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">4</div>
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--greenL);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">8</div>
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--greenL);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">3</div>
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted)">_</div>
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted)">_</div>
+          <div style="width:36px;height:40px;background:var(--card);border:1.5px solid var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted)">_</div>
+        </div>
+        <div style="text-align:center;color:var(--muted);font-size:9px;margin-top:8px">Resend code in <span style="color:var(--greenXL)">00:47</span></div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn-primary" style="width:100%;justify-content:center;padding:11px">Verify & Continue</button>
+    </div>
+  </div>
+  <div class="phone-label">12 — Forgot Password</div>
+</div>
+
+<!-- ─── 13. ACHIEVEMENTS ──────────────────────────────────────── -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen" style="background:var(--dark);overflow-y:auto">
+      <div style="background:linear-gradient(180deg,var(--darkM) 0%,var(--dark) 100%);padding:22px 12px 10px">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:8px">← Back</div>
+        <div style="font-size:16px;font-weight:800;color:#fff">🏆 Achievements</div>
+        <div style="font-size:8px;color:var(--muted);margin-top:2px">4 of 10 badges unlocked</div>
+      </div>
+      <div style="padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="card" style="text-align:center;background:linear-gradient(135deg,var(--greenL),var(--green))">
+          <div style="font-size:24px;margin-bottom:4px">🌱</div>
+          <div style="font-size:8px;font-weight:800;color:#fff">First Scan</div>
+          <div style="font-size:6px;color:#ffffff99">Unlocked ✓</div>
+        </div>
+        <div class="card" style="text-align:center;background:linear-gradient(135deg,var(--greenL),var(--green))">
+          <div style="font-size:24px;margin-bottom:4px">🔬</div>
+          <div style="font-size:8px;font-weight:800;color:#fff">Disease Hunter</div>
+          <div style="font-size:6px;color:#ffffff99">Unlocked ✓</div>
+        </div>
+        <div class="card" style="text-align:center;opacity:0.4">
+          <div style="font-size:24px;margin-bottom:4px">🔟</div>
+          <div style="font-size:8px;font-weight:800;color:var(--muted)">Dedicated</div>
+          <div style="font-size:6px;color:var(--muted)">6/10 scans</div>
+        </div>
+        <div class="card" style="text-align:center;opacity:0.4">
+          <div style="font-size:24px;margin-bottom:4px">🔥</div>
+          <div style="font-size:8px;font-weight:800;color:var(--muted)">Streak</div>
+          <div style="font-size:6px;color:var(--muted)">Locked</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">13 — Achievements</div>
+</div>
+
+</div><!-- /grid -->
+
+<!-- Legend -->
+<div style="max-width:1400px;margin:48px auto 0;padding:24px;background:#1C2E1E;border:1px solid #2E4530;border-radius:18px">
+  <div style="color:#fff;font-size:16px;font-weight:800;margin-bottom:16px;text-align:center">📱 Screen Flow Reference</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
+    <div style="background:#243328;border-radius:10px;padding:8px 14px;font-size:11px;color:#4FCB78;font-weight:600">Splash → Onboarding → Login/Register → Home</div>
+    <div style="background:#243328;border-radius:10px;padding:8px 14px;font-size:11px;color:#4FCB78;font-weight:600">Home → Scanner → Analyzing → Result → History</div>
+    <div style="background:#243328;border-radius:10px;padding:8px 14px;font-size:11px;color:#4FCB78;font-weight:600">Profile → Settings</div>
+    <div style="background:#243328;border-radius:10px;padding:8px 14px;font-size:11px;color:#4FCB78;font-weight:600">Login → Forgot Password → OTP → Reset</div>
+  </div>
+</div>
+
+</body>
+</html>

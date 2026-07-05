@@ -1,0 +1,4 @@
+{
+  "@@locale": "ee",
+  "@@x-status": "SCAFFOLD — needs professional Ewe translation. Every key not present here falls back to app_en.arb at runtime. Do NOT machine-translate agricultural/treatment advice; have a qualified Ewe-speaking agronomist translate. See l10n/TRANSLATIONS.md."
+}

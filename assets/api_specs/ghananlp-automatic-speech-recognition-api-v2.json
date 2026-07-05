@@ -1,0 +1,94 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Automatic Speech Recognition API",
+        "description": "Our most accurate ASR models. Outputs include punctuation, word-level timing information and supports long-form audio. Also features code-switching (able to detect English speech). It is not suited for real-time applications",
+        "termsOfService": "https://algorine.com/termsofuse/",
+        "contact": {
+            "name": "Khaya A.I",
+            "url": "https://khaya.ai/",
+            "email": "subscriptions@khaya.ai"
+        },
+        "license": {
+            "name": "End User License Agreement (EULA)",
+            "url": "https://algorine.com/termsofuse/"
+        },
+        "version": "v2"
+    },
+    "servers": [
+        {
+            "url": "https://translation-api.ghananlp.org/asr/v2"
+        }
+    ],
+    "paths": {
+        "/transcribe": {
+            "post": {
+                "summary": "Transcribes an audio from speech to text",
+                "description": "Transcribes an audio from speech to text",
+                "operationId": "648dfaa45716699ca9920d92",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "The language. Should be one of the following : Twi - tw",
+                        "required": true,
+                        "schema": {
+                            "enum": [
+                                "tw"
+                            ],
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "The audio file in binary format",
+                    "content": {
+                        "audio/mpeg": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Binary_audio"
+                            },
+                            "example": "<binary_audio>"
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transcription successful",
+                        "content": {
+                            "text/html": {}
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Binary_audio": {
+                "type": "file",
+                "format": "binary",
+                "x-apim-schema-name": "Binary audio"
+            }
+        },
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "type": "apiKey",
+                "name": "Ocp-Apim-Subscription-Key",
+                "in": "header"
+            },
+            "apiKeyQuery": {
+                "type": "apiKey",
+                "name": "subscription-key",
+                "in": "query"
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyHeader": []
+        },
+        {
+            "apiKeyQuery": []
+        }
+    ]
+}

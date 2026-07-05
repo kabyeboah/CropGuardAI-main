@@ -1,0 +1,16 @@
+{
+  "model_name": "CropGuard Plant Disease Classifier",
+  "model_file": "cropguard_plant_disease.tflite",
+  "labels_file": "labels.txt",
+  "num_classes": 93,
+  "model_v2_file": "cropguard_plant_disease_v2.tflite",
+  "labels_v2_file": "labels_v2.txt",
+  "num_classes_v2": 16,
+  "input_size": 224,
+  "input_channels": 3,
+  "normalize_mean": [0.0, 0.0, 0.0],
+  "normalize_std": [255.0, 255.0, 255.0],
+  "version": "2.0",
+  "architecture": "MobileNetV2",
+  "confidence_threshold": 0.60
+}

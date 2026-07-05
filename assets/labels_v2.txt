@@ -1,0 +1,16 @@
+Garden_Egg___Insect_Pest
+Garden_Egg___Leaf_Spot
+Garden_Egg___Mosaic_Virus
+Garden_Egg___Small_Leaf
+Garden_Egg___White_Mold
+Garden_Egg___Wilt
+Garden_Egg___healthy
+Mango___Anthracnose
+Mango___Bacterial_Canker
+Mango___Cutting_Weevil
+Mango___Die_Back
+Mango___Gall_Midge
+Mango___Powdery_Mildew
+Mango___Sooty_Mould
+Mango___healthy
+Sugarcane___Red_Rot

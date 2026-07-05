@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /community_posts/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      // Owner-only writes, capped at 5 MB and restricted to images to prevent
+      // abuse (arbitrary large or non-image uploads).
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

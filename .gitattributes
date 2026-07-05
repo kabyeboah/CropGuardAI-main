@@ -1,0 +1,41 @@
+# Enforce Unix LF line endings for all text files in this repo.
+# This prevents CRLF / LF mixed endings across operating systems.
+#
+# On checkout: convert to OS native (macOS/Linux → LF, Windows → CRLF).
+# On commit: normalize to LF regardless of OS.
+
+* text=auto eol=lf
+
+# Dart / Flutter source must always use LF
+*.dart    text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.txt     text eol=lf
+*.arb     text eol=lf
+*.gradle  text eol=lf
+*.kt      text eol=lf
+*.swift   text eol=lf
+*.xml     text eol=lf
+*.html    text eol=lf
+*.css     text eol=lf
+*.js      text eol=lf
+*.sh      text eol=lf
+
+# Firestore / Storage rules
+*.rules   text eol=lf
+
+# Binary assets — never diff or normalize these
+*.tflite  binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary
+*.pdf     binary
+*.zip     binary

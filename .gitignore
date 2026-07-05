@@ -1,0 +1,66 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Android
+.gradle/
+local.properties
+*.keystore
+*.jks
+*.properties
+flutter_bundle_resources/
+libs/
+jniLibs/
+local-engine-repo/
+
+# iOS
+.generated/
+Flutter/Flutter.framework
+Flutter/Flutter.podspec
+Flutter/Generated.xcconfig
+Flutter/flutter_export_environment.sh
+ServiceDefinitions.json
+Runner/GeneratedPluginRegistrant.h
+Runner/GeneratedPluginRegistrant.m
+Pods/
+.symlinks/
+*.lock
+*.mode1v3
+*.mode2v3
+*.normal
+*.perspectivev3
+*.pbxuser
+*.xcworkspace
+userdata/
+ios/Config/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+Pods/
+
+# Environment
+.env
+.env.local
+secrets.env
+!.env.example
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Misc
+.DS_Store
+*.log
+doc/api/
+ios/Flutter/.last_build_id
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/Flutter/Secrets.xcconfig

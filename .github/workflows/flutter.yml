@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Pin the Flutter version to match the team's local toolchain.
+env:
+  FLUTTER_VERSION: "3.27.0"
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # A real .env is never committed. Generated localization + analysis only
+      # need a placeholder so dotenv asset loading does not fail at build time.
+      - name: Create placeholder .env
+        run: |
+          cat > .env <<'EOF'
+          GHANA_NLP_SUBSCRIPTION_KEY=
+          CLOUDINARY_CLOUD_NAME=
+          CLOUDINARY_UPLOAD_PRESET=
+          EOF
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Verify formatting
+        # Non-blocking for now — flip to a hard gate once the tree is fully
+        # formatted (run `dart format lib test` locally and commit).
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+  build-android:
+    name: Build Android (release AAB)
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+    # Only build a shippable artifact on pushes to main, not on every PR.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Decode the release keystore from a base64 GitHub Secret. build.gradle.kts
+      # reads STORE_FILE/KEY_ALIAS/KEY_PASSWORD/STORE_PASSWORD from the
+      # environment when android/key.properties is absent (it is gitignored).
+      - name: Decode release keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      # Secrets are injected at build time — never committed. Configure these in
+      # GitHub repo Settings → Secrets and variables → Actions.
+      - name: Build release AAB (signed)
+        env:
+          STORE_FILE: ${{ runner.temp }}/release.jks
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define=GHANA_NLP_SUBSCRIPTION_KEY=${{ secrets.GHANA_NLP_SUBSCRIPTION_KEY }} \
+            --dart-define=CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }} \
+            --dart-define=CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error

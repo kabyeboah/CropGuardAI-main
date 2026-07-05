@@ -1,0 +1,364 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../../../domain/models/detection_result.dart';
+import '../../../domain/repositories/i_auth_repository.dart';
+import '../../../domain/usecases/scanner/scan_crop_usecase.dart';
+import '../../../core/utils/image_quality_analyzer.dart';
+import '../../../core/utils/analytics_service.dart';
+
+/// Decodes an image file and runs the quality heuristics. Top-level so it can
+/// be sent to a `compute()` isolate. Returns null when the file can't be
+/// decoded (treated as "no objection" — inference still runs).
+ImageQualityResult? _analyzeQualityIsolate(String imagePath) {
+  final bytes = File(imagePath).readAsBytesSync();
+  final image = img.decodeImage(bytes);
+  if (image == null) return null;
+  return ImageQualityAnalyzer.analyze(image);
+}
+
+enum ScanMode { camera, gallery }
+
+class ImageQuality {
+  final double focusScore;
+  final double brightnessScore;
+  final bool acceptable;
+
+  const ImageQuality({
+    this.focusScore = 1,
+    this.brightnessScore = 1,
+    this.acceptable = true,
+  });
+}
+
+class ScannerProvider extends ChangeNotifier {
+  final ScanCropUseCase _scanCropUseCase;
+  final IAuthRepository _authRepository;
+  final AnalyticsService _analytics;
+
+  ScannerProvider(this._scanCropUseCase, this._authRepository, this._analytics);
+
+  CameraController? cameraController;
+  List<CameraDescription> cameras = [];
+  bool cameraInitialized = false;
+  bool torchOn = false;
+  bool isAnalysing = false;
+  String? capturedImagePath;
+  ScanMode mode = ScanMode.camera;
+  ImageQuality quality = const ImageQuality();
+  ScanPreviewQuality? previewQuality;
+  String? errorMessage;
+  List<String> batchImagePaths = [];
+  bool batchMode = false;
+
+  // Frame-analysis throttle state.
+  bool _isStreamingFrames = false;
+  DateTime? _lastFrameProcessedAt;
+
+  // Guards against re-entrant initialisation. initCamera is now called from
+  // the screen's lifecycle observer (app resume) and on return from the
+  // analysing route, so it must not build a second controller and leak the
+  // first one if a previous init is already in flight or complete.
+  bool _initializing = false;
+
+  Future<void> initCamera() async {
+    if (_initializing || cameraInitialized) return;
+    _initializing = true;
+    try {
+      cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+
+      final cam = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+
+      cameraController = CameraController(
+        cam,
+        ResolutionPreset.high,
+        enableAudio: false,
+        imageFormatGroup:
+            defaultTargetPlatform == TargetPlatform.iOS
+                ? ImageFormatGroup.bgra8888
+                : ImageFormatGroup.yuv420,
+      );
+      await cameraController!.initialize();
+      cameraInitialized = true;
+      notifyListeners();
+      await _startFrameAnalysis();
+    } catch (e) {
+      errorMessage = 'Camera unavailable: $e';
+      notifyListeners();
+    } finally {
+      _initializing = false;
+    }
+  }
+
+  Future<void> _startFrameAnalysis() async {
+    if (cameraController == null || !cameraInitialized) return;
+    if (_isStreamingFrames) return;
+
+    try {
+      _isStreamingFrames = true;
+      await cameraController!.startImageStream((image) {
+        // Timestamp gate — analyse at most once every 150 ms (~6 fps).
+        // Using the CameraImage immediately (not caching it) avoids the
+        // stale-buffer risk of storing a reference for later use.
+        final now = DateTime.now();
+        final last = _lastFrameProcessedAt;
+        if (last != null && now.difference(last).inMilliseconds < 150) return;
+        _lastFrameProcessedAt = now;
+        previewQuality = ImageQualityAnalyzer.previewFromCameraImage(image);
+        notifyListeners();
+      });
+    } catch (_) {
+      _isStreamingFrames = false;
+    }
+  }
+
+  Future<void> _stopFrameAnalysis() async {
+    _isStreamingFrames = false;
+    _lastFrameProcessedAt = null;
+
+    final controller = cameraController;
+    if (controller == null || !controller.value.isStreamingImages) return;
+
+    try {
+      await controller.stopImageStream();
+    } catch (_) {
+      // Driver already stopped the stream — continue.
+    }
+  }
+
+  Future<void> toggleTorch() async {
+    if (cameraController == null || !cameraInitialized) return;
+    final next = !torchOn;
+    try {
+      // Devices without a flash unit throw here — keep torchOn in sync with
+      // the real hardware state instead of optimistically flipping it.
+      await cameraController!.setFlashMode(
+        next ? FlashMode.torch : FlashMode.off,
+      );
+      torchOn = next;
+    } catch (_) {
+      errorMessage = 'Torch is not available on this device.';
+    }
+    notifyListeners();
+  }
+
+  Future<String?> captureImage() async {
+    if (cameraController == null || !cameraInitialized) return null;
+
+    final controller = cameraController!;
+    await _stopFrameAnalysis();
+
+    try {
+      final file = await controller.takePicture();
+      capturedImagePath = file.path;
+      notifyListeners();
+      return file.path;
+    } catch (e) {
+      errorMessage = 'Failed to capture image.';
+      notifyListeners();
+      return null;
+    } finally {
+      await _startFrameAnalysis();
+    }
+  }
+
+  Future<String?> pickFromGallery() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+    );
+    if (file == null) return null;
+
+    capturedImagePath = file.path;
+    notifyListeners();
+    return file.path;
+  }
+
+  Future<String?> downloadFromUrl(String url) async {
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final uri = Uri.parse(url);
+      final response =
+          await http.get(uri).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        errorMessage = 'Could not download image (HTTP ${response.statusCode}).';
+        notifyListeners();
+        return null;
+      }
+      final contentType = response.headers['content-type'] ?? '';
+      if (!contentType.startsWith('image/')) {
+        errorMessage = 'URL does not point to an image.';
+        notifyListeners();
+        return null;
+      }
+      final dir = await getTemporaryDirectory();
+      final ext = contentType.contains('png') ? 'png' : 'jpg';
+      final file = File(
+          '${dir.path}/url_scan_${DateTime.now().millisecondsSinceEpoch}.$ext');
+      await file.writeAsBytes(response.bodyBytes);
+      capturedImagePath = file.path;
+      notifyListeners();
+      return file.path;
+    } catch (e) {
+      errorMessage = 'Failed to load image from URL.';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<void> addToBatch() async {
+    final path = await pickFromGallery();
+    if (path != null) {
+      addCapturedToBatch(path);
+    }
+  }
+
+  void addCapturedToBatch(String path) {
+    batchImagePaths.add(path);
+    notifyListeners();
+  }
+
+  void setBatchMode(bool v) {
+    batchMode = v;
+    batchImagePaths.clear();
+    notifyListeners();
+
+    if (v) {
+      unawaited(_startFrameAnalysis());
+    }
+  }
+
+  Future<List<DetectionResult>> analyseBatch() async {
+    if (batchImagePaths.isEmpty) return [];
+
+    isAnalysing = true;
+    errorMessage = null;
+    notifyListeners();
+
+    final userId = _authRepository.currentUser?.id ?? 'guest';
+    final results = <DetectionResult>[];
+    var failures = 0;
+
+    for (final path in List<String>.from(batchImagePaths)) {
+      final result = await _scanCropUseCase(path, userId);
+      if (result.isSuccess && result.data != null) {
+        results.add(result.data!);
+      } else {
+        failures++;
+      }
+    }
+
+    isAnalysing = false;
+    if (results.isEmpty) {
+      errorMessage = failures > 0
+          ? 'Batch analysis failed for all images.'
+          : 'No images to analyse.';
+    } else if (failures > 0) {
+      errorMessage =
+          'Analysed ${results.length} of ${batchImagePaths.length} images.';
+    }
+    batchImagePaths.clear();
+    batchMode = false;
+    notifyListeners();
+    return results;
+  }
+
+  Future<void> releaseCamera() async {
+    await _stopFrameAnalysis();
+    await cameraController?.dispose();
+    cameraController = null;
+    cameraInitialized = false;
+    torchOn = false;
+    notifyListeners();
+  }
+
+  Future<DetectionResult?> analyseAndSave(String imagePath) async {
+    isAnalysing = true;
+    errorMessage = null;
+    notifyListeners();
+    unawaited(_analytics.logScanStarted(source: mode == ScanMode.gallery ? 'gallery' : 'camera'));
+
+    try {
+      // Decode + analyse on a background isolate: the captured JPEG is full
+      // camera resolution, so decoding it on the UI thread janks low-end
+      // phones for hundreds of ms before inference even starts.
+      final qualityCheck = await compute(_analyzeQualityIsolate, imagePath);
+
+      if (qualityCheck != null && !qualityCheck.isAcceptable) {
+        errorMessage = _getQualityErrorMessage(qualityCheck.issue);
+        isAnalysing = false;
+        notifyListeners();
+        unawaited(_analytics.logScanFailed(reason: 'quality_${qualityCheck.issue?.name ?? 'unknown'}'));
+        return null;
+      }
+
+      final userId = _authRepository.currentUser?.id ?? 'guest';
+      final result = await _scanCropUseCase(imagePath, userId);
+
+      if (result.isError) {
+        errorMessage = result.failure!.message;
+        isAnalysing = false;
+        notifyListeners();
+        unawaited(_analytics.logScanFailed(reason: 'inference'));
+        return null;
+      }
+
+      isAnalysing = false;
+      notifyListeners();
+      final detection = result.data;
+      if (detection != null) {
+        if (detection.confidence < 0.60) {
+          unawaited(_analytics.logLowConfidence(confidence: detection.confidence));
+        }
+        unawaited(_analytics.logScanCompleted(
+          disease: detection.diseaseLabel,
+          confidence: detection.confidence,
+          isHealthy: detection.isHealthy,
+        ));
+      }
+      return detection;
+    } catch (e) {
+      errorMessage = 'Analysis failed: $e';
+      isAnalysing = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  String _getQualityErrorMessage(ImageQualityIssue? issue) {
+    switch (issue) {
+      case ImageQualityIssue.blurry:
+        return 'Image is too blurry. Please hold the camera steady.';
+      case ImageQualityIssue.tooDark:
+        return 'Image is too dark. Please use more light or the torch.';
+      case ImageQualityIssue.tooBright:
+        return 'Image is too bright. Please avoid direct glare.';
+      case ImageQualityIssue.tooSmall:
+        return 'Image resolution is too low.';
+      default:
+        return 'Poor image quality detected.';
+    }
+  }
+
+  @override
+  void dispose() {
+    // Stop the image stream before tearing down the controller so no frame
+    // callback fires against a disposed controller.
+    unawaited(_stopFrameAnalysis());
+    cameraController?.dispose();
+    super.dispose();
+  }
+}

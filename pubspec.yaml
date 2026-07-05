@@ -1,0 +1,144 @@
+name: cropguard_flutter
+description: CropGuard AI - Crop Disease Detection App (Flutter)
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Navigation
+  go_router: ^17.3.0
+
+  # Firebase
+  firebase_core: ^4.10.0
+  firebase_auth: ^6.5.2
+  cloud_firestore: ^6.5.0
+  firebase_storage: ^13.4.2
+  firebase_remote_config: ^6.5.2
+  firebase_app_check: ^0.4.4
+  google_sign_in: ^6.2.2
+
+  # Local storage
+  sqflite: ^2.3.3+1
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+  path: ^1.9.0
+
+  # State management / DI
+  provider: ^6.1.2
+  get_it: ^9.2.1
+
+  # Camera
+  camera: ^0.10.5+9
+
+  # ML / TFLite
+  tflite_flutter: ^0.12.1
+  image: ^4.2.0
+
+  # Image handling
+  cached_network_image: ^3.4.1
+  image_picker: ^1.1.2
+
+  # Biometric
+  local_auth: ^3.0.1
+
+  # Text-to-speech
+  flutter_tts: ^4.0.2
+
+  # Background tasks
+  workmanager: ^0.9.0
+
+  # Permissions
+  permission_handler: ^12.0.3
+
+  # Internationalization
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+
+  # Charts (disease trend)
+  fl_chart: ^1.2.0
+
+  # Notifications
+  flutter_local_notifications: ^22.0.0
+
+  # PDF & Sharing
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  share_plus: ^13.1.0
+
+  # Store Features
+  in_app_review: ^2.0.9
+  in_app_update: ^4.2.5
+
+  # Feedback
+  vibration: ^3.1.8
+  audioplayers: ^6.0.0
+
+  # Security
+  flutter_jailbreak_detection: ^1.1.0
+
+  # Connectivity
+  connectivity_plus: ^7.1.1
+
+  # Deep links / App Links (password-reset email opens the app)
+  app_links: ^6.3.2
+
+  # ID generation
+  uuid: ^4.5.1
+
+  # Location
+  geolocator: ^14.0.2
+
+  # Environment / secrets
+  flutter_dotenv: ^6.0.1
+
+  # HTTP (weather)
+  http: ^1.2.2
+
+  # Maps (outbreak map) — OpenStreetMap via flutter_map: no API key, no billing.
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
+  # Marker clustering for dense outbreak pins.
+  flutter_map_marker_cluster: ^8.2.2
+  # Persistent, larger on-disk cache for offline map tiles.
+  flutter_cache_manager: ^3.4.1
+
+  package_info_plus: ^10.1.0
+  firebase_crashlytics: ^5.2.3
+  firebase_analytics: ^12.0.0
+  flutter_windowmanager_plus: ^1.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+  mocktail: ^1.0.4
+  sqflite_common_ffi: ^2.3.3
+
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    # NOTE: .env is intentionally NOT bundled — secrets must never ship inside
+    # the app binary. Release builds supply secrets via --dart-define or Firebase
+    # Remote Config (see core/config/app_secrets.dart). .env is loaded at runtime
+    # only when present (local dev); see main.dart.
+    #
+    # ML models and label files — listed explicitly so it is auditable which
+    # files ship in the binary. Do NOT use a bare `assets/` glob here; it hides
+    # accidental inclusions and made labels_v2.txt / the v2 model undeclared.
+    - assets/cropguard_plant_disease.tflite
+    - assets/cropguard_plant_disease_v2.tflite
+    - assets/labels.txt
+    - assets/labels_v2.txt
+    - assets/model_metadata.json
+    - assets/api_specs/
+    - assets/diseases/

@@ -1,0 +1,138 @@
+# CropGuard AI — Cursor Rules (Android / Jetpack Compose)
+
+You are building **CropGuard AI** — a production Android app for AI crop disease detection.
+
+## STACK (this repo)
+
+Kotlin | Jetpack Compose | Material 3 | Navigation Compose | Hilt | Coroutines / Flow
+Firebase (Auth, Firestore, FCM) | Room (where used) | Coil | Gradle (Kotlin DSL)
+
+## THEME (dark green)
+
+Prefer theme tokens: `CropGuardColors`, `MaterialTheme.colorScheme`, `MaterialTheme.typography`.
+Avoid hardcoded `Color(0x...)` except where theme constants already define gradients.
+
+## ARCHITECTURE
+
+- `domain/` — entities, repository interfaces, use cases (no Android UI framework imports in pure domain code where possible).
+- `data/` — implementations, remote/local sources.
+- `presentation/` — screens (`*Screen.kt`), ViewModels, navigation, reusable `components/`.
+- Dependency direction: UI → ViewModel → use cases → repositories; avoid “logic in composables” for business rules.
+- **Performance and refactors** must preserve layering above: no shortcuts that bypass repositories/use cases for “speed”; profile before optimizing; avoid blocking main thread; prefer stable keys and remember in lists.
+
+## GLOBAL ACCESSIBILITY
+
+- **Touch targets:** interactive controls must be at least **48×48 dp**. Use `Modifier.minimumTouchTarget()` from `presentation/theme/Accessibility.kt` on small clickables (icon-only, chip rows); full-width `PrimaryButton` / `LimeButton` already meet this via `heightIn`.
+- **Text:** use `MaterialTheme.typography` and theme colors; no body text smaller than `labelSmall` for primary content; avoid low-contrast pairings (prefer `CropGuardColors.OnBackground` on `Background`, test muted text on real devices).
+- **Screen readers:** every `Image`, `Icon` (when tappable), and non-obvious control needs `contentDescription` or `semantics { contentDescription = … }` from `strings.xml` where user-visible.
+- **Semantics:** use `Modifier.semantics` / `accessibleButton()` for custom click targets that are not standard Material components.
+- **No tiny UI:** avoid `Modifier.size` below 48 dp for sole hit targets; prefer expanding padding or `minimumTouchTarget()`.
+
+## GLOBAL ERROR HANDLING & NETWORK
+
+- **Never show a blank screen** for data-driven flows: always at least one of loading, empty, error, or offline.
+- Map repository `Result` / failures in ViewModels to UI state; composables render **loading**, **error** (with message + **retry** where meaningful), **empty**, and **offline** (`OfflineBanner` + disabled or degraded actions as designed).
+- Handle: **no internet**, **slow/unreliable** (timeouts, cancellation), **empty lists**, **permission denied** (see below), **missing data** (null scan, etc.).
+- **Retry:** destructive or network actions should offer retry when safe; use `stringResource` for messages.
+
+## GLOBAL PERMISSIONS
+
+- Request permissions **only when needed** (e.g. camera when user opens scanner flow).
+- Show **rationale** copy before or with the system prompt (`scanner_permission_camera_rationale` pattern).
+- **Deny:** show inline message and path to Settings only when feature is unusable without permission; do not crash.
+- **Permanent deny:** offer “Open settings” via `Intent` when appropriate; never assume grant.
+- Missing permission must **not** crash — guard code paths and show UI fallback.
+
+## GLOBAL CONSISTENCY
+
+- **Spacing:** default screen horizontal padding **16.dp**; section gaps **16.dp** unless a screen already defines a pattern — extend existing patterns, do not invent a third.
+- **Components:** prefer `CropGuardCard`, `PrimaryButton`, `LimeButton`, `SectionLabel`, `BottomNavBar`, `OfflineBanner` before adding one-off styled duplicates.
+- **Navigation:** use `NavRoute` and shared graph patterns; no ad-hoc deep links without updating the graph.
+- **State:** UI state in ViewModel + `StateFlow`; one-off events consider `Channel` / callback — avoid business logic in composables.
+
+## WHEN MODIFYING CODE
+
+- Check impact on: **other screens**, **navigation**, **Hilt modules**, **repositories**, **performance** (recomposition, list scrolling), **accessibility**, **state** (new fields propagate to UI).
+- Do not remove loading/error/empty handling when refactoring.
+- Run `./gradlew :app:assembleDebug` (or `compileDebugKotlin`) after non-trivial changes.
+
+## WHEN WRITING NEW CODE
+
+- Prefer **clear, boring code** over clever; document **why** for non-obvious choices.
+- Consider **low-end devices** (avoid huge bitmaps on main thread; reuse existing image pipelines), **small screens** (scroll, weight, no fixed heights for text blocks), **bad network** (timeouts, offline mode, no infinite spinners without message).
+- **Maintainability:** shared strings, one pattern per concern, tests for use cases when logic grows.
+
+## COMPOSE LAYOUT RULES
+
+- Root screen content: `Modifier.fillMaxSize()` where the screen should use the full viewport; respect `Scaffold` `paddingValues`.
+- Prefer `Column` / `Row` / `Box` with explicit `Arrangement` and `Alignment`; use `Arrangement.spacedBy` or `Spacer(height/width)` for consistent spacing (16.dp default for screen padding).
+- **Cards:** `CropGuardCard` lays out content in a `Column` (not `Box`) so multiple children never overlap.
+- **Rows with text:** use `Modifier.weight(1f)` on text/`Column` that should absorb width to avoid overflow and overlap.
+- Primary actions: `Modifier.fillMaxWidth()` on buttons when they should span the content width.
+- Long forms: `verticalScroll(rememberScrollState())` on the scrollable container.
+- Lists: `LazyColumn` / `LazyRow` with stable keys for dynamic data.
+
+## STRINGS & RESOURCES
+
+- User-visible strings: `stringResource(R.string.*)` or `strings.xml` — avoid hardcoded production copy where a resource already exists.
+
+## QUALITY
+
+- Handle loading, error, and empty states on data-driven screens where applicable.
+- No `println` in production paths; use logging utilities if the project adds them.
+- Run `./gradlew :app:assembleDebug` after non-trivial UI changes.
+
+## KNOWN UI PATTERNS (regressions to avoid)
+
+- **Home:** Banner CTA must not overlap title/body — use a `Column` with `verticalArrangement = spacedBy`, full-width `LimeButton`.
+- **Scanner:** Permission rationale + OK in a `Column`; OK uses `fillMaxWidth()`; use `Spacer(Modifier.weight(1f))` before bottom primary action when distributing vertical space.
+- **History:** Empty state centered in remaining space — `Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Center)`.
+- **Profile:** Multiple rows inside `CropGuardCard` are stacked by the card’s internal `Column`; no extra wrapper required.
+
+## CROPS (product)
+
+Maize, Tomato, Cassava, Yam (extend as needed to match domain and UI chips).
+
+## NEVER
+
+- Stack multiple unrelated composables as direct children of a `Box` without positioning when you mean vertical layout (use `Column`).
+- Ignore `Result` / error flows from repositories in ViewModels without mapping to UI state.
+- Add API keys or secrets to source control; use `local.properties` / env patterns already used by the project.
+
+## SCREENS (approximate — follow `NavRoute` / `CropGuardNavGraph`)
+
+Splash, Onboarding, Login, Register, Forgot password, Home, Scanner, Result, History, Profile, Edit profile, Settings, etc.
+
+## ML MODEL CONTRACT (spec vs current build)
+
+- **Target contract (future v2):** 300×300×3 float32, normalized to **[-1, 1]**, INT8 EfficientNet-B3–class model ~12 MB, bundled name may be `crop_disease_model.tflite`.
+- **Current build:** [`CropDiseaseClassifier`](app/src/main/java/com/cropguard/ai/ml/CropDiseaseClassifier.kt) uses **224×224**, RGB **0–1**, asset `cropguard_model.tflite`, 38 classes. Do not change input/normalization until a matching `.tflite` + `labels` ship; use **Remote Config** / **modelVersion** to coordinate upgrades.
+
+## CODE STANDARDS (non-negotiable)
+
+- Single Activity, Compose `NavHost` — no Fragments for new UI.
+- Each screen: **Loading / Success / Error** (sealed `UiState` or equivalent) exposed from ViewModel.
+- ViewModels expose **`StateFlow`** for UI state — not `LiveData`.
+- **No `GlobalScope`** — `viewModelScope` / `lifecycleScope` / structured concurrency only.
+- **All TFLite inference** on `Dispatchers.IO` (or injected IO dispatcher), never Main.
+- **Firestore writes** should use `FieldValue.serverTimestamp()` where timestamps are stored server-side.
+- **No hardcoded user-facing strings** — `strings.xml` (or existing resource pattern).
+- Prefer **theme tokens** over raw `Color(0x…)` for production UI.
+- **@Preview** for new screens when practical.
+- **Unit tests** for non-trivial use cases.
+- Repository APIs that can fail: prefer **`Result<T>`** or sealed outcomes; map to UI in ViewModels.
+
+## CURSOR BEHAVIOUR (when implementing features)
+
+1. Scaffold full files when adding screens/modules; follow existing `com.cropguard.ai` packages (`data`, `domain`, `presentation`, `di`).
+2. Add new Gradle deps to **`gradle/libs.versions.toml`** and **`app/build.gradle.kts`**.
+3. New Room entities → bump DB version + migration; rebuild.
+4. New `NavRoute` → register in [`CropGuardNavGraph`](app/src/main/java/com/cropguard/ai/presentation/navigation/CropGuardNavGraph.kt).
+5. Firebase Security Rules / Functions → **deploy in Console** (not automatic from repo unless `functions/` exists).
+6. After changing TFLite preprocessing, verify **input tensor shape** matches the bundled/downloaded model.
+7. New **permissions** → `AndroidManifest.xml` + runtime flow + rationale strings.
+8. Wrap risky **Firebase** calls in `try/catch`; log to **Crashlytics** when configured (non-PII).
+9. Gate optional product features behind **Remote Config** when flags exist (`feature_weather_enabled`, `feature_community_enabled`, etc.).
+10. Keep composables **focused**; extract subcomponents when a file grows large.
+11. **Material 3** only for new Material components.
+12. **Never** commit `google-services.json` secrets into public docs; use `BuildConfig` / `local.properties` for non-secret build config only.

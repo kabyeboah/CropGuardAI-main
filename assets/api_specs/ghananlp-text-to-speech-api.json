@@ -1,0 +1,143 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Text-To-Speech API",
+        "description": "Text-to-Speech API for synthesizing text into audio",
+        "version": "v1"
+    },
+    "servers": [
+        {
+            "url": "https://translation-api.ghananlp.org/tts/v1"
+        }
+    ],
+    "paths": {
+        "/tts": {
+            "post": {
+                "summary": "Synthesize text (Deprecated)",
+                "description": "Synthesize text (Deprecated)",
+                "operationId": "65ce5fcab695cd3b1a5e1fff",
+                "requestBody": {
+                    "description": "The text to be synthesized should be provided in the text field\nUse the /languages and /speakers endpoints to get the available languages and speakers for the payload",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TTS_JSON_Request"
+                            },
+                            "example": {
+                                "text": "Ɛte sɛn?",
+                                "language": "tw",
+                                "speaker_id": "twi_speaker_4"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "audio/wav": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/synthesize": {
+            "post": {
+                "summary": "Synthesize text",
+                "description": "Synthesize text",
+                "operationId": "67b9c893fc03f0ed64272f2e",
+                "requestBody": {
+                    "description": "The text to be synthesized should be provided in the text field\nUse the /languages and /speakers endpoints to get the available languages and speakers for the payload",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TTS_JSON_Request"
+                            },
+                            "example": {
+                                "text": "Ɛte sɛn?",
+                                "language": "tw",
+                                "speaker_id": "twi_speaker_4"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "An audio file in WAV format",
+                        "content": {
+                            "audio/wav": {}
+                        }
+                    }
+                }
+            }
+        },
+        "/languages": {
+            "get": {
+                "summary": "Get list of all supported languages",
+                "description": "Get list of all supported languages",
+                "operationId": "get-list-of-all-supported-languages",
+                "responses": {
+                    "200": {
+                        "description": "null"
+                    }
+                }
+            }
+        },
+        "/speakers": {
+            "get": {
+                "summary": "Get list of all available speakers",
+                "description": "Get list of all available speakers",
+                "operationId": "get-list-of-all-available-speakers",
+                "responses": {
+                    "200": {
+                        "description": "null"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "TTS_JSON_Request": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "speaker_id": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "text": "Ɛte sɛn?",
+                    "language": "tw",
+                    "speaker_id": "twi_speaker_4"
+                },
+                "x-apim-schema-name": "TTS JSON Request"
+            }
+        },
+        "securitySchemes": {
+            "apiKeyHeader": {
+                "type": "apiKey",
+                "name": "Ocp-Apim-Subscription-Key",
+                "in": "header"
+            },
+            "apiKeyQuery": {
+                "type": "apiKey",
+                "name": "subscription-key",
+                "in": "query"
+            }
+        }
+    },
+    "security": [
+        {
+            "apiKeyHeader": []
+        },
+        {
+            "apiKeyQuery": []
+        }
+    ]
+}
