@@ -5,139 +5,174 @@
 [![Platform support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
 [![Offline First](https://img.shields.io/badge/Offline--First-100%25%20Functionality-brightgreen.svg)](#)
 [![Target Region](https://img.shields.io/badge/Region-Ghana%20%2F%20Sub--Saharan%20Africa-orange.svg)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#)
 
-CropGuard AI is a production-grade, offline-first mobile application developed in Flutter. It is designed to assist smallholder farmers in Ghana and Sub-Saharan Africa in instantly detecting plant diseases and applying appropriate agricultural treatments without requiring a persistent internet connection.
+**CropGuard AI** is a production-grade, offline-first mobile application built with Flutter & Dart. It is tailored specifically for smallholder farmers in Ghana and Sub-Saharan Africa to instantly diagnose crop diseases on-device using quantized TensorFlow Lite models, access localized treatment recommendations, track outbreak alerts on an offline-capable interactive map, and receive audio assistance in native regional languages.
 
 ---
 
-## 🏗️ Clean Architecture Overview
+## 🏗️ Clean Architecture
 
-CropGuard AI is built following a strict **Clean Architecture** design pattern. It enforces unidirectional dependency flow: **UI (Widgets) ➔ State (Providers) ➔ Use Cases ➔ Repositories (Interfaces) ➔ Data Sources (Implementations & Services)**. 
+The project strictly follows **Clean Architecture** principles to separate concerns into predictable, testable, and maintainable layers. Dependencies flow inwards: **Presentation (UI & Providers) ➔ Domain (Use Cases & Entities) ➔ Data (Repositories, Local DB & Remote Services)**.
 
-Dependency Injection is managed globally via [GetIt](https://pub.dev/packages/get_it) in [service_locator.dart](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/di/service_locator.dart).
+Global Dependency Injection is configured using [GetIt](https://pub.dev/packages/get_it) in [`lib/core/di/service_locator.dart`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/di/service_locator.dart).
 
 ```
 lib/
 ├── main.dart                  # Zone-guarded bootstrap, Firebase initialization & background workers
 ├── app.dart                   # MaterialApp.router config, global theme, and localized locales
 ├── core/
-│   ├── di/                    # GetIt service registrations (service_locator.dart)
-│   ├── theme/                 # Harmonized brand colors, typography tokens, and layout guidelines
-│   ├── config/                # Environment-specific AppSecrets resolving mechanism
-│   ├── error/                 # Domain-agnostic failures
-│   └── utils/                 # Utilities: Result wrapper, connectivity monitoring, app lock, loggers
+│   ├── config/                # Secrets resolution (AppSecrets) & feature flag configurations
+│   ├── di/                    # GetIt service locator setup (service_locator.dart)
+│   ├── error/                 # Domain failures & exception mappers
+│   ├── theme/                 # Harmonized brand colors, typography tokens, and light/dark themes
+│   └── utils/                 # Utilities: Result wrapper, connectivity, app lock, input sanitizer, loggers
 ├── domain/
-│   ├── models/                # Plain Dart objects representing domain entities (DetectionResult, AppUser)
-│   ├── repositories/          # Abstract contracts defining repository interfaces
-│   └── usecases/              # Independent business logic commands (e.g., ScanCropUseCase)
+│   ├── models/                # Pure Dart domain entities (DetectionResult, AppUser, OutbreakReport, etc.)
+│   ├── repositories/          # Abstract contracts for scanner, history, community, auth, etc.
+│   └── usecases/              # Isolated business rules (e.g. ScanCropUseCase, LoginUseCase)
 ├── data/
-│   ├── local/                 # Database helper using sqflite (SQLite) for history and trackers
-│   ├── ml/                    # TFLite classifier wrapper doing on-device tensor calculations
-│   ├── remote/                # Integration with Cloudinary, Firebase (Auth, Firestore, Storage), GhanaNLP
-│   └── repositories/          # Concrete implementation of domain interfaces mapping raw data to models
+│   ├── local/                 # On-device SQLite database helpers (sqflite) & cache storage
+│   ├── ml/                    # TFLite classifier engine & ImageQualityAnalyzer validation
+│   ├── remote/                # Cloudinary, Firebase (Auth, Firestore, Storage, Remote Config), GhanaNLP API
+│   └── repositories/          # Concrete implementation of domain repository interfaces
 └── presentation/
-    ├── navigation/            # GoRouter structure with guards (app_router.dart)
-    ├── components/            # Standardized responsive UI components (CropGuardCard, PrimaryButton)
-    └── screens/               # 21 feature subdirectories separating screens and state providers
+    ├── components/            # Standardized accessible UI widgets (CropGuardCard, PrimaryButton, etc.)
+    ├── navigation/            # GoRouter configuration & auth/biometric route guards (app_router.dart)
+    └── screens/               # 22 feature screen modules (screens & provider controllers):
+        ├── analysing/          # Processing & image quality check feedback animation
+        ├── community/          # Peer forum, diagnostic sharing & expert Q&A
+        ├── error/              # Standardized failure fallback screen
+        ├── forgot_password/    # Password reset link dispatcher
+        ├── history/            # Searchable, filterable scan history log
+        ├── home/               # Dashboard, quick scan CTA, weather & disease risk forecast
+        ├── legal/              # Privacy policy & terms of service
+        ├── library/            # Offline disease handbook & treatment guides
+        ├── lock/               # Biometric security overlay screen
+        ├── login/              # Phone / email authentication screen
+        ├── more/               # Secondary options & regional configurations
+        ├── notifications/      # In-app outbreak alerts & broadcast feed
+        ├── onboarding/         # First-time app walkthrough & permission prompts
+        ├── outbreak_map/       # OpenStreetMap interactive disease cluster map
+        ├── profile/            # Farmer profile, crop preferences & farm location
+        ├── register/           # User onboarding & sign-up screen
+        ├── reset_password/     # Password reset confirmation screen
+        ├── result/             # Scan diagnosis, confidence breakdown & action buttons
+        ├── scanner/            # Live camera view, image upload & guidance overlay
+        ├── settings/           # Language preference, biometric lock & app preferences
+        ├── splash/             # Startup splash & initialization check
+        └── treatment_tracker/  # Chemical/organic recovery schedule tracker
 ```
 
 ---
 
-## 🌟 Key Subsystems & Features
+## 🌟 Subsystems & Features
 
-### 1. On-Device AI/ML Classification
-*   **Engine & Model**: Powered by `tflite_flutter` running a quantized Convolutional Neural Network (CNN) based on the **MobileNetV2** architecture.
-*   **Dual-Model Setup**:
-    *   **V1 Model** (`cropguard_plant_disease.tflite`): Detects **93 classes** covering staple crops like Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, and Cowpea.
-    *   **V2 Model** (`cropguard_plant_disease_v2.tflite`): Optimized for **16 classes** focusing specifically on local variants such as Garden Egg (African Eggplant), Mango, and Sugarcane.
-*   **Inference Quality**: Runs an `ImageQualityAnalyzer` locally to flag blurry or dark photos before execution. If the maximum prediction probability is lower than `0.60`, it redirects to a "Low Confidence" fallback screen rather than suggesting an incorrect diagnosis.
+### 1. On-Device TensorFlow Lite ML Engine
+* **Quantized CNN Models**: Runs on `tflite_flutter` without requiring active cloud network connections.
+  * **V1 General Model** (`cropguard_plant_disease.tflite`): Detects 93 classes across major staple crops (Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, Cowpea, etc.).
+  * **V2 Regional Model** (`cropguard_plant_disease_v2.tflite`): Optimized 16-class classifier dedicated to regional Sub-Saharan crops such as Garden Egg (African Eggplant), Mango, and Sugarcane.
+* **Pre-Execution Quality Gate**: `ImageQualityAnalyzer` checks image lighting and blur before running tensor operations. Low-confidence predictions (< 60%) automatically navigate to a low-confidence diagnostic helper screen to prevent false treatment recommendations.
 
-### 2. Offline-First Capability & Synchronization
-*   **Local Storage**: Local history records, diagnostics, and customized treatment trackers are managed on-device via SQLite utilizing the `sqflite` package.
-*   **Online Auto-Drain Queue**: When offline, community forum posts and feedback details are stored in a local pending queue. The `ConnectivityService` listens to network state changes; when an online status is recovered, it automatically triggers a synchronization worker (`drainPendingSync`) to upload entries to Cloud Firestore and Cloudinary.
+### 2. Offline-First Architecture & Auto-Sync Engine
+* **SQLite Storage**: Scan history, custom treatment tracker tasks, and cached disease info are stored locally using `sqflite`.
+* **Auto-Sync Queue**: Community posts, scan logs, and farmer feedback submitted while offline enter a local pending queue. `ConnectivityService` monitors network status changes and automatically drains the pending queue to Cloud Firestore & Cloudinary when connectivity is re-established.
 
-### 3. Localization & GhanaNLP Translation
-*   **Local Dialects**: Fully localized using Flutter `.arb` files to support **English (`en`)**, **Twi (`tw`)**, **Ewe (`ee`)**, and **Dagbani (`dag`)**.
-*   **Text-to-Speech (TTS)**: Leverages the **GhanaNLP Translation API** to synthesize text into local language audio files (`.wav`) at runtime, catering to farmers with low literacy levels.
+### 3. Native Localization & GhanaNLP Audio Synthesis
+* **Regional Dialect Support**: Built-in support for **English (`en`)**, **Twi (`tw`)**, **Ewe (`ee`)**, and **Dagbani (`dag`)** via standard `.arb` localization files.
+* **Text-to-Speech (TTS)**: Synthesizes disease descriptions and treatment steps into native regional audio using `flutter_tts` and the GhanaNLP API to support farmers with varying literacy levels.
 
-### 4. Interactive Outbreak Mapping & Background Alerts
-*   **OpenStreetMap (OSM)**: Implements offline-capable outbreak mapping using `flutter_map` combined with custom marker clustering (`flutter_map_marker_cluster`) and on-disk caching (`flutter_cache_manager`) to display nearby crop disease alerts without active data packages.
-*   **Background Alerts**: Android `workmanager` registers a background check (`scheduleOutbreakAlerts`) that triggers local notifications when an outbreak is logged in proximity to the farmer's geolocated coordinates.
+### 4. Interactive Outbreak Map & Proximity Alerts
+* **OpenStreetMap (OSM)**: Zero-cost, keyless mapping built on `flutter_map` with marker clustering (`flutter_map_marker_cluster`) and persistent tile caching (`flutter_cache_manager`).
+* **Background Surveillance**: Android `workmanager` schedules routine background tasks (`scheduleOutbreakAlerts`) that match current geolocation against recent community reports and fire local notifications (`flutter_local_notifications`).
 
-### 5. Enterprise Security & Privacy Controls
-*   **App Integrity**: Implements root and jailbreak checks via `RootDetectionHelper` (wrapping `flutter_jailbreak_detection`).
-*   **Screen Protection**: Activates high-security layout flags to block screenshot/screen-recording tools on sensitive application pages using `ScreenSecurityHelper` (wrapping `flutter_windowmanager_plus`).
-*   **App Lock**: Optional biometric lock screen (FaceID/Fingerprint) utilizing `local_auth` that locks the active session upon application backgrounding/resuming.
-
----
-
-## ⚙️ Secrets Resolution Order
-
-To keep API keys secure, they are never checked in or bundled as asset files. The [AppSecrets](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) class checks variables in the following sequence (first match wins):
-1.  **Compile-time Define**: `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=...`
-2.  **Local Environment**: Read from a local `.env` file (loaded at runtime in debug mode only).
-3.  **Firebase Remote Config**: Dynamically fetched and patched at startup by `AppBootstrap.runStartupTasks()`.
+### 5. Enterprise App Security & Privacy
+* **App Integrity**: Root and jailbreak detection using `flutter_jailbreak_detection`.
+* **Screen Protection**: Prevents screenshots and recording on sensitive screens using `flutter_windowmanager_plus`.
+* **Biometric Lock Screen**: App locking using `local_auth` (Face ID / Fingerprint) when resuming from backgrounding.
 
 ---
 
-## 🛠️ Getting Started
+## ⚙️ App Secrets Resolution Order
 
-### 1. Install Dependencies
-Ensure you have the Flutter SDK (>= 3.10.0) and Dart SDK (>= 3.6.0) installed:
+Sensitive API keys and endpoints are never hardcoded. [`AppSecrets`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) resolves values in the following order (first available wins):
+
+1. **Compile-Time `--dart-define` Flags**: e.g., `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key`
+2. **Local `.env` File**: Loaded at runtime in local debug mode.
+3. **Firebase Remote Config**: Dynamic production patching via `AppBootstrap.runStartupTasks()`.
+
+---
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+- **Flutter SDK**: `>= 3.10.0`
+- **Dart SDK**: `>= 3.6.0 < 4.0.0`
+- **Xcode** (for iOS builds, macOS required) or **Android Studio** (for Android builds)
+
+### 1. Repository Setup & Dependencies
 ```bash
+# Clone repository
+git clone <repository_url>
+cd CropGuardAI-main/CropGuardAI-main
+
+# Install dependencies
 flutter pub get
 ```
 
-### 2. Configure Firebase
-*   **Option A (CLI - Recommended)**: Install the Flutterfire CLI and run config matching project `crop-guard-d36e5`:
-    ```bash
-    dart pub global activate flutterfire_cli
-    flutterfire configure --project=crop-guard-d36e5
-    ```
-*   **Option B (Manual)**: Download the configuration files from the Firebase Console and place them in:
-    *   Android: `android/app/google-services.json`
-    *   iOS: `ios/Runner/GoogleService-Info.plist`
+### 2. Firebase Configuration
+* **CLI Setup (Recommended)**:
+  ```bash
+  dart pub global activate flutterfire_cli
+  flutterfire configure --project=crop-guard-d36e5
+  ```
+* **Manual Setup**: Place configuration files in the appropriate platform directories:
+  * Android: `android/app/google-services.json`
+  * iOS: `ios/Runner/GoogleService-Info.plist`
 
-### 3. Add AI Assets
-Verify that you have downloaded and placed the necessary ML models and mapping labels in the `assets/` directory (these are registered in [pubspec.yaml](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/pubspec.yaml)):
-*   `assets/cropguard_plant_disease.tflite`
-*   `assets/cropguard_plant_disease_v2.tflite`
-*   `assets/labels.txt`
-*   `assets/labels_v2.txt`
-*   `assets/model_metadata.json`
+### 3. Verify Asset Bundling
+Ensure the following AI models and metadata files exist in `assets/`:
+- `assets/cropguard_plant_disease.tflite`
+- `assets/cropguard_plant_disease_v2.tflite`
+- `assets/labels.txt`
+- `assets/labels_v2.txt`
+- `assets/model_metadata.json`
 
 ### 4. Run the Application
-For local testing (with an optional `.env` file containing local API secrets):
 ```bash
+# Debug run (using local .env if present)
 flutter run
-```
-To run supplying compilation secrets:
-```bash
-flutter run --dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_ghana_nlp_key
+
+# Release/Debug run supplying compile-time secrets
+flutter run --dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key_here
 ```
 
 ---
 
-## 🧪 Testing Suite
+## 🧪 Testing & Quality Assurance
 
-CropGuard AI features a robust test pipeline located under the [test/](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/test) directory. Detections, repository mocks, and state models are verified using `flutter_test` and `mocktail`.
+The application features a comprehensive test suite in the [`test/`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/test) directory, utilizing `flutter_test`, `mocktail`, and `sqflite_common_ffi`.
 
-### Execution Commands
-*   Run the complete test suite:
-    ```bash
-    flutter test
-    ```
-*   Run static analysis / lint check:
-    ```bash
-    flutter analyze
-    ```
-*   Test a specific use case file:
-    ```bash
-    flutter test test/domain/usecases/scanner/scan_crop_usecase_test.dart
-    ```
+### Test Execution Commands
+```bash
+# Run all unit and widget tests
+flutter test
 
-### Key Test Coverage
-*   **Core Helpers**: Biometrics lock state transitions (`app_lock_controller_test.dart`), input sanitation (`input_sanitizer_test.dart`), and weather formatting (`agri_weather_utils_test.dart`).
-*   **Data Models**: SQLite transaction logic (`database_helper_test.dart` and `database_helper_extended_test.dart`).
-*   **Domain Rules**: Verification of mock repositories executing use cases (`scan_crop_usecase_test.dart`, `login_usecase_test.dart`).
-*   **UI Components**: Accessibility (a11y) widgets check (`components_a11y_test.dart`) and map geo-aggregation checks (`outbreak_map_aggregation_test.dart`).
+# Run static code analysis & linter
+flutter analyze
+
+# Run a specific test file
+flutter test test/domain/usecases/scanner/scan_crop_usecase_test.dart
+```
+
+### Test Coverage Highlights
+* **Core & Utilities**: Tests for `AppLockController`, `InputSanitizer`, and `AgriWeatherUtils`.
+* **Data Layer**: SQLite transaction tests (`database_helper_test.dart` and `database_helper_extended_test.dart`).
+* **Domain Layer**: Unit tests for scanner, authentication, and history use cases.
+* **Presentation & Accessibility**: Widget accessibility checks (`components_a11y_test.dart`) and map marker clustering tests (`outbreak_map_aggregation_test.dart`).
+
+---
+
+## 📄 License & Attribution
+
+This project is licensed under the **MIT License**.
