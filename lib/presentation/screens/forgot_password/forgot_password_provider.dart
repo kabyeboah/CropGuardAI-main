@@ -10,26 +10,17 @@ enum ForgotPasswordStatus { idle, loading, success, error }
 class ForgotPasswordProvider extends ChangeNotifier {
   final SendPasswordResetUseCase _resetUseCase;
 
-  ForgotPasswordProvider(this._resetUseCase, {String initialEmail = ''})
-      : email = initialEmail;
+  ForgotPasswordProvider(this._resetUseCase);
 
-  String email;
   ForgotPasswordStatus status = ForgotPasswordStatus.idle;
   String? errorMessage;
   int resendCooldown = 0;
+  String _sentEmail = '';
+  String get sentEmail => _sentEmail;
 
   Timer? _cooldownTimer;
 
-  void setEmail(String v) {
-    email = v;
-    if (status == ForgotPasswordStatus.error) {
-      status = ForgotPasswordStatus.idle;
-      errorMessage = null;
-    }
-    notifyListeners();
-  }
-
-  Future<void> send() async {
+  Future<void> send(String email) async {
     if (!EmailValidator.isValid(email)) {
       errorMessage = 'Please enter a valid email address.';
       status = ForgotPasswordStatus.error;
@@ -42,6 +33,7 @@ class ForgotPasswordProvider extends ChangeNotifier {
 
     final result = await _resetUseCase(email.trim());
     if (result.isSuccess) {
+      _sentEmail = email.trim();
       status = ForgotPasswordStatus.success;
       _startCooldown();
     } else {

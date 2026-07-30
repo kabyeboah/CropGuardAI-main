@@ -1884,6 +1884,18 @@ abstract class AppLocalizations {
   /// **'To map disease outbreaks in your region'**
   String get permissionLocationDesc;
 
+  /// No description provided for @permissionNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get permissionNotifications;
+
+  /// No description provided for @permissionNotificationsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'To send treatment reminders and outbreak alerts'**
+  String get permissionNotificationsDesc;
+
   /// No description provided for @permissionsTitle.
   ///
   /// In en, this message translates to:
@@ -2693,6 +2705,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scan your first crop to see your farm health score'**
   String get scanFirstCropHint;
+
+  /// No description provided for @scanSummaryHealthy.
+  ///
+  /// In en, this message translates to:
+  /// **'{disease} looks healthy.'**
+  String scanSummaryHealthy(String disease);
+
+  /// No description provided for @scanSummaryDiseased.
+  ///
+  /// In en, this message translates to:
+  /// **'{disease} detected.'**
+  String scanSummaryDiseased(String disease);
+
+  /// No description provided for @ttsResultSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{disease}. Severity is {severity}. Treatment steps: {treatments}'**
+  String ttsResultSummary(String disease, String severity, String treatments);
 }
 
 class _AppLocalizationsDelegate

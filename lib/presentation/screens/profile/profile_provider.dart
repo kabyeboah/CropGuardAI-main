@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/connectivity_service.dart';
-import '../../../data/remote/cloudinary_service.dart';
+import '../../../data/remote/image_upload_service.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
 import '../../../domain/repositories/i_profile_repository.dart';
 
@@ -31,10 +31,10 @@ class ProfileProvider extends ChangeNotifier {
   final IProfileRepository _repository;
   final IAuthRepository _authRepository;
   final ConnectivityService _connectivity;
-  final CloudinaryService _cloudinary;
+  final ImageUploadService _uploader;
   StreamSubscription<ConnectionStatus>? _connectivitySub;
 
-  ProfileProvider(this._repository, this._authRepository, this._connectivity, this._cloudinary) {
+  ProfileProvider(this._repository, this._authRepository, this._connectivity, this._uploader) {
     _connectivitySub = _connectivity.statusStream.listen((status) {
       connectionStatus = status;
       notifyListeners();
@@ -149,7 +149,7 @@ class ProfileProvider extends ChangeNotifier {
     isSyncingPhoto = true;
     notifyListeners();
     try {
-      final url = await _cloudinary.uploadImage(localPath);
+      final url = await _uploader.uploadImage(localPath, userId: _authRepository.currentUser?.id);
       await _authRepository.updatePhotoUrl(url);
     } catch (e, st) {
       // Non-fatal: the picture is already set locally. Log for diagnostics.

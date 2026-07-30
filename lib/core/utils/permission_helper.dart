@@ -20,6 +20,18 @@ class PermissionHelper {
 
   static Future<bool> requestScannerPermissions() async {
     final status = await Permission.camera.request();
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    }
+    return status.isGranted;
+  }
+
+  static Future<bool> hasNotificationPermission() async {
+    return await Permission.notification.status.isGranted;
+  }
+
+  static Future<bool> requestNotificationPermission() async {
+    final status = await Permission.notification.request();
     return status.isGranted;
   }
 }

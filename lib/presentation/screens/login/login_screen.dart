@@ -27,17 +27,23 @@ class _LoginBody extends StatefulWidget {
 }
 
 class _LoginBodyState extends State<_LoginBody> {
-  final FocusNode _emailFocusNode = FocusNode();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
     _emailFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<LoginProvider>();
+    // Only the async-operation state (status + error) needs to come from the
+    // provider — avoid watching the whole provider while the user types.
     final colors = context.colors;
 
     return GestureDetector(
@@ -80,9 +86,8 @@ class _LoginBodyState extends State<_LoginBody> {
 
               // Email
               CropGuardTextField(
+                controller: _emailController,
                 focusNode: _emailFocusNode,
-                value: provider.email,
-                onChanged: provider.setEmail,
                 label: context.l10n.email,
                 placeholder: 'you@example.com',
                 keyboardType: TextInputType.emailAddress,
@@ -91,16 +96,16 @@ class _LoginBodyState extends State<_LoginBody> {
 
               // Password
               CropGuardTextField(
-                value: provider.password,
-                onChanged: provider.setPassword,
+                controller: _passwordController,
                 label: context.l10n.password,
                 placeholder: '••••••••',
-                obscureText: provider.obscurePassword,
+                obscureText: _obscurePassword,
                 suffixIcon: IconButton(
-                  icon: Icon(provider.obscurePassword
+                  icon: Icon(_obscurePassword
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined),
-                  onPressed: provider.togglePasswordVisibility,
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                   color: colors.muted,
                 ),
               ),
@@ -109,38 +114,56 @@ class _LoginBodyState extends State<_LoginBody> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () =>
-                      context.push('/forgot_password', extra: provider.email),
+                  onPressed: () => context.push(
+                      '/forgot_password',
+                      extra: _emailController.text),
                   child: Text(context.l10n.forgotPassword,
                       style: TextStyle(color: colors.primary, fontSize: 13)),
                 ),
               ),
               const SizedBox(height: 8),
 
-              // Error
-              if (provider.errorMessage != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: colors.diseaseBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: colors.error.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(provider.errorMessage!,
-                      style: TextStyle(color: colors.error, fontSize: 13)),
-                ),
-
-              // Sign in button
-              PrimaryButton(
-                text: 'Sign In',
-                isLoading: provider.status == LoginStatus.loading,
-                onPressed: () => provider.signIn(
-                  () => context.go('/home'),
-                  onMigrationNeeded: (count) =>
-                      _showMigrationDialog(context, provider, count),
-                ),
+              // Error + loading state — only this sub-tree rebuilds from provider
+              Selector<LoginProvider, (LoginStatus, String?)>(
+                selector: (_, p) => (p.status, p.errorMessage),
+                builder: (context, state, _) {
+                  final (status, error) = state;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (error != null)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: colors.diseaseBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: colors.error.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(error,
+                              style:
+                                  TextStyle(color: colors.error, fontSize: 13)),
+                        ),
+                      PrimaryButton(
+                        text: 'Sign In',
+                        isLoading: status == LoginStatus.loading,
+                        onPressed: () {
+                          final provider =
+                              context.read<LoginProvider>();
+                          provider.signIn(
+                            _emailController.text,
+                            _passwordController.text,
+                            () => context.go('/home'),
+                            onMigrationNeeded: (count) =>
+                                _showMigrationDialog(context, provider, count),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
@@ -160,11 +183,14 @@ class _LoginBodyState extends State<_LoginBody> {
               _SocialButton(
                 label: context.l10n.signInWithGoogle,
                 icon: Icons.login,
-                onTap: () => provider.signInWithGoogle(
-                  () => context.go('/home'),
-                  onMigrationNeeded: (count) =>
-                      _showMigrationDialog(context, provider, count),
-                ),
+                onTap: () {
+                  final provider = context.read<LoginProvider>();
+                  provider.signInWithGoogle(
+                    () => context.go('/home'),
+                    onMigrationNeeded: (count) =>
+                        _showMigrationDialog(context, provider, count),
+                  );
+                },
               ),
               const SizedBox(height: 10),
 
@@ -172,8 +198,9 @@ class _LoginBodyState extends State<_LoginBody> {
               _SocialButton(
                 label: context.l10n.guestLogin,
                 icon: Icons.person_outline,
-                onTap: () =>
-                    provider.signInAsGuest(() => context.go('/home')),
+                onTap: () => context
+                    .read<LoginProvider>()
+                    .signInAsGuest(() => context.go('/home')),
               ),
               const SizedBox(height: 32),
 

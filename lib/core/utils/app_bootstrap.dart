@@ -18,16 +18,12 @@ class AppBootstrap {
     } catch (e) {
       dev.log("App Check install failed: $e");
     }
-
-    // ML Model download would normally use firebase_ml_model_downloader
-    // But since tflite_flutter uses local assets by default,
-    // we'll stick to local assets for now as per the current implementation.
   }
 
   static Future<void> _initRemoteConfig() async {
     final remoteConfig = FirebaseRemoteConfig.instance;
     await remoteConfig.setConfigSettings(RemoteConfigSettings(
-      fetchTimeout: const Duration(minutes: 1),
+      fetchTimeout: const Duration(seconds: 10),
       minimumFetchInterval: const Duration(hours: 1),
     ));
     await remoteConfig.fetchAndActivate();
@@ -70,9 +66,7 @@ class AppBootstrap {
       providerAndroid: kReleaseMode
           ? const AndroidPlayIntegrityProvider()
           : const AndroidDebugProvider(),
-      providerApple: kReleaseMode
-          ? const AppleAppAttestProvider()
-          : const AppleDeviceCheckProvider(),
+      providerApple: const AppleDeviceCheckProvider(),
     );
   }
 }

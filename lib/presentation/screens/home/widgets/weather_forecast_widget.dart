@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../domain/models/weather_forecast.dart';
+import '../../../../core/utils/locale_formatter.dart';
 
 class WeatherForecastWidget extends StatelessWidget {
   final WeatherForecast weather;
@@ -60,7 +60,7 @@ class WeatherForecastWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isToday ? context.l10n.today : DateFormat('E').format(day.date),
+                      isToday ? context.l10n.today : LocaleFormatter.formatDayOfWeek(context, day.date),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: isToday ? FontWeight.bold : FontWeight.normal,

@@ -27,6 +27,7 @@ class PendingSyncQueue {
   PendingSyncQueue._();
 
   static const _table = 'pending_sync';
+  static bool _isDraining = false;
 
   // ---------------------------------------------------------------------------
   // Schema — called from DatabaseHelper.onCreate / onUpgrade
@@ -38,6 +39,7 @@ class PendingSyncQueue {
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       type      TEXT    NOT NULL,
       payload   TEXT    NOT NULL,
+      status    TEXT    NOT NULL DEFAULT 'pending',
       created   INTEGER NOT NULL
     )
   ''';
@@ -45,6 +47,26 @@ class PendingSyncQueue {
   // ---------------------------------------------------------------------------
   // Enqueue
   // ---------------------------------------------------------------------------
+
+  /// Recursively converts non-JSON-encodable sentinel values (such as Cloud
+  /// Firestore [FieldValue] sentinels or raw [DateTime] objects) into primitive
+  /// strings so [jsonEncode] will never throw a [JsonUnsupportedObjectError].
+  static Map<String, dynamic> sanitizePayload(Map<String, dynamic> payload) {
+    return payload.map((key, value) => MapEntry(key, _sanitizeValue(value)));
+  }
+
+  static dynamic _sanitizeValue(dynamic value) {
+    if (value == null) return null;
+    if (value is num || value is String || value is bool) return value;
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Map<String, dynamic>) return sanitizePayload(value);
+    if (value is Map) {
+      return sanitizePayload(value.map((k, v) => MapEntry(k.toString(), v)));
+    }
+    if (value is List) return value.map(_sanitizeValue).toList();
+    // Default fallback for FieldValue or unrecognized objects: convert to ISO string.
+    return DateTime.now().toIso8601String();
+  }
 
   /// Stores an operation locally so it can be replayed later.
   ///
@@ -57,7 +79,8 @@ class PendingSyncQueue {
   }) async {
     await db.insert(_table, {
       'type': type.name,
-      'payload': jsonEncode(payload),
+      'payload': jsonEncode(sanitizePayload(payload)),
+      'status': 'pending',
       'created': DateTime.now().millisecondsSinceEpoch,
     });
     AppLogger.i('PendingSyncQueue: queued ${type.name}');
@@ -70,35 +93,85 @@ class PendingSyncQueue {
   /// Retrieves all pending entries, calls [handler] for each, and removes
   /// successfully replayed entries.
   ///
-  /// [handler] receives the [PendingSyncType] and decoded payload. Return
+  /// [handler] receives the row [id], [PendingSyncType] and decoded payload. Return
   /// `true` to mark the entry as replayed (and delete it from the queue);
   /// return `false` to keep it for a future retry.
   static Future<void> drain(
     Database db, {
-    required Future<bool> Function(PendingSyncType type, Map<String, dynamic> payload) handler,
+    required Future<bool> Function(int id, PendingSyncType type, Map<String, dynamic> payload) handler,
   }) async {
-    final rows = await db.query(_table, orderBy: 'created ASC');
-    if (rows.isEmpty) return;
+    if (_isDraining) {
+      AppLogger.i('PendingSyncQueue: drain is already in progress, skipping concurrent run');
+      return;
+    }
+    _isDraining = true;
+    try {
+      final rows = await db.query(_table, orderBy: 'created ASC');
+      if (rows.isEmpty) return;
 
-    AppLogger.i('PendingSyncQueue: draining ${rows.length} pending operation(s)');
+      AppLogger.i('PendingSyncQueue: draining ${rows.length} pending operation(s)');
 
-    for (final row in rows) {
-      final type = PendingSyncType.values.firstWhere(
-        (e) => e.name == row['type'] as String,
-        orElse: () => PendingSyncType.communityPost,
-      );
-      final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+      for (final row in rows) {
+        final id = row['id'] as int;
+        final type = PendingSyncType.values.firstWhere(
+          (e) => e.name == row['type'] as String,
+          orElse: () => PendingSyncType.communityPost,
+        );
+        final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
 
-      try {
-        final success = await handler(type, payload);
-        if (success) {
-          await db.delete(_table, where: 'id = ?', whereArgs: [row['id']]);
-          AppLogger.i('PendingSyncQueue: replayed and removed ${type.name}#${row['id']}');
+        // Update status to syncing
+        await db.update(_table, {'status': 'syncing'}, where: 'id = ?', whereArgs: [id]);
+
+        try {
+          final success = await handler(id, type, payload);
+          if (success) {
+            await db.delete(_table, where: 'id = ?', whereArgs: [id]);
+            AppLogger.i('PendingSyncQueue: replayed and removed ${type.name}#$id');
+          } else {
+            // Revert status to failed
+            await db.update(_table, {'status': 'failed'}, where: 'id = ?', whereArgs: [id]);
+            AppLogger.w('PendingSyncQueue: handler returned false for ${type.name}#$id');
+          }
+        } catch (e) {
+          // Revert status to failed
+          await db.update(_table, {'status': 'failed'}, where: 'id = ?', whereArgs: [id]);
+          AppLogger.w('PendingSyncQueue: replay failed for ${type.name}#$id: $e');
         }
-      } catch (e) {
-        // Keep the entry; it will be retried on the next drain call.
-        AppLogger.w('PendingSyncQueue: replay failed for ${type.name}#${row['id']}: $e');
       }
+    } finally {
+      _isDraining = false;
+    }
+  }
+
+  /// Updates the payload of a pending sync queue item.
+  static Future<void> updatePayload(
+    Database db,
+    int id,
+    Map<String, dynamic> payload,
+  ) async {
+    await db.update(
+      _table,
+      {'payload': jsonEncode(payload)},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    AppLogger.i('PendingSyncQueue: updated payload for item #$id');
+  }
+
+  /// Retrieves pending items filtered by type.
+  static Future<List<Map<String, dynamic>>> getPendingItems(
+    Database db, {
+    PendingSyncType? type,
+  }) async {
+    if (type == null) {
+      return await db.query(_table, orderBy: 'created ASC');
+    } else {
+      return await db.query(
+        _table,
+        where: 'type = ?',
+        whereArgs: [type.name],
+        orderBy: 'created ASC',
+      );
     }
   }
 

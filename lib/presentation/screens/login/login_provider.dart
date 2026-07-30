@@ -29,25 +29,16 @@ class LoginProvider extends ChangeNotifier {
     this._analytics,
   );
 
-  String email = '';
-  String password = '';
-  LoginStatus status = LoginStatus.idle;
   String? errorMessage;
-  bool obscurePassword = true;
 
   // ── Guest migration state ──────────────────────────────────────────────────
   String? _anonUid;
   int _anonScanCount = 0;
   VoidCallback? _pendingOnSuccess;
 
-  int get anonScanCount => _anonScanCount;
+  LoginStatus status = LoginStatus.idle;
 
-  void setEmail(String v) { email = v; notifyListeners(); }
-  void setPassword(String v) { password = v; notifyListeners(); }
-  void togglePasswordVisibility() {
-    obscurePassword = !obscurePassword;
-    notifyListeners();
-  }
+  int get anonScanCount => _anonScanCount;
 
   Future<void> _captureAnonState() async {
     if (!_auth.isAnonymous) return;
@@ -70,6 +61,8 @@ class LoginProvider extends ChangeNotifier {
   }
 
   Future<void> signIn(
+    String email,
+    String password,
     VoidCallback onSuccess, {
     void Function(int count)? onMigrationNeeded,
   }) async {

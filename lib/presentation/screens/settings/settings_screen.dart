@@ -19,11 +19,23 @@ class SettingsScreen extends StatelessWidget {
     final colors = context.colors;
     final l10n = context.l10n;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.surface,
-        title: Column(
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          leading: Navigator.of(context).canPop()
+              ? BackButton(onPressed: () => Navigator.of(context).pop())
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.go('/home'),
+                ),
+          backgroundColor: colors.surface,
+          title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l10n.settings,
@@ -62,6 +74,11 @@ class SettingsScreen extends StatelessWidget {
             label: l10n.showConfidenceScore,
             value: provider.showConfidence,
             onChanged: provider.setShowConfidence,
+          ),
+          _ToggleRow(
+            label: l10n.notifications,
+            value: provider.notificationsEnabled,
+            onChanged: provider.setNotificationsEnabled,
           ),
           _ToggleRow(
             label: l10n.shareAnalytics,
@@ -134,8 +151,9 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _confirmClear(BuildContext context, SettingsProvider provider) {
     final l10n = context.l10n;

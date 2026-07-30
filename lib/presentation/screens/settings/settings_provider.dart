@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/app_lock_controller.dart';
 import '../../../core/utils/biometric_service.dart';
+import '../../../core/utils/background_tasks.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../l10n/ui_message.dart';
@@ -36,6 +38,7 @@ class SettingsProvider extends ChangeNotifier {
   bool showConfidence = true;
   bool analyticsEnabled = true;
   bool biometricLockEnabled = false;
+  bool notificationsEnabled = true;
   // Whether the device can do biometric / device-credential auth — gates the
   // visibility of the toggle. Resolved asynchronously at startup.
   bool biometricAvailable = false;
@@ -71,6 +74,7 @@ class SettingsProvider extends ChangeNotifier {
     _themeMode = ThemeMode.values[idx.clamp(0, ThemeMode.values.length - 1)];
     final code = _prefs.getString('app_locale');
     _locale = (code != null && code.isNotEmpty) ? Locale(code) : null;
+    notificationsEnabled = _prefs.getBool('notifications_enabled') ?? true;
     notifyListeners();
   }
 
@@ -131,6 +135,26 @@ class SettingsProvider extends ChangeNotifier {
     biometricLockEnabled = v;
     _prefs.setBool(AppLockController.kEnabledPref, v);
     _appLock.setEnabled(v);
+    notifyListeners();
+  }
+
+  Future<void> setNotificationsEnabled(bool v) async {
+    if (v) {
+      final status = await Permission.notification.request();
+      if (status.isGranted) {
+        notificationsEnabled = true;
+        await _prefs.setBool('notifications_enabled', true);
+        await BackgroundTaskHelper.scheduleOutbreakAlerts();
+      } else {
+        notificationsEnabled = false;
+        await _prefs.setBool('notifications_enabled', false);
+        await BackgroundTaskHelper.cancelOutbreakAlerts();
+      }
+    } else {
+      notificationsEnabled = false;
+      await _prefs.setBool('notifications_enabled', false);
+      await BackgroundTaskHelper.cancelOutbreakAlerts();
+    }
     notifyListeners();
   }
 

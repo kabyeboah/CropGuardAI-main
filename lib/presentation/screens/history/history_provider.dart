@@ -3,27 +3,36 @@ import '../../../domain/models/detection_result.dart';
 import '../../../domain/usecases/history/get_history_usecase.dart';
 import '../../../domain/usecases/history/delete_detection_usecase.dart';
 import '../../../domain/usecases/history/restore_detection_usecase.dart';
+import '../../../domain/repositories/i_auth_repository.dart';
 
 enum HistoryFilter { all, healthy, diseased }
 
 enum HistorySort { dateNewest, dateOldest, confidenceDesc, confidenceAsc, cropType }
 
-/// Refactored HistoryProvider using Clean Architecture
+/// Refactored HistoryProvider using Clean Architecture and pagination
 class HistoryProvider extends ChangeNotifier {
   final GetHistoryUseCase _getHistoryUseCase;
   final DeleteDetectionUseCase _deleteDetectionUseCase;
   final RestoreDetectionUseCase _restoreDetectionUseCase;
+  final IAuthRepository _authRepository;
 
-  HistoryProvider(this._getHistoryUseCase, this._deleteDetectionUseCase, this._restoreDetectionUseCase) {
-    load();
+  HistoryProvider(
+    this._getHistoryUseCase,
+    this._deleteDetectionUseCase,
+    this._restoreDetectionUseCase,
+    this._authRepository,
+  ) {
+    load(reset: true);
   }
 
-  List<DetectionResult> _all = [];
   List<DetectionResult> filtered = [];
   HistoryFilter filter = HistoryFilter.all;
   HistorySort sort = HistorySort.dateNewest;
   String searchQuery = '';
   bool isLoading = true;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+  final int _pageSize = 20;
 
   // Crop type filter
   Set<String> cropTypeFilter = {};
@@ -32,35 +41,34 @@ class HistoryProvider extends ChangeNotifier {
   DateTime? dateFrom;
   DateTime? dateTo;
 
-  List<String> get availableCropTypes =>
-      (_all.map((r) => r.cropType).toSet().toList()..sort());
+  List<String> _distinctCropTypes = [];
+  List<String> get availableCropTypes => _distinctCropTypes;
 
   bool get hasActiveFilters =>
       cropTypeFilter.isNotEmpty || dateFrom != null || dateTo != null;
 
-  void setCropTypeFilter(String cropType) {
+  String get _userId => _authRepository.currentUser?.id ?? 'guest';
+
+  Future<void> setCropTypeFilter(String cropType) async {
     if (cropTypeFilter.contains(cropType)) {
       cropTypeFilter = Set.from(cropTypeFilter)..remove(cropType);
     } else {
       cropTypeFilter = Set.from(cropTypeFilter)..add(cropType);
     }
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
-  void setDateRange(DateTime? from, DateTime? to) {
+  Future<void> setDateRange(DateTime? from, DateTime? to) async {
     dateFrom = from;
     dateTo = to;
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
-  void clearFilters() {
+  Future<void> clearFilters() async {
     cropTypeFilter = {};
     dateFrom = null;
     dateTo = null;
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
   // ── Comparison mode (2-scan side-by-side) ────────────────────────────────
@@ -92,7 +100,7 @@ class HistoryProvider extends ChangeNotifier {
   }
 
   List<DetectionResult> get selectedScans =>
-      _all.where((r) => selectedIds.contains(r.id)).toList();
+      filtered.where((r) => selectedIds.contains(r.id)).toList();
 
   // ── Export selection mode (multi-select for PDF export) ───────────────────
   bool exportMode = false;
@@ -129,36 +137,80 @@ class HistoryProvider extends ChangeNotifier {
   List<DetectionResult> get exportSelectedScans =>
       filtered.where((r) => _exportSelectedIds.contains(r.id)).toList();
 
-  Future<void> load() async {
-    isLoading = true;
-    notifyListeners();
-    
-    final result = await _getHistoryUseCase();
-    if (result.isSuccess) {
-      _all = result.data ?? [];
+  Future<void> load({bool reset = true}) async {
+    if (reset) {
+      isLoading = true;
+      hasMore = true;
+      filtered.clear();
+      notifyListeners();
+    } else {
+      if (!hasMore || isLoadingMore) return;
+      isLoadingMore = true;
+      notifyListeners();
     }
-    
-    _applyFilter();
+
+    final isHealthy = filter == HistoryFilter.all ? null : (filter == HistoryFilter.healthy);
+    final String orderBy;
+    switch (sort) {
+      case HistorySort.dateOldest:
+        orderBy = 'timestamp ASC';
+        break;
+      case HistorySort.confidenceDesc:
+        orderBy = 'confidence DESC';
+        break;
+      case HistorySort.confidenceAsc:
+        orderBy = 'confidence ASC';
+        break;
+      case HistorySort.cropType:
+        orderBy = 'cropType ASC';
+        break;
+      case HistorySort.dateNewest:
+        orderBy = 'timestamp DESC';
+        break;
+    }
+
+    final result = await _getHistoryUseCase(
+      userId: _userId,
+      limit: _pageSize,
+      offset: filtered.length,
+      isHealthy: isHealthy,
+      cropTypes: cropTypeFilter.isNotEmpty ? cropTypeFilter.toList() : null,
+      dateFrom: dateFrom?.millisecondsSinceEpoch,
+      dateTo: dateTo?.add(const Duration(days: 1)).millisecondsSinceEpoch,
+      searchQuery: searchQuery,
+      orderBy: orderBy,
+    );
+
+    if (result.isSuccess) {
+      final newItems = result.data ?? [];
+      filtered.addAll(newItems);
+      hasMore = newItems.length == _pageSize;
+    }
+
+    // Load distinct crop types
+    final cropsResult = await _getHistoryUseCase.getDistinctCropTypes(userId: _userId);
+    if (cropsResult.isSuccess) {
+      _distinctCropTypes = cropsResult.data ?? [];
+    }
+
     isLoading = false;
+    isLoadingMore = false;
     notifyListeners();
   }
 
-  void setFilter(HistoryFilter f) {
+  Future<void> setFilter(HistoryFilter f) async {
     filter = f;
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
-  void setSearch(String q) {
+  Future<void> setSearch(String q) async {
     searchQuery = q;
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
-  void setSort(HistorySort s) {
+  Future<void> setSort(HistorySort s) async {
     sort = s;
-    _applyFilter();
-    notifyListeners();
+    await load(reset: true);
   }
 
   Future<void> exportHistory() async {
@@ -168,68 +220,14 @@ class HistoryProvider extends ChangeNotifier {
   Future<void> deleteResult(int id) async {
     final result = await _deleteDetectionUseCase(id);
     if (result.isSuccess) {
-      await load();
+      await load(reset: true);
     }
   }
 
   Future<void> restoreDetection(DetectionResult detection) async {
     final result = await _restoreDetectionUseCase(detection);
     if (result.isSuccess) {
-      await load();
+      await load(reset: true);
     }
-  }
-
-  void _applyFilter() {
-    var list = _all;
-    switch (filter) {
-      case HistoryFilter.healthy:
-        list = list.where((r) => r.isHealthy).toList();
-        break;
-      case HistoryFilter.diseased:
-        list = list.where((r) => !r.isHealthy).toList();
-        break;
-      case HistoryFilter.all:
-        break;
-    }
-    if (cropTypeFilter.isNotEmpty) {
-      list = list.where((r) => cropTypeFilter.contains(r.cropType)).toList();
-    }
-    if (dateFrom != null) {
-      final fromMs = dateFrom!.millisecondsSinceEpoch;
-      list = list.where((r) => r.timestamp >= fromMs).toList();
-    }
-    if (dateTo != null) {
-      final toMs = dateTo!
-          .add(const Duration(days: 1))
-          .millisecondsSinceEpoch;
-      list = list.where((r) => r.timestamp < toMs).toList();
-    }
-    if (searchQuery.isNotEmpty) {
-      final q = searchQuery.toLowerCase();
-      list = list
-          .where((r) =>
-              r.displayName.toLowerCase().contains(q) ||
-              r.cropType.toLowerCase().contains(q))
-          .toList();
-    }
-    switch (sort) {
-      case HistorySort.dateOldest:
-        list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        break;
-      case HistorySort.confidenceDesc:
-        list.sort((a, b) => b.confidence.compareTo(a.confidence));
-        break;
-      case HistorySort.confidenceAsc:
-        list.sort((a, b) => a.confidence.compareTo(b.confidence));
-        break;
-      case HistorySort.cropType:
-        list.sort((a, b) => a.cropType.compareTo(b.cropType));
-        break;
-      case HistorySort.dateNewest:
-        list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-        break;
-    }
-    filtered = list;
   }
 }
-

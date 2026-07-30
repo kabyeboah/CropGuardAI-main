@@ -1,23 +1,26 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/connectivity_service.dart';
-import '../../../data/remote/cloudinary_service.dart';
+import '../../../data/remote/image_upload_service.dart';
 import '../../../data/remote/firebase_auth_service.dart';
-import '../../../data/remote/firestore_service.dart';
+import '../../../data/local/pending_sync_queue.dart';
 import '../../../domain/models/community_post.dart';
+import '../../../domain/repositories/i_community_repository.dart';
+import '../../../core/utils/image_quality_analyzer.dart';
 
-/// Community feed: images via Cloudinary, posts in Firestore.
+/// Community feed: images via ImageUploadService (Cloudinary + Firebase Storage), posts in Firestore.
 class CommunityProvider extends ChangeNotifier {
-  final FirestoreService _firestore;
+  final ICommunityRepository _communityRepo;
   final FirebaseAuthService _auth;
-  final CloudinaryService _cloudinary;
+  final ImageUploadService _uploader;
   final ConnectivityService _connectivity;
   StreamSubscription<ConnectionStatus>? _connectivitySub;
   StreamSubscription<List<CommunityPost>>? _postsSubscription;
 
-  CommunityProvider(this._firestore, this._auth, this._cloudinary, this._connectivity) {
+  CommunityProvider(this._communityRepo, this._auth, this._uploader, this._connectivity) {
     _connectivitySub = _connectivity.statusStream.listen((status) {
       connectionStatus = status;
       _safeNotify();
@@ -38,6 +41,7 @@ class CommunityProvider extends ChangeNotifier {
     _disposed = true;
     _connectivitySub?.cancel();
     _postsSubscription?.cancel();
+    _pendingPollTimer?.cancel();
     super.dispose();
   }
 
@@ -46,7 +50,10 @@ class CommunityProvider extends ChangeNotifier {
   }
 
   List<CommunityPost> posts = [];
-  String composerText = '';
+  List<CommunityPost> _cloudPosts = [];
+  List<CommunityPost> _pendingPosts = [];
+  Timer? _pendingPollTimer;
+
   String? selectedImageUri;
   bool isPosting = false;
   bool isUploadingImage = false;
@@ -54,30 +61,98 @@ class CommunityProvider extends ChangeNotifier {
   // True when errorMessage was caused specifically by a Cloudinary upload
   // failure — the screen shows a Retry button in this case.
   bool uploadFailed = false;
+  // Last text successfully submitted; used by retryPost() to replay the attempt
+  // without needing the screen to pass the controller text again.
+  String _lastComposerText = '';
   ConnectionStatus connectionStatus = ConnectionStatus.online;
   bool get isOffline => connectionStatus == ConnectionStatus.offline;
 
   void _listenToPosts() {
-    _postsSubscription = _firestore.postsStream().listen(
+    _postsSubscription = _communityRepo.getPostsStream().listen(
       (p) {
-        posts = p;
-        _safeNotify();
+        _cloudPosts = p;
+        _combineAndNotify();
       },
       onError: (_) {
-        _safeNotify();
+        _combineAndNotify();
       },
     );
+    _startPendingQueuePolling();
   }
 
-  void onComposerChanged(String v) {
-    composerText = v;
+  void _startPendingQueuePolling() {
+    _pendingPollTimer?.cancel();
+    _pendingPollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _refreshPendingPosts());
+    _refreshPendingPosts();
+  }
+
+  Future<void> _refreshPendingPosts() async {
+    try {
+      final rows = await _communityRepo.getPendingSyncItems(PendingSyncType.communityPost);
+      final list = <CommunityPost>[];
+      for (final row in rows) {
+        final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+        final status = row['status'] as String? ?? 'pending';
+        // We use the SQLite row ID (prefixed to avoid collision) as the post ID
+        final postId = 'pending_${row['id']}';
+        list.add(CommunityPost.fromMap(payload, postId, syncStatus: status));
+      }
+      _pendingPosts = list;
+      _combineAndNotify();
+    } catch (_) {
+      // Swallowed
+    }
+  }
+
+  void _combineAndNotify() {
+    // Combine pending posts and cloud posts, sorted by timestamp descending
+    final combined = <CommunityPost>[..._pendingPosts, ..._cloudPosts];
+    combined.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    posts = combined;
     _safeNotify();
   }
 
-  void onImageSelected(String? uri) {
-    selectedImageUri = uri;
+  Future<void> onImageSelected(String? uri) async {
+    if (uri == null) {
+      selectedImageUri = null;
+      errorMessage = null;
+      _safeNotify();
+      return;
+    }
+
+    isUploadingImage = true;
     errorMessage = null;
     _safeNotify();
+
+    try {
+      final qualityCheck = await ImageQualityAnalyzer.analyzeFile(uri);
+      if (qualityCheck != null && !qualityCheck.isAcceptable) {
+        selectedImageUri = null;
+        errorMessage = _getQualityErrorMessage(qualityCheck.issue);
+      } else {
+        selectedImageUri = uri;
+      }
+    } catch (e) {
+      selectedImageUri = uri;
+    } finally {
+      isUploadingImage = false;
+      _safeNotify();
+    }
+  }
+
+  String _getQualityErrorMessage(ImageQualityIssue? issue) {
+    switch (issue) {
+      case ImageQualityIssue.blurry:
+        return 'Image is too blurry. Please hold the camera steady.';
+      case ImageQualityIssue.tooDark:
+        return 'Image is too dark. Please use more light or the torch.';
+      case ImageQualityIssue.tooBright:
+        return 'Image is too bright. Please avoid direct glare.';
+      case ImageQualityIssue.tooSmall:
+        return 'Image resolution is too low.';
+      default:
+        return 'Poor image quality detected.';
+    }
   }
 
   void clearSelectedImage() {
@@ -91,7 +166,8 @@ class CommunityProvider extends ChangeNotifier {
     _safeNotify();
   }
 
-  Future<void> postUpdate() async {
+  Future<void> postUpdate(String composerText, {VoidCallback? onPosted}) async {
+    _lastComposerText = composerText;
     if (composerText.trim().isEmpty) {
       errorMessage = 'Please write something before posting.';
       _safeNotify();
@@ -109,33 +185,30 @@ class CommunityProvider extends ChangeNotifier {
 
     try {
       final userId = _auth.currentUserId;
+      final localPath = selectedImageUri;
       String? imageUrl;
 
-      final localPath = selectedImageUri;
+      // Check connectivity status first
+      final isNetworkOffline = await _connectivity.checkIsOffline();
+
       if (localPath != null &&
           !localPath.startsWith('http://') &&
           !localPath.startsWith('https://')) {
-        isUploadingImage = true;
-        _safeNotify();
-        try {
-          imageUrl = await _cloudinary.uploadImage(localPath);
-        } catch (e) {
-          // Preserve composerText and selectedImageUri so the user can retry
-          // without re-typing or re-selecting the image.
-          uploadFailed = true;
-          final msg = e.toString();
-          errorMessage = msg.contains('not configured')
-              ? 'Image uploads are not set up yet. Contact support.'
-              : msg.contains('Upload failed') || msg.contains('not found')
-                  ? msg
-                  : 'Image upload failed — check your connection and tap Retry.';
-          isPosting = false;
-          isUploadingImage = false;
+        if (isNetworkOffline) {
+          // If offline, save the local path; background sync will upload it
+          imageUrl = localPath;
+        } else {
+          isUploadingImage = true;
           _safeNotify();
-          return;
-        } finally {
-          isUploadingImage = false;
-          _safeNotify();
+          try {
+            imageUrl = await _uploader.uploadImage(localPath, userId: userId);
+          } catch (e) {
+            // Upload failed across Cloudinary and Firebase Storage, treat as local/offline and queue it
+            imageUrl = localPath;
+          } finally {
+            isUploadingImage = false;
+            _safeNotify();
+          }
         }
       } else {
         imageUrl = localPath;
@@ -149,25 +222,42 @@ class CommunityProvider extends ChangeNotifier {
         imageUri: imageUrl,
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
-      await _firestore.addPost(post);
-      composerText = '';
+
+      // If we have a local image path, we must queue it immediately instead of
+      // trying to save to Firestore (which would lack the remote Cloudinary URL).
+      if (isNetworkOffline || (imageUrl != null && !imageUrl.startsWith('http'))) {
+        await _communityRepo.addPost(post);
+      } else {
+        final res = await _communityRepo.addPost(post);
+        res.fold(
+          (_) {
+            // Success
+          },
+          (failure) {
+            // Failed, but addPost enqueues it.
+          },
+        );
+      }
+
+      onPosted?.call();
       selectedImageUri = null;
+      await _refreshPendingPosts();
     } catch (e) {
       errorMessage = 'Failed to save post. Please try again.';
+    } finally {
+      isPosting = false;
+      isUploadingImage = false;
+      _safeNotify();
     }
-
-    isPosting = false;
-    isUploadingImage = false;
-    _safeNotify();
   }
 
   /// Re-attempts a post that failed during image upload.
   /// Composer text and selected image are preserved from the previous attempt.
-  Future<void> retryPost() async {
+  Future<void> retryPost({VoidCallback? onPosted}) async {
     uploadFailed = false;
     errorMessage = null;
     _safeNotify();
-    await postUpdate();
+    await postUpdate(_lastComposerText, onPosted: onPosted);
   }
 
   Future<void> reportPost(String postId) async {

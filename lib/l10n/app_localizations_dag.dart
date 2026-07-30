@@ -949,6 +949,13 @@ class AppLocalizationsDag extends AppLocalizations {
       'To map disease outbreaks in your region';
 
   @override
+  String get permissionNotifications => 'Notifications';
+
+  @override
+  String get permissionNotificationsDesc =>
+      'To send treatment reminders and outbreak alerts';
+
+  @override
   String get permissionsTitle => 'Permissions & Privacy';
 
   @override
@@ -1407,4 +1414,19 @@ class AppLocalizationsDag extends AppLocalizations {
   @override
   String get scanFirstCropHint =>
       'Scan your first crop to see your farm health score';
+
+  @override
+  String scanSummaryHealthy(String disease) {
+    return '$disease looks healthy.';
+  }
+
+  @override
+  String scanSummaryDiseased(String disease) {
+    return '$disease detected.';
+  }
+
+  @override
+  String ttsResultSummary(String disease, String severity, String treatments) {
+    return '$disease. Severity is $severity. Treatment steps: $treatments';
+  }
 }

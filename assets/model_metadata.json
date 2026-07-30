@@ -10,7 +10,9 @@
   "input_channels": 3,
   "normalize_mean": [0.0, 0.0, 0.0],
   "normalize_std": [255.0, 255.0, 255.0],
-  "version": "2.0",
+  "version": "2.1",
   "architecture": "MobileNetV2",
-  "confidence_threshold": 0.60
+  "confidence_threshold": 0.60,
+  "notes": "V1 covers 93 classes (PlantVillage + West Africa crops). V2 covers 16 Ghana-specific classes (Garden Egg, Mango, Sugarcane). labels.txt trimmed to 93 to match V1 output nodes. Model selection uses adjusted-score algorithm (confidence - 1/numClasses) to give V2 a fair comparison."
 }
+

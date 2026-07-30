@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/scan_feedback_helper.dart';
 import '../../../core/utils/tts_manager.dart';
 import '../scanner/scanner_provider.dart';
+import '../../../data/ml/crop_disease_classifier.dart';
 
 /// Intermediate screen that runs TFLite inference on the captured image
 /// Equivalent of the "analyzing" state in ScannerViewModel / ScannerScreen
@@ -41,6 +42,45 @@ class _AnalisingScreenState extends State<AnalisingScreen>
 
     if (result == null) {
       final errorMsg = provider.errorMessage ?? context.l10n.analysisFailed;
+      final isEngineUnavailable = errorMsg.contains('ML engine unavailable');
+
+      if (isEngineUnavailable) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                SizedBox(width: 8),
+                Expanded(child: Text('Scan Engine Unavailable')),
+              ],
+            ),
+            content: const Text(
+              'The native ML scan engine is not supported on this platform/device. '
+              'You can ask the farming community for disease identification.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.go('/home');
+                },
+                child: Text(context.l10n.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.replace('/community');
+                },
+                child: const Text('Ask Community'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -63,14 +103,18 @@ class _AnalisingScreenState extends State<AnalisingScreen>
           duration: const Duration(seconds: 4),
         ),
       );
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/home');
+      }
       return;
     }
 
-    const lang = 'en';
+    final lang = Localizations.localeOf(context).languageCode;
     final summary = result.isHealthy
-        ? '${result.displayName} looks healthy.'
-        : '${result.displayName} detected.';
+        ? context.l10n.scanSummaryHealthy(result.displayName)
+        : context.l10n.scanSummaryDiseased(result.displayName);
 
     await ScanFeedbackHelper.playScanComplete(
       isHealthy: result.isHealthy,
@@ -89,7 +133,7 @@ class _AnalisingScreenState extends State<AnalisingScreen>
     //   0.40–0.60 → low-confidence screen (uncertain result + report form).
     //   ≥ 0.60  → full result screen.
     const double kAbstainThreshold    = 0.40;
-    const double kLowConfidenceThreshold = 0.60;
+    const double kLowConfidenceThreshold = CropDiseaseClassifier.confidenceThreshold;
 
     if (result.confidence < kAbstainThreshold) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +158,11 @@ class _AnalisingScreenState extends State<AnalisingScreen>
           duration: const Duration(seconds: 5),
         ),
       );
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/home');
+      }
     } else if (result.confidence < kLowConfidenceThreshold) {
       context.replace(Uri(
         path: '/low_confidence',
@@ -139,61 +187,68 @@ class _AnalisingScreenState extends State<AnalisingScreen>
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Scaffold(
-      backgroundColor: colors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Image preview
-            if (File(widget.imagePath).existsSync())
-              SizedBox(
-                height: 260,
-                width: double.infinity,
-                child: Image.file(
-                  File(widget.imagePath),
-                  fit: BoxFit.cover,
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Image preview
+              if (File(widget.imagePath).existsSync())
+                SizedBox(
+                  height: 260,
+                  width: double.infinity,
+                  child: Image.file(
+                    File(widget.imagePath),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
 
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      RotationTransition(
-                        turns: _spin,
-                        child: Icon(Icons.eco, size: 72, color: colors.primary),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(context.l10n.analysing,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.l10n.analysingDesc,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: colors.onBackgroundSecondary,
-                            fontSize: 14),
-                      ),
-                      const SizedBox(height: 32),
-                      LinearProgressIndicator(
-                        backgroundColor: colors.border,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(colors.primary),
-                        minHeight: 4,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ],
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        RotationTransition(
+                          turns: _spin,
+                          child: Icon(Icons.eco, size: 72, color: colors.primary),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(context.l10n.analysing,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.l10n.analysingDesc,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: colors.onBackgroundSecondary,
+                              fontSize: 14),
+                        ),
+                        const SizedBox(height: 32),
+                        LinearProgressIndicator(
+                          backgroundColor: colors.border,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(colors.primary),
+                          minHeight: 4,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

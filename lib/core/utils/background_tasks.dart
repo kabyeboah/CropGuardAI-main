@@ -39,18 +39,33 @@ void callbackDispatcher() {
       }
       // Idempotent: setupServiceLocator returns early if already registered.
       await setupServiceLocator();
+
+      final Future<bool> taskFuture;
       switch (task) {
         case 'sync_scans':
-          return await _syncScansTask();
+          taskFuture = _syncScansTask();
+          break;
         case 'treatment_reminder':
-          return await _reminderTask(inputData);
+          taskFuture = _reminderTask(inputData);
+          break;
         case 'planting_reminder':
-          return await _plantingReminderTask(inputData);
+          taskFuture = _plantingReminderTask(inputData);
+          break;
         case 'outbreak_alert':
-          return await _outbreakAlertTask();
+          taskFuture = _outbreakAlertTask();
+          break;
         default:
-          return Future.value(true);
+          taskFuture = Future.value(true);
       }
+
+      // Max execution time of 2 minutes to prevent wakelock leaks
+      return await taskFuture.timeout(
+        const Duration(minutes: 2),
+        onTimeout: () {
+          dev.log('Background Task ($task) timed out. Completing to prevent wakelock leak.');
+          return false;
+        },
+      );
     } catch (e) {
       dev.log('Background Task Failed ($task): $e');
       return Future.value(false);
@@ -178,8 +193,32 @@ Future<bool> _outbreakAlertTask() async {
 /// Workmanager is Android-only. All methods are no-ops on other platforms so
 /// callers do not need their own platform checks.
 class BackgroundTaskHelper {
+  static bool isAndroidOverride = Platform.isAndroid;
+
+  static Future<void> Function(
+    String uniqueName,
+    String taskName, {
+    ExistingWorkPolicy? existingWorkPolicy,
+    Duration? initialDelay,
+    Constraints? constraints,
+    Map<String, dynamic>? inputData,
+  }) registerOneOffTaskFn = Workmanager().registerOneOffTask;
+
+  static Future<void> Function(
+    String uniqueName,
+    String taskName, {
+    Duration? frequency,
+    ExistingPeriodicWorkPolicy? existingWorkPolicy,
+    Duration? initialDelay,
+    Constraints? constraints,
+    Map<String, dynamic>? inputData,
+  }) registerPeriodicTaskFn = Workmanager().registerPeriodicTask;
+
+  static Future<void> Function(String uniqueName) cancelByUniqueNameFn =
+      Workmanager().cancelByUniqueName;
+
   static Future<void> init() async {
-    if (!Platform.isAndroid) return;
+    if (!isAndroidOverride) return;
     await Workmanager().initialize(
       callbackDispatcher,
     );
@@ -190,8 +229,8 @@ class BackgroundTaskHelper {
   // is left here for reference but is not currently scheduled at startup.
   // Call this from a user-triggered action (e.g. "Sync now") if needed.
   static Future<void> scheduleSync() async {
-    if (!Platform.isAndroid) return;
-    await Workmanager().registerOneOffTask(
+    if (!isAndroidOverride) return;
+    await registerOneOffTaskFn(
       'sync_task',
       'sync_scans',
       constraints: Constraints(
@@ -202,10 +241,11 @@ class BackgroundTaskHelper {
 
   static Future<void> scheduleReminder(
       String diseaseName, int day, Duration delay) async {
-    if (!Platform.isAndroid) return;
-    await Workmanager().registerOneOffTask(
+    if (!isAndroidOverride) return;
+    await registerOneOffTaskFn(
       'reminder_${diseaseName}_$day',
       'treatment_reminder',
+      existingWorkPolicy: ExistingWorkPolicy.keep,
       initialDelay: delay,
       inputData: {
         'disease_name': diseaseName,
@@ -215,17 +255,36 @@ class BackgroundTaskHelper {
   }
 
   /// Periodically checks for outbreaks reported near the user and notifies
-  /// them. `keep` policy means re-registering on each launch is a no-op, so
-  /// it is safe to call unconditionally at startup.
+  /// them. We verify SharedPreferences to prevent duplicate registration overhead on every launch.
   static Future<void> scheduleOutbreakAlerts() async {
-    if (!Platform.isAndroid) return;
-    await Workmanager().registerPeriodicTask(
+    if (!isAndroidOverride) return;
+    final prefs = sl<SharedPreferences>();
+    final enabled = prefs.getBool('notifications_enabled') ?? true;
+    if (!enabled) {
+      await cancelOutbreakAlerts();
+      return;
+    }
+    if (prefs.getBool('outbreak_alerts_scheduled') == true) {
+      return;
+    }
+    await registerPeriodicTaskFn(
       'outbreak_alert_task',
       'outbreak_alert',
       frequency: const Duration(hours: 12),
       initialDelay: const Duration(minutes: 30),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(networkType: NetworkType.connected),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+        requiresBatteryNotLow: true, // respects battery optimizations
+      ),
     );
+    await prefs.setBool('outbreak_alerts_scheduled', true);
+  }
+
+  static Future<void> cancelOutbreakAlerts() async {
+    if (!isAndroidOverride) return;
+    await cancelByUniqueNameFn('outbreak_alert_task');
+    final prefs = sl<SharedPreferences>();
+    await prefs.setBool('outbreak_alerts_scheduled', false);
   }
 }

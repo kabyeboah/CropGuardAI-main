@@ -94,7 +94,7 @@ class ScanReportPdfExporter {
                             ),
                             alignment: pw.Alignment.center,
                             child: pw.Text('${e.key + 1}',
-                                style: pw.TextStyle(
+                                style: const pw.TextStyle(
                                     color: PdfColors.white,
                                     fontSize: 9,
                                     fontWeight: pw.FontWeight.bold)),
@@ -211,7 +211,7 @@ class ScanReportPdfExporter {
         children: [
           pw.Text(
             'CropGuard AI',
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               color: PdfColors.white,
               fontSize: 11,
               fontWeight: pw.FontWeight.bold,
@@ -221,7 +221,7 @@ class ScanReportPdfExporter {
           pw.SizedBox(height: 4),
           pw.Text(
             title,
-            style: pw.TextStyle(
+            style: const pw.TextStyle(
               color: PdfColors.white,
               fontSize: 22,
               fontWeight: pw.FontWeight.bold,
@@ -240,7 +240,7 @@ class ScanReportPdfExporter {
   static pw.Widget _buildSectionTitle(String title) {
     return pw.Text(
       title,
-      style: pw.TextStyle(
+      style: const pw.TextStyle(
         fontSize: 13,
         fontWeight: pw.FontWeight.bold,
         color: _kGreen,

@@ -6,7 +6,7 @@ import '../../components/confidence_bar.dart';
 import '../../components/cropguard_card.dart';
 import '../../components/primary_button.dart';
 import '../../../core/di/service_locator.dart';
-import '../../../data/remote/firestore_service.dart';
+import '../../../domain/repositories/i_community_repository.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 
 class LowConfidenceScreen extends StatefulWidget {
@@ -31,17 +31,29 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
     final colors = context.colors;
     final pct = (widget.confidence * 100).toInt();
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colors.lowConfidence,
-        foregroundColor: Colors.white,
-        title: Text(context.l10n.lowConfidenceTitle,
-            style: const TextStyle(color: Colors.white)),
-        leading: BackButton(
-          color: Colors.white,
-          onPressed: () => context.go('/scanner'),
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/scanner');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: colors.lowConfidence,
+          foregroundColor: Colors.white,
+          title: Text(context.l10n.lowConfidenceTitle,
+              style: const TextStyle(color: Colors.white)),
+          leading: BackButton(
+            color: Colors.white,
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/scanner');
+              }
+            },
+          ),
         ),
-      ),
       backgroundColor: colors.background,
       body: Column(
         children: [
@@ -109,6 +121,21 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      side: BorderSide(color: colors.primary),
+                      foregroundColor: colors.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.forum_outlined, size: 18),
+                    label: const Text('Post to Community',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => context.push('/community'),
+                  ),
+                  const SizedBox(height: 12),
+
                   if (!_reportSent)
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
@@ -133,8 +160,9 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showReportDialog(BuildContext context) {
     final cropController = TextEditingController();
@@ -183,21 +211,24 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                 messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                 return;
               }
-              try {
-                await sl<FirestoreService>().submitCropNotFound(
-                  userId: uid,
-                  suggestedCrop: crop,
-                  observedSymptoms: symptoms,
-                  imagePath: widget.imagePath,
-                );
-                if (mounted) {
-                  setState(() => _reportSent = true);
-                }
-              } catch (_) {
-                // Surface the failure so the user can retry instead of the
-                // report silently disappearing.
-                messenger.showSnackBar(SnackBar(content: Text(failMsg)));
-              }
+              final res = await sl<ICommunityRepository>().submitCropNotFound(
+                userId: uid,
+                suggestedCrop: crop,
+                observedSymptoms: symptoms,
+                imagePath: widget.imagePath,
+              );
+              res.fold(
+                (_) {
+                  if (mounted) {
+                    setState(() => _reportSent = true);
+                  }
+                },
+                (_) {
+                  // Surface the failure so the user can retry instead of the
+                  // report silently disappearing.
+                  messenger.showSnackBar(SnackBar(content: Text(failMsg)));
+                },
+              );
             },
             child: Text(context.l10n.submit),
           ),

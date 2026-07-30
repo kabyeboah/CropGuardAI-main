@@ -3,11 +3,38 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/locale_formatter.dart';
 import '../../components/cropguard_card.dart';
 import 'treatment_tracker_provider.dart';
 
-class TreatmentTrackerScreen extends StatelessWidget {
+class TreatmentTrackerScreen extends StatefulWidget {
   const TreatmentTrackerScreen({super.key});
+
+  @override
+  State<TreatmentTrackerScreen> createState() => _TreatmentTrackerScreenState();
+}
+
+class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<TreatmentTrackerProvider>().loadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +43,8 @@ class TreatmentTrackerScreen extends StatelessWidget {
     return Consumer<TreatmentTrackerProvider>(
       builder: (context, provider, child) {
         final plans = provider.plans;
-        final pending = plans.where((t) => !t.completed).length;
-        final completed = plans.where((t) => t.completed).length;
+        final pending = provider.pendingCount;
+        final completed = provider.completedCount;
 
         // One-time confirmation when a plan was auto-created from the library.
         if (provider.seededPlan) {
@@ -31,8 +58,14 @@ class TreatmentTrackerScreen extends StatelessWidget {
           });
         }
 
-        return Scaffold(
-          backgroundColor: colors.background,
+        return PopScope(
+          canPop: Navigator.of(context).canPop(),
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            context.go('/home');
+          },
+          child: Scaffold(
+            backgroundColor: colors.background,
           appBar: AppBar(
             backgroundColor: colors.surface,
             title: Column(
@@ -48,7 +81,16 @@ class TreatmentTrackerScreen extends StatelessWidget {
                 ),
               ],
             ),
-            leading: BackButton(onPressed: () => context.pop()),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/home');
+                }
+              },
+            ),
             actions: [
               if (plans.isNotEmpty)
                 IconButton(
@@ -87,11 +129,20 @@ class TreatmentTrackerScreen extends StatelessWidget {
                       : RefreshIndicator(
                           onRefresh: provider.refresh,
                           child: ListView.separated(
+                            controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                            itemCount: plans.length,
+                            itemCount: plans.length + (provider.isLoadingMore ? 1 : 0),
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
                             itemBuilder: (_, i) {
+                              if (i == plans.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
                               final t = plans[i];
                               return Dismissible(
                                 key: ValueKey(t.id),
@@ -187,7 +238,7 @@ class TreatmentTrackerScreen extends StatelessWidget {
                                                     color: colors.muted),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  'Due ${t.dueDateFormatted}',
+                                                  'Due ${LocaleFormatter.formatMonthDayYear(context, t.dueDate)}',
                                                   style: TextStyle(
                                                     color: colors.muted,
                                                     fontSize: 11,
@@ -205,7 +256,8 @@ class TreatmentTrackerScreen extends StatelessWidget {
                             },
                           ),
                         ),
-        );
+        ),
+      );
       },
     );
   }

@@ -7,47 +7,90 @@ import '../../components/cropguard_text_field.dart';
 import '../../components/primary_button.dart';
 import 'forgot_password_provider.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
-  const ForgotPasswordScreen({super.key});
+class ForgotPasswordScreen extends StatefulWidget {
+  final String initialEmail;
+  const ForgotPasswordScreen({super.key, this.initialEmail = ''});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  late final TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ForgotPasswordProvider>();
     final colors = context.colors;
-    final isSuccess = provider.status == ForgotPasswordStatus.success;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.background,
-        elevation: 0,
-        leading: BackButton(color: colors.onBackground),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: isSuccess
-              ? _SuccessView(
-                  email: provider.email,
-                  cooldown: provider.resendCooldown,
-                  onResend: provider.send,
-                  onBackToLogin: () => context.go('/login'),
-                )
-              : _FormView(provider: provider),
-        ),
-      ),
+    return Selector<ForgotPasswordProvider, ForgotPasswordStatus>(
+      selector: (_, p) => p.status,
+      builder: (context, status, _) {
+        final isSuccess = status == ForgotPasswordStatus.success;
+        return PopScope(
+          canPop: Navigator.of(context).canPop(),
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            context.go('/login');
+          },
+          child: Scaffold(
+            backgroundColor: colors.background,
+            appBar: AppBar(
+              backgroundColor: colors.background,
+              elevation: 0,
+              leading: BackButton(
+                color: colors.onBackground,
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/login');
+                  }
+                },
+              ),
+            ),
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: isSuccess
+                    ? _SuccessView(
+                        email: context.read<ForgotPasswordProvider>().sentEmail,
+                        cooldown: context
+                            .select<ForgotPasswordProvider, int>(
+                                (p) => p.resendCooldown),
+                        onResend: () => context
+                            .read<ForgotPasswordProvider>()
+                            .send(_emailController.text),
+                        onBackToLogin: () => context.go('/login'),
+                      )
+                    : _FormView(emailController: _emailController),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _FormView extends StatelessWidget {
-  final ForgotPasswordProvider provider;
-  const _FormView({required this.provider});
+  final TextEditingController emailController;
+  const _FormView({required this.emailController});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isLoading = provider.status == ForgotPasswordStatus.loading;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -81,32 +124,49 @@ class _FormView extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         CropGuardTextField(
-          value: provider.email,
-          onChanged: provider.setEmail,
+          controller: emailController,
           label: context.l10n.email,
           placeholder: 'you@example.com',
           keyboardType: TextInputType.emailAddress,
         ),
-        if (provider.errorMessage != null) ...[
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colors.diseaseBg,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: colors.error.withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              provider.errorMessage!,
-              style: TextStyle(color: colors.error, fontSize: 13),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        PrimaryButton(
-          text: context.l10n.sendResetLink,
-          isLoading: isLoading,
-          onPressed: isLoading ? null : provider.send,
+        // Error + send button — only this sub-tree rebuilds from provider
+        Selector<ForgotPasswordProvider, (ForgotPasswordStatus, String?)>(
+          selector: (_, p) => (p.status, p.errorMessage),
+          builder: (context, state, _) {
+            final (status, error) = state;
+            final isLoading = status == ForgotPasswordStatus.loading;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (error != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.diseaseBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: colors.error.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      error,
+                      style: TextStyle(color: colors.error, fontSize: 13),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  text: context.l10n.sendResetLink,
+                  isLoading: isLoading,
+                  onPressed: isLoading
+                      ? null
+                      : () => context
+                          .read<ForgotPasswordProvider>()
+                          .send(emailController.text),
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 20),
         Center(

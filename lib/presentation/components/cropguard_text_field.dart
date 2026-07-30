@@ -4,8 +4,13 @@ import '../../core/theme/device_layout.dart';
 
 /// Text field matching CropGuardTextField.kt
 class CropGuardTextField extends StatefulWidget {
+  /// If [controller] is supplied the widget operates in "controlled" mode:
+  /// the caller owns the controller lifecycle and [value] / [onChanged] are
+  /// ignored.  Passing a controller avoids putting transient text-field content
+  /// inside a ChangeNotifier provider.
+  final TextEditingController? controller;
   final String value;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
   final String? label;
   final String? placeholder;
@@ -15,8 +20,9 @@ class CropGuardTextField extends StatefulWidget {
 
   const CropGuardTextField({
     super.key,
-    required this.value,
-    required this.onChanged,
+    this.controller,
+    this.value = '',
+    this.onChanged,
     this.focusNode,
     this.label,
     this.placeholder,
@@ -30,28 +36,37 @@ class CropGuardTextField extends StatefulWidget {
 }
 
 class _CropGuardTextFieldState extends State<CropGuardTextField> {
-  late TextEditingController _controller;
+  // Non-null only when the caller did NOT supply their own controller.
+  TextEditingController? _ownedController;
+
+  TextEditingController get _effectiveController =>
+      widget.controller ?? _ownedController!;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.value);
+    if (widget.controller == null) {
+      _ownedController = TextEditingController(text: widget.value);
+    }
   }
 
   @override
   void didUpdateWidget(covariant CropGuardTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != _controller.text) {
-      _controller.text = widget.value;
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
+    // Only sync the internal controller; external controllers are caller-owned.
+    if (widget.controller == null) {
+      if (widget.value != _effectiveController.text) {
+        _effectiveController.text = widget.value;
+        _effectiveController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _effectiveController.text.length),
+        );
+      }
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ownedController?.dispose(); // only dispose what we created
     super.dispose();
   }
 
@@ -73,9 +88,9 @@ class _CropGuardTextFieldState extends State<CropGuardTextField> {
             ),
           ),
         TextFormField(
-          controller: _controller,
+          controller: _effectiveController,
           focusNode: widget.focusNode,
-          onChanged: widget.onChanged,
+          onChanged: widget.onChanged ?? (_) {},
           obscureText: widget.obscureText,
           keyboardType: widget.keyboardType,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(

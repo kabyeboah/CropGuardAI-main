@@ -10,6 +10,7 @@ import '../../data/remote/firebase_auth_service.dart';
 import '../../data/remote/firestore_service.dart';
 import '../../data/remote/cloudinary_service.dart';
 import '../../data/remote/firebase_storage_service.dart';
+import '../../data/remote/image_upload_service.dart';
 
 // Repositories
 import '../../data/repositories/auth_repository_impl.dart';
@@ -70,6 +71,7 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<FirestoreService>(() => FirestoreService());
   sl.registerLazySingleton<FirebaseStorageService>(() => FirebaseStorageService());
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
+  sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(sl<CloudinaryService>(), sl<FirebaseStorageService>()));
   sl.registerLazySingleton<CropDiseaseClassifier>(() => CropDiseaseClassifier());
   sl.registerSingleton<StreakManager>(StreakManager(prefs));
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
@@ -83,7 +85,11 @@ Future<void> setupServiceLocator() async {
   // 2. Repositories (Implementation details)
   sl.registerLazySingleton<IAuthRepository>(() => AuthRepositoryImpl(sl<FirebaseAuthService>()));
   sl.registerLazySingleton<IDetectionRepository>(() => DetectionRepositoryImpl(sl<DatabaseHelper>()));
-  sl.registerLazySingleton<ICommunityRepository>(() => CommunityRepositoryImpl(sl<FirestoreService>(), sl<DatabaseHelper>()));
+  sl.registerLazySingleton<ICommunityRepository>(() => CommunityRepositoryImpl(
+    sl<FirestoreService>(),
+    sl<DatabaseHelper>(),
+    sl<ImageUploadService>(),
+  ));
   sl.registerLazySingleton<IClassifierRepository>(() => ClassifierRepositoryImpl(sl<CropDiseaseClassifier>()));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(sl<FirebaseAuthService>(), sl<DatabaseHelper>(), sl<SharedPreferences>()));
   sl.registerLazySingleton<IWeatherRepository>(() => WeatherRepositoryImpl());
@@ -109,7 +115,7 @@ Future<void> setupServiceLocator() async {
   // Wire offline → online drain: whenever connectivity is restored, replay
   // any community/feedback operations that were queued while offline.
   sl<ConnectivityService>().statusStream.listen((status) {
-    if (status == ConnectionStatus.online) {
+    if (status == ConnectionStatus.online || status == ConnectionStatus.poor) {
       final repo = sl<ICommunityRepository>();
       if (repo is CommunityRepositoryImpl) {
         repo.drainPendingSync();
@@ -146,8 +152,9 @@ List<SingleChildWidget> buildProviders() {
       sl<GetHistoryUseCase>(),
       sl<DeleteDetectionUseCase>(),
       sl<RestoreDetectionUseCase>(),
+      sl<IAuthRepository>(),
     )),
-    ChangeNotifierProvider(create: (_) => ProfileProvider(sl<IProfileRepository>(), sl<IAuthRepository>(), sl<ConnectivityService>(), sl<CloudinaryService>())),
+    ChangeNotifierProvider(create: (_) => ProfileProvider(sl<IProfileRepository>(), sl<IAuthRepository>(), sl<ConnectivityService>(), sl<ImageUploadService>())),
     ChangeNotifierProvider(create: (_) => ScannerProvider(sl<ScanCropUseCase>(), sl<IAuthRepository>(), sl<AnalyticsService>())),
     // ResultProvider and CommunityProvider are intentionally absent here.
     // They are provided at route level in AppRouter so they are created only

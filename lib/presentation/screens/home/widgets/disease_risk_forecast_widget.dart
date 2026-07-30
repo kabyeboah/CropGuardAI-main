@@ -169,15 +169,15 @@ class _RiskRow extends StatelessWidget {
                 ),
                 if (risk.hasNearbyOutbreak) ...[
                   const SizedBox(height: 6),
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 14),
-                      const SizedBox(width: 4),
+                      Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 14),
+                      SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           'Active verified outbreak reported in your region! Take precautions.',
                           style: TextStyle(
-                            color: const Color(0xFFDC2626),
+                            color: Color(0xFFDC2626),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),

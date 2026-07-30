@@ -14,6 +14,20 @@ import '../../../core/utils/permission_helper.dart';
 import '../result/batch_result_provider.dart';
 import 'scanner_provider.dart';
 
+// Slow-changing scanner state consumed by the outer Selector.
+// Using a Dart-3 record gives structural equality for free, so the Selector
+// only schedules a rebuild when any of these fields actually changes —
+// not on every 150 ms camera-frame notification.
+typedef _ScannerSlowState = ({
+  bool cameraInitialized,
+  CameraController? cameraController,
+  bool torchOn,
+  bool batchMode,
+  int batchCount,
+  bool isAnalysing,
+  String? errorMessage,
+});
+
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
 
@@ -50,17 +64,31 @@ class _ScannerScreenState extends State<ScannerScreen>
   // frozen or black when the user returns to the app.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_permissionsGranted != true || !mounted) return;
-    final provider = context.read<ScannerProvider>();
-    if (state == AppLifecycleState.inactive ||
+    if (!mounted) return;
+
+    if (state == AppLifecycleState.resumed) {
+      if (_permissionsGranted == true) {
+        context.read<ScannerProvider>().initCamera();
+      } else {
+        _checkPermissionsOnResume();
+      }
+    } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      provider.releaseCamera();
-    } else if (state == AppLifecycleState.resumed) {
-      provider.initCamera();
+      if (_permissionsGranted == true) {
+        context.read<ScannerProvider>().releaseCamera();
+      }
     }
   }
 
-  Future<void> _checkAndRequestPermissions() async {
+  Future<void> _checkPermissionsOnResume() async {
+    final granted = await PermissionHelper.hasScannerPermissions();
+    if (granted && mounted) {
+      setState(() => _permissionsGranted = true);
+      unawaited(context.read<ScannerProvider>().initCamera());
+    }
+  }
+
+  Future<void> _checkAndRequestPermissions({bool requestIfDenied = true}) async {
     final granted = await PermissionHelper.hasScannerPermissions();
     if (granted) {
       if (mounted) {
@@ -68,7 +96,12 @@ class _ScannerScreenState extends State<ScannerScreen>
         unawaited(context.read<ScannerProvider>().initCamera());
       }
     } else {
-      unawaited(_requestPermissions());
+      if (mounted) {
+        setState(() => _permissionsGranted = false);
+      }
+      if (requestIfDenied) {
+        unawaited(_requestPermissions());
+      }
     }
   }
 
@@ -250,7 +283,8 @@ class _ScannerScreenState extends State<ScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ScannerProvider>();
+    // Use read: callbacks hold a live reference; Selectors below subscribe.
+    final provider = context.read<ScannerProvider>();
     final colors = context.colors;
 
     if (_permissionsGranted == null) {
@@ -263,16 +297,27 @@ class _ScannerScreenState extends State<ScannerScreen>
     }
 
     if (_permissionsGranted == false) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => context.go('/home'),
+      return PopScope(
+        canPop: Navigator.of(context).canPop(),
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          context.go('/home');
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: Navigator.of(context).canPop()
+                ? BackButton(
+                    color: Colors.white,
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => context.go('/home'),
+                  ),
           ),
-        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -357,214 +402,259 @@ class _ScannerScreenState extends State<ScannerScreen>
             ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      floatingActionButton: provider.batchMode &&
-              provider.batchImagePaths.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: provider.isAnalysing
-                  ? null
-                  : () => _onAnalyseBatch(provider),
-              backgroundColor: colors.primary,
-              icon: provider.isAnalysing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.analytics_outlined),
-              label: Text(
-                provider.isAnalysing
-                    ? context.l10n.analysing
-                    : context.l10n.analyseBatch(provider.batchImagePaths.length),
-              ),
-            )
-          : null,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/home'),
-        ),
-        title: Text(
-          context.l10n.scanCropTitle,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              provider.torchOn ? Icons.flashlight_on : Icons.flashlight_off,
-              color: provider.torchOn ? Colors.yellow : Colors.white,
-            ),
-            onPressed: () => provider.toggleTorch(),
-          ),
-          IconButton(
-            icon: Icon(
-              provider.batchMode
-                  ? Icons.auto_awesome_motion
-                  : Icons.auto_awesome_motion_outlined,
-              color: provider.batchMode ? colors.primary : Colors.white,
-            ),
-            onPressed: () {
-              if (!provider.batchMode) {
-                _showBatchExplanation(provider);
-              } else {
-                provider.setBatchMode(false);
-              }
-            },
-          ),
-        ],
+    // SLOW-STATE SELECTOR — only rebuilds on user-driven events (torch toggle,
+    // mode change, camera init, error appearance). NOT triggered by the ~150ms
+    // camera-frame notifications that update previewQuality.
+    return Selector<ScannerProvider, _ScannerSlowState>(
+      selector: (_, p) => (
+        cameraInitialized: p.cameraInitialized,
+        cameraController: p.cameraController,
+        torchOn: p.torchOn,
+        batchMode: p.batchMode,
+        batchCount: p.batchImagePaths.length,
+        isAnalysing: p.isAnalysing,
+        errorMessage: p.errorMessage,
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (provider.cameraInitialized && provider.cameraController != null)
-            CameraPreview(provider.cameraController!)
-          else
-            Container(
-              color: Colors.black87,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.camera_alt, color: Colors.white54, size: 64),
-                    const SizedBox(height: 12),
-                    Builder(builder: (ctx) => Text(ctx.l10n.initialisingCamera,
-                        style: const TextStyle(color: Colors.white54))),
-                  ],
-                ),
-              ),
-            ),
-          _ScanOverlay(showGuidance: _showGuidance),
-          if (provider.previewQuality != null)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 108,
-              child: _QualityHud(quality: provider.previewQuality!),
-            ),
-          if (provider.errorMessage != null)
-            Positioned(
-              top: 100,
-              left: 24,
-              right: 24,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  provider.errorMessage!,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                24, 20, 24,
-                // Respect the device's bottom safe-area (home indicator / gesture
-                // bar) so the shutter button is never clipped.
-                MediaQuery.paddingOf(context).bottom + 16,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.85),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _ControlButton(
-                    icon: Icons.photo_library_outlined,
-                    label: context.l10n.gallery,
-                    onTap: () => _onGallery(provider),
-                  ),
-                  Semantics(
-                    button: true,
-                    enabled: !provider.isAnalysing,
-                    label: context.l10n.capturePhoto,
-                    excludeSemantics: true,
-                    child: GestureDetector(
-                    onTap: provider.isAnalysing
+      builder: (context, s, _) {
+        return PopScope(
+          canPop: Navigator.of(context).canPop(),
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            context.go('/home');
+          },
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            extendBodyBehindAppBar: true,
+            floatingActionButton: s.batchMode && s.batchCount > 0
+                ? FloatingActionButton.extended(
+                    onPressed: s.isAnalysing
                         ? null
-                        : () => _onCapture(provider),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        color:
-                            provider.isAnalysing ? Colors.white54 : Colors.white,
-                      ),
-                      child: provider.isAnalysing
-                          ? const CircularProgressIndicator(
-                              color: Colors.black54, strokeWidth: 2)
-                          : Icon(
-                              provider.batchMode
-                                  ? Icons.add_a_photo
-                                  : Icons.camera,
-                              color: Colors.black87,
-                              size: 36,
+                        : () => _onAnalyseBatch(provider),
+                    backgroundColor: colors.primary,
+                    icon: s.isAnalysing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
+                          )
+                        : const Icon(Icons.analytics_outlined),
+                    label: Text(
+                      s.isAnalysing
+                          ? context.l10n.analysing
+                          : context.l10n.analyseBatch(s.batchCount),
                     ),
-                  ),
-                  ),
-                  if (provider.batchMode && provider.batchImagePaths.isNotEmpty)
-                    _ControlButton(
-                      icon: Icons.analytics_outlined,
-                      label: context.l10n.analyse,
-                      enabled: !provider.isAnalysing,
-                      onTap: () => _onAnalyseBatch(provider),
+                  )
+                : null,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: Navigator.of(context).canPop()
+                  ? BackButton(
+                      color: Colors.white,
+                      onPressed: () => Navigator.of(context).pop(),
                     )
-                  else
-                    _ControlButton(
-                      icon: Icons.link,
-                      label: context.l10n.urlLabel,
-                      onTap: () => _onUrlInput(provider),
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => context.go('/home'),
                     ),
-                ],
+              title: Text(
+                context.l10n.scanCropTitle,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    s.torchOn ? Icons.flashlight_on : Icons.flashlight_off,
+                    color: s.torchOn ? Colors.yellow : Colors.white,
+                  ),
+                  onPressed: () => provider.toggleTorch(),
+                ),
+                IconButton(
+                  icon: Icon(
+                    s.batchMode
+                        ? Icons.auto_awesome_motion
+                        : Icons.auto_awesome_motion_outlined,
+                    color: s.batchMode ? colors.primary : Colors.white,
+                  ),
+                  onPressed: () {
+                    if (!s.batchMode) {
+                      _showBatchExplanation(provider);
+                    } else {
+                      provider.setBatchMode(false);
+                    }
+                  },
+                ),
+              ],
+            ),
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (s.cameraInitialized && s.cameraController != null)
+                  CameraPreview(s.cameraController!)
+                else
+                  Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.camera_alt,
+                              color: Colors.white54, size: 64),
+                          const SizedBox(height: 12),
+                          Builder(
+                              builder: (ctx) => Text(
+                                  ctx.l10n.initialisingCamera,
+                                  style: const TextStyle(
+                                      color: Colors.white54))),
+                        ],
+                      ),
+                    ),
+                  ),
+                _ScanOverlay(showGuidance: _showGuidance),
+                // HOT-PATH SELECTOR — only this sub-tree rebuilds every ~150 ms.
+                // The outer slow-state Selector shields CameraPreview, AppBar,
+                // and all controls from unnecessary frame-analysis rebuilds.
+                Selector<ScannerProvider, ScanPreviewQuality?>(
+                  selector: (_, p) => p.previewQuality,
+                  builder: (context, quality, _) => quality == null
+                      ? const SizedBox.shrink()
+                      : Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 108,
+                          child: _QualityHud(quality: quality),
+                        ),
+                ),
+                if (s.errorMessage != null)
+                  Positioned(
+                    top: 100,
+                    left: 24,
+                    right: 24,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s.errorMessage!,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      20,
+                      24,
+                      // Respect the device's bottom safe-area (home indicator /
+                      // gesture bar) so the shutter button is never clipped.
+                      MediaQuery.paddingOf(context).bottom + 16,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.85),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _ControlButton(
+                          icon: Icons.photo_library_outlined,
+                          label: context.l10n.gallery,
+                          onTap: () => _onGallery(provider),
+                        ),
+                        Semantics(
+                          button: true,
+                          enabled: !s.isAnalysing,
+                          label: context.l10n.capturePhoto,
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            onTap: s.isAnalysing
+                                ? null
+                                : () => _onCapture(provider),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 3),
+                                color: s.isAnalysing
+                                    ? Colors.white54
+                                    : Colors.white,
+                              ),
+                              child: s.isAnalysing
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.black54, strokeWidth: 2)
+                                  : Icon(
+                                      s.batchMode
+                                          ? Icons.add_a_photo
+                                          : Icons.camera,
+                                      color: Colors.black87,
+                                      size: 36,
+                                    ),
+                            ),
+                          ),
+                        ),
+                        if (s.batchMode && s.batchCount > 0)
+                          _ControlButton(
+                            icon: Icons.analytics_outlined,
+                            label: context.l10n.analyse,
+                            enabled: !s.isAnalysing,
+                            onTap: () => _onAnalyseBatch(provider),
+                          )
+                        else
+                          _ControlButton(
+                            icon: Icons.link,
+                            label: context.l10n.urlLabel,
+                            onTap: () => _onUrlInput(provider),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (s.batchMode && s.batchCount > 0)
+                  Positioned(
+                    top: kToolbarHeight + 60,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        context.l10n.batchImages(s.batchCount),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (provider.batchMode && provider.batchImagePaths.isNotEmpty)
-            Positioned(
-              top: kToolbarHeight + 60,
-              right: 16,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  context.l10n.batchImages(provider.batchImagePaths.length),
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

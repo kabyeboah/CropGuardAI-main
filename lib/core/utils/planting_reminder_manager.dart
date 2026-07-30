@@ -30,6 +30,7 @@ class PlantingCrop {
 }
 
 class PlantingReminderManager {
+  static bool isAndroidOverride = Platform.isAndroid;
   static const _prefsKey = 'my_planting_crops';
 
   static Future<List<PlantingCrop>> loadCrops(SharedPreferences prefs) async {
@@ -52,7 +53,7 @@ class PlantingReminderManager {
   }
 
   static Future<void> scheduleReminders(PlantingCrop crop) async {
-    if (!Platform.isAndroid) return;
+    if (!isAndroidOverride) return;
 
     final now = DateTime.now();
     for (final entry in _milestones) {
@@ -63,6 +64,7 @@ class PlantingReminderManager {
         await Workmanager().registerOneOffTask(
           'planting_${crop.id}_${days}d',
           'planting_reminder',
+          existingWorkPolicy: ExistingWorkPolicy.keep,
           initialDelay: delay,
           inputData: {'crop_type': crop.cropType, 'days': days},
         );

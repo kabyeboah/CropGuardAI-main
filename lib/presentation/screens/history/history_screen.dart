@@ -2,26 +2,54 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/locale_formatter.dart';
 import '../../../core/utils/scan_report_pdf_exporter.dart';
 import '../../../domain/models/detection_result.dart';
 import '../../components/severity_badge.dart';
 import 'history_provider.dart';
+import '../../../core/utils/screen_security_helper.dart';
 
 /// Equivalent of HistoryScreen.kt
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<HistoryProvider>().load(reset: false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<HistoryProvider>();
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.background,
+    return ScreenSecurityHelper(
+      child: Scaffold(
+        backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.surface,
         leading: provider.exportMode
@@ -170,7 +198,7 @@ class HistoryScreen extends StatelessWidget {
                     ),
                     label: Text(
                       provider.dateFrom != null || provider.dateTo != null
-                          ? '${provider.dateFrom != null ? DateFormat('MMM d').format(provider.dateFrom!) : '…'} → ${provider.dateTo != null ? DateFormat('MMM d').format(provider.dateTo!) : '…'}'
+                          ? '${provider.dateFrom != null ? LocaleFormatter.formatMonthDay(context, provider.dateFrom!) : '…'} → ${provider.dateTo != null ? LocaleFormatter.formatMonthDay(context, provider.dateTo!) : '…'}'
                           : context.l10n.dateRange,
                     ),
                     backgroundColor:
@@ -192,7 +220,7 @@ class HistoryScreen extends StatelessWidget {
                             : null,
                       );
                       if (range != null) {
-                        provider.setDateRange(range.start, range.end);
+                        await provider.setDateRange(range.start, range.end);
                       }
                     },
                   ),
@@ -246,15 +274,24 @@ class HistoryScreen extends StatelessWidget {
                 : provider.filtered.isEmpty
                     ? _EmptyHistory()
                     : RefreshIndicator(
-                        onRefresh: provider.load,
+                        onRefresh: () => provider.load(reset: true),
                         child: ListView.separated(
+                          controller: _scrollController,
                           // Bottom inset so the last row clears the docked scan
                           // FAB that overlays the body above the BottomAppBar.
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                          itemCount: provider.filtered.length,
+                          itemCount: provider.filtered.length + (provider.isLoadingMore ? 1 : 0),
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 8),
                           itemBuilder: (_, i) {
+                            if (i == provider.filtered.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
                             final r = provider.filtered[i];
                             return _HistoryTile(
                               result: r,
@@ -320,6 +357,7 @@ class HistoryScreen extends StatelessWidget {
                   foregroundColor: Colors.white,
                 )
               : null,
+      ),
     );
   }
 }
@@ -348,7 +386,8 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final date = DateFormat('MMM d, yyyy HH:mm').format(
+    final date = LocaleFormatter.formatMonthDayYearHourMinute(
+      context,
       DateTime.fromMillisecondsSinceEpoch(result.timestamp),
     );
 
@@ -574,7 +613,8 @@ class _ComparisonColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final date = DateFormat('MMM d, yyyy').format(
+    final date = LocaleFormatter.formatMonthDayYear(
+      context,
       DateTime.fromMillisecondsSinceEpoch(scan.timestamp),
     );
 

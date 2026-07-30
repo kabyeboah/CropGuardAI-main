@@ -61,11 +61,16 @@ class TtsManager {
     }
 
     if (useKhaya) {
-      final audioFile = await _ghanaNlp.synthesize(text, language: languageCode);
-      if (audioFile != null) {
-        _speechCache[cacheKey] = audioFile; // Save to cache
-        await _audioPlayer.play(DeviceFileSource(audioFile.path));
-        return;
+      try {
+        final audioFile = await _ghanaNlp.synthesize(text, language: languageCode);
+        if (audioFile != null) {
+          _speechCache[cacheKey] = audioFile; // Save to cache
+          await _audioPlayer.play(DeviceFileSource(audioFile.path));
+          return;
+        }
+      } catch (e) {
+        AppLogger.w('Ghana NLP synthesis failed, falling back to local TTS: $e');
+        // Fall back to native TTS below
       }
     }
 

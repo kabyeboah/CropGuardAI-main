@@ -45,6 +45,12 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
   List<TreatmentPlan> plans = [];
   bool isLoading = true;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+  final int _pageSize = 20;
+
+  int pendingCount = 0;
+  int completedCount = 0;
   String? error;
 
   // Route-scoped provider: async loads can finish after the screen is popped.
@@ -86,16 +92,37 @@ class TreatmentTrackerProvider extends ChangeNotifier {
   String get _userId => _auth.currentUserId;
   bool get _isGuest => _userId == 'guest';
 
-  Future<void> _load() async {
-    isLoading = true;
+  Future<void> _load({bool reset = true}) async {
+    if (reset) {
+      isLoading = true;
+      hasMore = true;
+      plans.clear();
+      _safeNotify();
+    } else {
+      if (!hasMore || isLoadingMore) return;
+      isLoadingMore = true;
+      _safeNotify();
+    }
+
     error = null;
-    _safeNotify();
     try {
-      plans = await _db.getAllTreatments(userId: _userId);
+      final newPlans = await _db.getAllTreatments(
+        userId: _userId,
+        limit: _pageSize,
+        offset: plans.length,
+      );
+
+      plans.addAll(newPlans);
+      hasMore = newPlans.length == _pageSize;
+
+      pendingCount = await _db.getPendingTreatmentsCount(userId: _userId);
+      completedCount = await _db.getCompletedTreatmentsCount(userId: _userId);
     } catch (e) {
       error = e.toString();
     }
+
     isLoading = false;
+    isLoadingMore = false;
     _safeNotify();
   }
 
@@ -200,6 +227,15 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     final updated = !plan.completed;
     await _db.updateTreatmentCompleted(plan.id, updated);
     plans[index] = plan.copyWith(completed: updated);
+
+    // Keep header counts in sync immediately in-memory
+    if (updated) {
+      pendingCount = (pendingCount - 1).clamp(0, 999999);
+      completedCount++;
+    } else {
+      pendingCount++;
+      completedCount = (completedCount - 1).clamp(0, 999999);
+    }
     _safeNotify();
 
     if (!_isGuest) {
@@ -211,8 +247,10 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
   Future<void> deletePlan(String id) async {
     await _db.deleteTreatment(id);
-    await _load();
+    await _load(reset: true);
   }
 
-  Future<void> refresh() => _load();
+  Future<void> refresh() => _load(reset: true);
+
+  Future<void> loadMore() => _load(reset: false);
 }

@@ -50,7 +50,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   static const _pageCount = 6;
 
   Future<void> _complete() async {
-    await [Permission.camera, Permission.location].request();
+    await [
+      Permission.camera,
+      Permission.location,
+      Permission.notification,
+    ].request();
     final prefs = sl<SharedPreferences>();
     // Seed selected crops (default planted-today; the user can refine exact
     // planting dates later in My Crops). Merge with any already saved so a
@@ -636,6 +640,12 @@ class _PermissionsPage extends StatelessWidget {
             icon: Icons.location_on_rounded,
             label: context.l10n.permissionLocation,
             desc: context.l10n.permissionLocationDesc,
+          ),
+          const SizedBox(height: 10),
+          _PermItem(
+            icon: Icons.notifications_active_rounded,
+            label: context.l10n.permissionNotifications,
+            desc: context.l10n.permissionNotificationsDesc,
           ),
           const SizedBox(height: 24),
           Text(

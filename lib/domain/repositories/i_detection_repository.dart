@@ -4,7 +4,17 @@ import '../models/field.dart';
 
 abstract class IDetectionRepository {
   Future<Result<int>> saveDetection(DetectionResult result);
-  Future<Result<List<DetectionResult>>> getHistory({String? userId});
+  Future<Result<List<DetectionResult>>> getHistory({
+    String? userId,
+    int? limit,
+    int? offset,
+    bool? isHealthy,
+    List<String>? cropTypes,
+    int? dateFrom,
+    int? dateTo,
+    String? searchQuery,
+    String? orderBy,
+  });
   Future<Result<DetectionResult?>> getDetection(int id);
   Future<Result<List<DetectionResult>>> getRecentDetections({String? userId, int limit = 5});
   Future<Result<void>> deleteDetection(int id);
@@ -18,4 +28,5 @@ abstract class IDetectionRepository {
   Future<Result<void>> saveField(Field field);
   Future<Result<List<Field>>> getFields({String? userId});
   Future<Result<void>> deleteField(String id);
+  Future<Result<List<String>>> getDistinctCropTypes({String? userId});
 }

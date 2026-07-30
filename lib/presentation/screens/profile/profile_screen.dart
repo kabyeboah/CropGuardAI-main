@@ -13,6 +13,7 @@ import '../../components/offline_banner.dart';
 import '../../components/primary_button.dart';
 import '../../components/section_label.dart';
 import 'profile_provider.dart';
+import '../../../core/utils/screen_security_helper.dart';
 
 /// Resolves the avatar image, preferring the offline-first local file and
 /// falling back to the cloud-synced URL. Returns null when neither exists so
@@ -34,14 +35,27 @@ class ProfileScreen extends StatelessWidget {
     final provider = context.watch<ProfileProvider>();
     final colors = context.colors;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: colors.primary,
-            expandedHeight: 200,
-            pinned: true,
+    return ScreenSecurityHelper(
+      child: PopScope(
+        canPop: Navigator.of(context).canPop(),
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          context.go('/home');
+        },
+        child: Scaffold(
+          backgroundColor: colors.background,
+          body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              leading: Navigator.of(context).canPop()
+                  ? BackButton(onPressed: () => Navigator.of(context).pop())
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => context.go('/home'),
+                    ),
+              backgroundColor: colors.primary,
+              expandedHeight: 200,
+              pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -246,8 +260,10 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   void _showEditProfileSheet(BuildContext context) {
     final provider = context.read<ProfileProvider>();
@@ -290,8 +306,12 @@ class ProfileScreen extends StatelessWidget {
                         canRemove: profile.localPhotoPath != null ||
                             (profile.avatarUrl?.isNotEmpty ?? false),
                         onPickImage: () async {
-                          final file = await ImagePicker()
-                              .pickImage(source: ImageSource.gallery);
+                          final file = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 512,
+                            maxHeight: 512,
+                            imageQuality: 85,
+                          );
                           if (file == null) return;
                           await profile.setProfilePhoto(file.path);
                         },

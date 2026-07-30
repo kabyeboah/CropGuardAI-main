@@ -21,6 +21,7 @@ import '../outbreak_map/outbreak_map_screen.dart';
 import '../settings/settings_provider.dart';
 import '../treatment_tracker/treatment_tracker_provider.dart';
 import 'result_provider.dart';
+import '../../../core/utils/screen_security_helper.dart';
 
 /// Equivalent of ResultScreen.kt
 class ResultScreen extends StatefulWidget {
@@ -64,7 +65,8 @@ class _ResultScreenState extends State<ResultScreen> {
   void _speakResultOnce(DetectionResult result) {
     if (_didSpeakResult) return;
     _didSpeakResult = true;
-    TtsManager().speak(result.displayName, languageCode: 'en');
+    final lang = Localizations.localeOf(context).languageCode;
+    TtsManager().speak(result.displayName, languageCode: lang);
   }
 
   Future<void> _loadLabels() async {
@@ -105,18 +107,31 @@ class _ResultScreenState extends State<ResultScreen> {
     final headerColor = isHealthy ? colors.healthy : colors.diseaseRed;
     final headerBg = isHealthy ? colors.healthyBg : colors.diseaseBg;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: headerColor,
-        foregroundColor: Colors.white,
-        title: Text(isHealthy ? context.l10n.healthyCropTitle : context.l10n.diseaseDetectedTitle,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
-        leading: BackButton(
-          color: Colors.white,
-          onPressed: () => context.go('/home'),
-        ),
+    return ScreenSecurityHelper(
+      child: PopScope(
+        canPop: Navigator.of(context).canPop(),
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          context.go('/home');
+        },
+        child: Scaffold(
+          backgroundColor: colors.background,
+          appBar: AppBar(
+            backgroundColor: headerColor,
+            foregroundColor: Colors.white,
+            title: Text(isHealthy ? context.l10n.healthyCropTitle : context.l10n.diseaseDetectedTitle,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            leading: BackButton(
+              color: Colors.white,
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/home');
+                }
+              },
+            ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: Colors.white),
@@ -196,9 +211,14 @@ class _ResultScreenState extends State<ResultScreen> {
                       backgroundColor: headerColor.withValues(alpha: 0.3),
                     ),
                     onPressed: () {
+                      final lang = Localizations.localeOf(context).languageCode;
                       final treatments = result.treatments.take(3).join(". ");
-                      final text = "${result.displayName}. Severity is ${result.severity}. Treatment steps: $treatments";
-                      TtsManager().speak(text, languageCode: 'en');
+                      final text = context.l10n.ttsResultSummary(
+                        result.displayName,
+                        result.severity,
+                        treatments,
+                      );
+                      TtsManager().speak(text, languageCode: lang);
                     },
                   ),
                 ],
@@ -364,6 +384,22 @@ class _ResultScreenState extends State<ResultScreen> {
                   ),
                   const SizedBox(height: 10),
 
+                  // Post to Community button - always visible
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      side: BorderSide(color: colors.primary),
+                      foregroundColor: colors.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.forum_outlined, size: 18),
+                    label: const Text('Post to Community',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => context.push('/community'),
+                  ),
+                  const SizedBox(height: 10),
+
                   // Feedback
                   if (!provider.feedbackSent)
                     OutlinedButton.icon(
@@ -423,8 +459,10 @@ class _ResultScreenState extends State<ResultScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Future<void> _showExpertDialog(BuildContext ctx, ResultProvider provider) async {
     final controller = TextEditingController();

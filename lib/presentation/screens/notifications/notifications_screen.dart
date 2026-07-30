@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/locale_formatter.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../domain/models/app_notification.dart';
 
@@ -56,9 +57,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final colors = context.colors;
     final unread = _notifications.where((n) => !n.isRead).length;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          leading: Navigator.of(context).canPop()
+              ? BackButton(onPressed: () => Navigator.of(context).pop())
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.go('/home'),
+                ),
         backgroundColor: colors.surface,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +167,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             ),
                                           ),
                                           Text(
-                                            _timeAgo(n.createdAt),
+                                            _timeAgo(n.createdAt, context),
                                             style: TextStyle(
                                               color: colors.muted,
                                               fontSize: 11,
@@ -197,6 +210,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     },
                   ),
                 ),
+      ),
     );
   }
 
@@ -222,11 +236,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  String _timeAgo(DateTime createdAt) {
+  String _timeAgo(DateTime createdAt, BuildContext context) {
     final diff = DateTime.now().difference(createdAt);
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return DateFormat('MMM d').format(createdAt);
+    return LocaleFormatter.formatMonthDay(context, createdAt);
   }
 }
 

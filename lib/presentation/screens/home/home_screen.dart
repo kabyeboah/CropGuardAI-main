@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/device_layout.dart';
+import '../../../core/utils/locale_formatter.dart';
 import '../../../core/utils/planting_reminder_manager.dart';
 import '../../../domain/models/detection_result.dart';
 import '../../components/cropguard_card.dart';
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today),
-                title: Text(context.l10n.plantedOn(DateFormat('MMM d, yyyy').format(selectedDate))),
+                title: Text(context.l10n.plantedOn(LocaleFormatter.formatMonthDayYear(context, selectedDate))),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: ctx,
@@ -618,7 +618,8 @@ class _ScanListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final date =
-        DateFormat('MMM d, HH:mm').format(
+        LocaleFormatter.formatMonthDayHourMinute(
+          context,
           DateTime.fromMillisecondsSinceEpoch(result.timestamp),
         );
     return InkWell(
@@ -816,7 +817,7 @@ class _CropCalendarTile extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 Text(
                   context.l10n.plantedDayLabel(
-                      DateFormat('MMM d').format(crop.plantedDate),
+                      LocaleFormatter.formatMonthDay(context, crop.plantedDate),
                       daysSincePlanting),
                   style: TextStyle(color: colors.muted, fontSize: 11),
                 ),

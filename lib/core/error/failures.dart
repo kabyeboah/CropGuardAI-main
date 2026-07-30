@@ -1,3 +1,5 @@
+import '../utils/image_quality_analyzer.dart';
+
 abstract class Failure {
   final String message;
   Failure(this.message);
@@ -21,3 +23,9 @@ class AuthFailure extends Failure {
 class MLFailure extends Failure {
   MLFailure(super.message);
 }
+
+class QualityFailure extends Failure {
+  final ImageQualityIssue? issue;
+  QualityFailure(this.issue, super.message);
+}
+

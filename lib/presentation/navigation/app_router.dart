@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database_helper.dart';
-import '../../data/remote/cloudinary_service.dart';
 import '../../data/remote/firebase_auth_service.dart';
 import '../../data/remote/firestore_service.dart';
+import '../../data/remote/image_upload_service.dart';
 import '../../domain/repositories/i_community_repository.dart';
 import '../../domain/repositories/i_detection_repository.dart';
 import '../../domain/usecases/auth/send_password_reset_usecase.dart';
@@ -43,16 +43,24 @@ import '../screens/notifications/notifications_screen.dart';
 import '../screens/forgot_password/forgot_password_provider.dart';
 import '../screens/forgot_password/forgot_password_screen.dart';
 import '../screens/reset_password/reset_password_screen.dart';
+import '../screens/error/unknown_route_screen.dart';
 
 /// Equivalent of CropGuardNavGraph.kt
 class AppRouter {
   AppRouter._();
 
+  static final GlobalKey<NavigatorState> rootNavigatorKey =
+      GlobalKey<NavigatorState>(debugLabel: 'root');
+  static final GlobalKey<NavigatorState> shellNavigatorKey =
+      GlobalKey<NavigatorState>(debugLabel: 'shell');
+
   static final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     observers: [sl<AnalyticsService>().observer],
     // Re-run redirect when the biometric lock state flips.
     refreshListenable: sl<AppLockController>(),
+    errorBuilder: (context, state) => const UnknownRouteScreen(),
     redirect: (context, state) {
       final path = state.matchedLocation;
       final publicRoutes = [
@@ -83,39 +91,45 @@ class AppRouter {
       // ─── Auth flow ─────────────────────────────────────────────────────
       GoRoute(
         path: '/splash',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const SplashScreen(),
       ),
       GoRoute(
         path: '/onboarding',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/lock',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const BiometricLockScreen(),
       ),
       GoRoute(
         path: '/login',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/register',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/forgot_password',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
           final email = (state.extra as String?) ?? '';
           return ChangeNotifierProvider(
             create: (_) => ForgotPasswordProvider(
               sl<SendPasswordResetUseCase>(),
-              initialEmail: email,
             ),
-            child: const ForgotPasswordScreen(),
+            child: ForgotPasswordScreen(initialEmail: email),
           );
         },
       ),
       GoRoute(
         path: '/reset_password',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
           // oobCode arrives as a query param on the deep link / continue URL.
           final code = state.uri.queryParameters['oobCode'] ?? '';
@@ -125,6 +139,7 @@ class AppRouter {
 
       // ─── Main shell with bottom nav ────────────────────────────────────
       ShellRoute(
+        navigatorKey: shellNavigatorKey,
         builder: (ctx, state, child) =>
             _BottomNavShell(location: state.matchedLocation, child: child),
         routes: [
@@ -146,10 +161,12 @@ class AppRouter {
       // ─── Full-screen routes ────────────────────────────────────────────
       GoRoute(
         path: '/scanner',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const ScannerScreen(),
       ),
       GoRoute(
         path: '/analysing',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
           final imagePath =
               state.uri.queryParameters['imagePath'] ?? '';
@@ -158,6 +175,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/result/:id',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
           return MultiProvider(
@@ -183,10 +201,12 @@ class AppRouter {
       ),
       GoRoute(
         path: '/batch_result',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const BatchResultScreen(),
       ),
       GoRoute(
         path: '/low_confidence',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
           final confidence = double.tryParse(
                   state.uri.queryParameters['confidence'] ?? '0') ??
@@ -199,15 +219,17 @@ class AppRouter {
       ),
       GoRoute(
         path: '/profile',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/community',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => ChangeNotifierProvider(
           create: (_) => CommunityProvider(
-            sl<FirestoreService>(),
+            sl<ICommunityRepository>(),
             sl<FirebaseAuthService>(),
-            sl<CloudinaryService>(),
+            sl<ImageUploadService>(),
             sl<ConnectivityService>(),
           ),
           child: const CommunityScreen(),
@@ -215,10 +237,12 @@ class AppRouter {
       ),
       GoRoute(
         path: '/disease_library',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const DiseaseLibraryScreen(),
       ),
       GoRoute(
         path: '/outbreak_map',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => OutbreakMapScreen(
           prefill: state.extra is OutbreakReportPrefill
               ? state.extra as OutbreakReportPrefill
@@ -227,6 +251,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/treatment_tracker',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => ChangeNotifierProvider(
           create: (_) => TreatmentTrackerProvider(
             sl<DatabaseHelper>(),
@@ -241,18 +266,22 @@ class AppRouter {
       ),
       GoRoute(
         path: '/privacy_policy',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const PrivacyPolicyScreen(),
       ),
       GoRoute(
         path: '/settings',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/terms_of_service',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const TermsOfServiceScreen(),
       ),
       GoRoute(
         path: '/notifications',
+        parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const NotificationsScreen(),
       ),
     ],

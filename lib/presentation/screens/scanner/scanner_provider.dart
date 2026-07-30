@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -13,16 +12,10 @@ import '../../../domain/repositories/i_auth_repository.dart';
 import '../../../domain/usecases/scanner/scan_crop_usecase.dart';
 import '../../../core/utils/image_quality_analyzer.dart';
 import '../../../core/utils/analytics_service.dart';
+import '../../../core/error/failures.dart';
+import '../../../data/ml/crop_disease_classifier.dart';
 
-/// Decodes an image file and runs the quality heuristics. Top-level so it can
-/// be sent to a `compute()` isolate. Returns null when the file can't be
-/// decoded (treated as "no objection" — inference still runs).
-ImageQualityResult? _analyzeQualityIsolate(String imagePath) {
-  final bytes = File(imagePath).readAsBytesSync();
-  final image = img.decodeImage(bytes);
-  if (image == null) return null;
-  return ImageQualityAnalyzer.analyze(image);
-}
+
 
 enum ScanMode { camera, gallery }
 
@@ -177,7 +170,9 @@ class ScannerProvider extends ChangeNotifier {
     final picker = ImagePicker();
     final file = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 90,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
     );
     if (file == null) return null;
 
@@ -292,27 +287,20 @@ class ScannerProvider extends ChangeNotifier {
     unawaited(_analytics.logScanStarted(source: mode == ScanMode.gallery ? 'gallery' : 'camera'));
 
     try {
-      // Decode + analyse on a background isolate: the captured JPEG is full
-      // camera resolution, so decoding it on the UI thread janks low-end
-      // phones for hundreds of ms before inference even starts.
-      final qualityCheck = await compute(_analyzeQualityIsolate, imagePath);
-
-      if (qualityCheck != null && !qualityCheck.isAcceptable) {
-        errorMessage = _getQualityErrorMessage(qualityCheck.issue);
-        isAnalysing = false;
-        notifyListeners();
-        unawaited(_analytics.logScanFailed(reason: 'quality_${qualityCheck.issue?.name ?? 'unknown'}'));
-        return null;
-      }
-
       final userId = _authRepository.currentUser?.id ?? 'guest';
       final result = await _scanCropUseCase(imagePath, userId);
 
       if (result.isError) {
-        errorMessage = result.failure!.message;
+        final failure = result.failure;
+        if (failure is QualityFailure) {
+          errorMessage = _getQualityErrorMessage(failure.issue);
+          unawaited(_analytics.logScanFailed(reason: 'quality_${failure.issue?.name ?? 'unknown'}'));
+        } else {
+          errorMessage = failure?.message ?? 'Analysis failed';
+          unawaited(_analytics.logScanFailed(reason: 'inference'));
+        }
         isAnalysing = false;
         notifyListeners();
-        unawaited(_analytics.logScanFailed(reason: 'inference'));
         return null;
       }
 
@@ -320,7 +308,7 @@ class ScannerProvider extends ChangeNotifier {
       notifyListeners();
       final detection = result.data;
       if (detection != null) {
-        if (detection.confidence < 0.60) {
+        if (detection.confidence < CropDiseaseClassifier.confidenceThreshold) {
           unawaited(_analytics.logLowConfidence(confidence: detection.confidence));
         }
         unawaited(_analytics.logScanCompleted(

@@ -1,4 +1,4 @@
-platform :ios, '15.0'
+ platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -38,8 +38,51 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Remove PrivacyInfo.xcprivacy from PBXSourcesBuildPhase if any plugin incorrectly includes it there
+    target.build_phases.each do |phase|
+      if phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase)
+        if (phase.output_paths.nil? || phase.output_paths.empty?) && (phase.output_file_list_paths.nil? || phase.output_file_list_paths.empty?)
+          phase.always_out_of_date = '1'
+        end
+      end
+
+      if phase.respond_to?(:files)
+        phase.files.each do |file|
+          if file.file_ref && file.file_ref.respond_to?(:path) && file.file_ref.path.to_s.end_with?('PrivacyInfo.xcprivacy')
+            if phase.is_a?(Xcodeproj::Project::Object::PBXSourcesBuildPhase)
+              phase.remove_build_file(file)
+              puts "Removed PrivacyInfo.xcprivacy from PBXSourcesBuildPhase for target: #{target.name}"
+            end
+          end
+        end
+      end
+    end
+
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      # Force Swift 5 mode and minimal concurrency checks for dependencies to prevent Swift 6 compile errors
+      config.build_settings['SWIFT_VERSION'] = '5.0'
+      config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
+      # Suppress deprecated-API warnings from third-party ObjC plugins (geolocator_apple,
+      # image_picker_ios, permission_handler_apple, printing). These are upstream issues
+      # that cannot be patched in-place; suppression is the correct workaround.
+      config.build_settings['GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS'] = 'NO'
+      config.build_settings['CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS'] = 'NO'
+      # Suppress Swift warnings that are treated as errors in strict mode
+      # (covers local_auth_darwin Swift 6 actor-isolation warnings and in_app_review check)
+      config.build_settings['SWIFT_SUPPRESS_WARNINGS'] = 'YES'
+
+      # Disable explicit module builds to prevent dependency resolution errors (e.g. FirebaseInstallations)
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+
+      # Enable permissions for permission_handler
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_LOCATION=1',
+        'PERMISSION_PHOTOS=1',
+      ]
     end
   end
 end

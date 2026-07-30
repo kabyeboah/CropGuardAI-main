@@ -46,6 +46,11 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
     }
 
+    match /missing_crops/{crop} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+    }
+
     // Outbreak reports: authenticated users can read; authors create their own.
     // Cap free-text notes to bound abuse / storage. Validate field types/ranges
     // so the crowd-sourced dataset stays clean, and keep reports immutable once
@@ -72,7 +77,9 @@ service cloud.firestore {
                         || (request.resource.data.longitude is number
                             && request.resource.data.longitude >= -180
                             && request.resource.data.longitude <= 180));
-      allow update, delete: if false;
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verifiedBy', 'refutedBy']);
+      allow delete: if false;
     }
 
     // Treatment plans synced to cloud.

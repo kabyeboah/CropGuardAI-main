@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/detection_result.dart';
 import '../../../core/utils/scan_severity.dart';
+import '../../../data/ml/crop_disease_classifier.dart';
 
 class BatchScanResult {
   final int totalLeaves;
@@ -54,10 +55,10 @@ class BatchResultProvider extends ChangeNotifier {
           overallSeverity = ScanSeverity.severe;
         } else if (avgConfidence >= 0.75) {
           overallSeverity = ScanSeverity.moderate;
-        } else if (avgConfidence >= 0.60) {
+        } else if (avgConfidence >= CropDiseaseClassifier.confidenceThreshold) {
           overallSeverity = ScanSeverity.early;
         } else {
-          // Diseased but below the 0.60 confidence threshold — mark as unclear
+          // Diseased but below the confidence threshold — mark as unclear
           // rather than implying a confident "early" diagnosis. Mirrors the
           // single-scan low-confidence flow.
           overallSeverity = ScanSeverity.unclear;

@@ -19,175 +19,240 @@ class RegisterScreen extends StatelessWidget {
   }
 }
 
-class _RegisterBody extends StatelessWidget {
+class _RegisterBody extends StatefulWidget {
   const _RegisterBody();
 
   @override
+  State<_RegisterBody> createState() => _RegisterBodyState();
+}
+
+class _RegisterBodyState extends State<_RegisterBody> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _termsAccepted = false;
+
+  int get _passwordStrength {
+    final pw = _passwordController.text;
+    if (pw.isEmpty) return 0;
+    if (pw.length < 6) return 1;
+    final hasDigit = pw.contains(RegExp(r'[0-9]'));
+    final hasSpecial = pw.contains(RegExp(r'[^a-zA-Z0-9]'));
+    if (pw.length >= 12 && hasDigit && hasSpecial) return 4;
+    if (pw.length >= 8 && hasDigit) return 3;
+    return 2;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild strength bar as the user types.
+    _passwordController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final provider = context.watch<RegisterProvider>();
     final colors = context.colors;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
-        backgroundColor: colors.background,
-        body: SafeArea(
-          child: ScreenContent(
-            children: [
-              // Header
-              Center(
-                child: Column(
+      child: PopScope(
+        canPop: Navigator.of(context).canPop(),
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          context.go('/login');
+        },
+        child: Scaffold(
+          backgroundColor: colors.background,
+          body: SafeArea(
+            child: ScreenContent(
+              children: [
+                // Header
+                Center(
+                  child: Column(
+                    children: [
+                      Text(context.l10n.createAccount,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(context.l10n.registerSubtitle,
+                          style: TextStyle(color: colors.muted)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Name
+                CropGuardTextField(
+                  controller: _nameController,
+                  label: context.l10n.fullName,
+                  placeholder: context.l10n.exampleName,
+                ),
+                const SizedBox(height: DeviceLayout.sectionSpacing),
+
+                // Email
+                CropGuardTextField(
+                  controller: _emailController,
+                  label: context.l10n.email,
+                  placeholder: 'you@example.com',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: DeviceLayout.sectionSpacing),
+
+                // Password
+                CropGuardTextField(
+                  controller: _passwordController,
+                  label: context.l10n.password,
+                  placeholder: '••••••••',
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                    color: colors.muted,
+                  ),
+                ),
+                const SizedBox(height: DeviceLayout.sectionSpacing),
+
+                CropGuardTextField(
+                  controller: _confirmPasswordController,
+                  label: context.l10n.confirmPassword,
+                  placeholder: '••••••••',
+                  obscureText: _obscurePassword,
+                ),
+                const SizedBox(height: 8),
+
+                // Strength bar
+                _PasswordStrengthBar(strength: _passwordStrength),
+                const SizedBox(height: 16),
+
+                // Terms checkbox
+                Row(
                   children: [
-                    Text(context.l10n.createAccount,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(context.l10n.registerSubtitle,
-                        style: TextStyle(color: colors.muted)),
+                    Checkbox(
+                      value: _termsAccepted,
+                      onChanged: (v) =>
+                          setState(() => _termsAccepted = v ?? false),
+                      activeColor: colors.primaryLight,
+                      side: BorderSide(color: colors.border),
+                    ),
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('${context.l10n.agreeToThe} ',
+                              style:
+                                  TextStyle(color: colors.muted, fontSize: 12)),
+                          GestureDetector(
+                            onTap: () => context.push('/terms_of_service'),
+                            child: Text(context.l10n.termsOfService,
+                                style: TextStyle(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                          Text(' ${context.l10n.and} ',
+                              style:
+                                  TextStyle(color: colors.muted, fontSize: 12)),
+                          GestureDetector(
+                            onTap: () => context.push('/privacy_policy'),
+                            child: Text(context.l10n.privacyPolicy,
+                                style: TextStyle(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 8),
 
-              // Name
-              CropGuardTextField(
-                value: provider.name,
-                onChanged: provider.setName,
-                label: context.l10n.fullName,
-                placeholder: context.l10n.exampleName,
-              ),
-              const SizedBox(height: DeviceLayout.sectionSpacing),
-
-              // Email
-              CropGuardTextField(
-                value: provider.email,
-                onChanged: provider.setEmail,
-                label: context.l10n.email,
-                placeholder: 'you@example.com',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: DeviceLayout.sectionSpacing),
-
-              // Password
-              CropGuardTextField(
-                value: provider.password,
-                onChanged: provider.setPassword,
-                label: context.l10n.password,
-                placeholder: '••••••••',
-                obscureText: provider.obscurePassword,
-                suffixIcon: IconButton(
-                  icon: Icon(provider.obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined),
-                  onPressed: provider.togglePasswordVisibility,
-                  color: colors.muted,
-                ),
-              ),
-              const SizedBox(height: DeviceLayout.sectionSpacing),
-              CropGuardTextField(
-                value: provider.confirmPassword,
-                onChanged: provider.setConfirmPassword,
-                label: context.l10n.confirmPassword,
-                placeholder: '••••••••',
-                obscureText: provider.obscurePassword,
-              ),
-              const SizedBox(height: 8),
-
-              // Strength bar
-              _PasswordStrengthBar(strength: provider.passwordStrength),
-              const SizedBox(height: 16),
-
-              // Terms checkbox
-              Row(
-                children: [
-                  Checkbox(
-                    value: provider.termsAccepted,
-                    onChanged: (v) => provider.setTermsAccepted(v ?? false),
-                    activeColor: colors.primaryLight,
-                    side: BorderSide(color: colors.border),
-                  ),
-                  Expanded(
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                // Error + button — only this sub-tree rebuilds from provider
+                Selector<RegisterProvider, (RegisterStatus, String?)>(
+                  selector: (_, p) => (p.status, p.errorMessage),
+                  builder: (context, state, _) {
+                    final (status, error) = state;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('${context.l10n.agreeToThe} ',
-                            style: TextStyle(
-                                color: colors.muted, fontSize: 12)),
-                        GestureDetector(
-                          onTap: () => context.push('/terms_of_service'),
-                          child: Text(context.l10n.termsOfService,
-                              style: TextStyle(
-                                  color: colors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12)),
-                        ),
-                        Text(' ${context.l10n.and} ',
-                            style: TextStyle(
-                                color: colors.muted, fontSize: 12)),
-                        GestureDetector(
-                          onTap: () => context.push('/privacy_policy'),
-                          child: Text(context.l10n.privacyPolicy,
-                              style: TextStyle(
-                                  color: colors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12)),
+                        if (error != null)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: colors.diseaseBg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: colors.error.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(error,
+                                style: TextStyle(
+                                    color: colors.error, fontSize: 13)),
+                          ),
+                        PrimaryButton(
+                          text: context.l10n.createAccount,
+                          isLoading: status == RegisterStatus.loading,
+                          onPressed: () {
+                            final provider = context.read<RegisterProvider>();
+                            provider.register(
+                              name: _nameController.text,
+                              email: _emailController.text,
+                              password: _passwordController.text,
+                              confirmPassword:
+                                  _confirmPasswordController.text,
+                              termsAccepted: _termsAccepted,
+                              onSuccess: () => context.go('/home'),
+                              onMigrationNeeded: (count) =>
+                                  _showMigrationDialog(
+                                      context, provider, count),
+                            );
+                          },
                         ),
                       ],
-                    ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Sign in link
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('${context.l10n.hasAccountPrompt} ',
+                          style:
+                              TextStyle(color: colors.muted, fontSize: 14)),
+                      GestureDetector(
+                        onTap: () => context.go('/login'),
+                        child: Text(context.l10n.signIn,
+                            style: TextStyle(
+                                color: colors.greenXL,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Error
-              if (provider.errorMessage != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: colors.diseaseBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: colors.error.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(provider.errorMessage!,
-                      style: TextStyle(color: colors.error, fontSize: 13)),
                 ),
-
-              // Register button
-              PrimaryButton(
-                text: context.l10n.createAccount,
-                isLoading: provider.status == RegisterStatus.loading,
-                onPressed: () => provider.register(
-                  () => context.go('/home'),
-                  onMigrationNeeded: (count) =>
-                      _showMigrationDialog(context, provider, count),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Sign in link
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('${context.l10n.hasAccountPrompt} ',
-                        style:
-                            TextStyle(color: colors.muted, fontSize: 14)),
-                    GestureDetector(
-                      onTap: () => context.go('/login'),
-                      child: Text(context.l10n.signIn,
-                          style: TextStyle(
-                              color: colors.greenXL,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/locale_formatter.dart';
 
 /// Animated confidence bar — matches ConfidenceBar.kt
 class ConfidenceBar extends StatefulWidget {
@@ -77,7 +78,7 @@ class _ConfidenceBarState extends State<ConfidenceBar>
                         .textTheme
                         .labelMedium
                         ?.copyWith(color: colors.onBackgroundSecondary)),
-                Text('$pct%',
+                Text('${LocaleFormatter.formatNumber(context, pct)}%',
                     style: Theme.of(context)
                         .textTheme
                         .titleSmall
@@ -96,7 +97,7 @@ class _ConfidenceBarState extends State<ConfidenceBar>
                 backgroundColor: const Color(0xFFE0E0E0),
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
                 semanticsLabel: context.l10n.aiConfidence,
-                semanticsValue: '$pct%',
+                semanticsValue: '${LocaleFormatter.formatNumber(context, pct)}%',
               ),
             );
           },

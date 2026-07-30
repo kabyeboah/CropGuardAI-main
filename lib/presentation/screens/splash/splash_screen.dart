@@ -5,6 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/root_detection_helper.dart';
+import '../../../core/utils/analytics_service.dart';
+import '../../../main.dart' show startupStopwatch;
 
 /// Equivalent of SplashScreen.kt — 1.5s delay then route based on onboarding flag
 class SplashScreen extends StatefulWidget {
@@ -26,6 +30,16 @@ class _SplashScreenState extends State<SplashScreen>
         vsync: this, duration: const Duration(milliseconds: 800));
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
     _ctrl.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (startupStopwatch.isRunning) {
+        startupStopwatch.stop();
+        final elapsedMs = startupStopwatch.elapsedMilliseconds;
+        AppLogger.i('App cold start time: ${elapsedMs}ms');
+        sl<AnalyticsService>().logColdStart(elapsedMs);
+      }
+    });
+
     _navigate();
   }
 
@@ -37,6 +51,35 @@ class _SplashScreenState extends State<SplashScreen>
         prefs.getBool('onboarding_complete') ?? false;
     if (!mounted) return;
     
+    final isRooted = await RootDetectionHelper.isRooted();
+    if (isRooted) {
+      AppLogger.w('Device is rooted/jailbroken. Prompting soft warning.');
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => AlertDialog(
+            icon: const Icon(Icons.security_update_warning, color: Colors.orange, size: 40),
+            title: const Text('Security Warning'),
+            content: const Text(
+              'CropGuard AI has detected that your device is rooted or jailbroken. '
+              'Running on a compromised operating system increases the risk of exposing your '
+              'personal data, location history, and scan reports. '
+              'Please proceed with caution.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Proceed Anyway'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
+
     if (FirebaseAuth.instance.currentUser != null) {
       context.go('/home');
     } else if (onboardingDone) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// API keys and secrets — never commit real values, never bundle them as assets.
@@ -13,6 +14,39 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// dotenv was never loaded (the normal case in release).
 class AppSecrets {
   AppSecrets._();
+
+  // ── Testing Overrides (simulates --dart-define in unit tests) ───────────────
+  @visibleForTesting
+  static String? dartDefineGhanaNlpKeyOverride;
+  @visibleForTesting
+  static String? dartDefineCloudinaryCloudNameOverride;
+  @visibleForTesting
+  static String? dartDefineCloudinaryUploadPresetOverride;
+  @visibleForTesting
+  static String? dartDefinePasswordResetUrlOverride;
+  @visibleForTesting
+  static String? dartDefineAndroidPackageOverride;
+  @visibleForTesting
+  static String? dartDefineIosBundleIdOverride;
+
+  /// Resets all overrides and remote keys back to default/empty values.
+  /// Intended for unit testing.
+  @visibleForTesting
+  static void reset() {
+    dartDefineGhanaNlpKeyOverride = null;
+    dartDefineCloudinaryCloudNameOverride = null;
+    dartDefineCloudinaryUploadPresetOverride = null;
+    dartDefinePasswordResetUrlOverride = null;
+    dartDefineAndroidPackageOverride = null;
+    dartDefineIosBundleIdOverride = null;
+
+    _remoteGhanaNlpKey = null;
+    _remoteCloudName = null;
+    _remoteUploadPreset = null;
+    _remotePasswordResetUrl = null;
+    _remoteAndroidPackage = null;
+    _remoteIosBundleId = null;
+  }
 
   /// Safe dotenv read: returns '' when dotenv isn't initialised (release) so
   /// accessing `dotenv.env` never throws NotInitializedError.
@@ -31,7 +65,8 @@ class AppSecrets {
 
   /// Subscription key for Ghana NLP. Null if not configured.
   static String? get ghanaNlpSubscriptionKey {
-    if (_dartDefineKey.isNotEmpty) return _dartDefineKey;
+    final ddKey = dartDefineGhanaNlpKeyOverride ?? _dartDefineKey;
+    if (ddKey.isNotEmpty) return ddKey;
     final envKey = _env('GHANA_NLP_SUBSCRIPTION_KEY');
     if (envKey.isNotEmpty) return envKey;
     return (_remoteGhanaNlpKey?.isNotEmpty == true) ? _remoteGhanaNlpKey : null;
@@ -59,14 +94,16 @@ class AppSecrets {
   );
 
   static String get cloudinaryCloudName {
-    if (_dartDefineCloudName.isNotEmpty) return _dartDefineCloudName;
+    final ddName = dartDefineCloudinaryCloudNameOverride ?? _dartDefineCloudName;
+    if (ddName.isNotEmpty) return ddName;
     final envVal = _env('CLOUDINARY_CLOUD_NAME');
     if (envVal.isNotEmpty) return envVal;
     return _remoteCloudName ?? '';
   }
 
   static String get cloudinaryUploadPreset {
-    if (_dartDefineUploadPreset.isNotEmpty) return _dartDefineUploadPreset;
+    final ddPreset = dartDefineCloudinaryUploadPresetOverride ?? _dartDefineUploadPreset;
+    if (ddPreset.isNotEmpty) return ddPreset;
     final envVal = _env('CLOUDINARY_UPLOAD_PRESET');
     if (envVal.isNotEmpty) return envVal;
     return _remoteUploadPreset ?? '';
@@ -116,21 +153,24 @@ class AppSecrets {
   static const _defaultIosBundleId = 'com.crop.guard.app';
 
   static String get passwordResetContinueUrl {
-    if (_dartDefinePasswordResetUrl.isNotEmpty) return _dartDefinePasswordResetUrl;
+    final ddUrl = dartDefinePasswordResetUrlOverride ?? _dartDefinePasswordResetUrl;
+    if (ddUrl.isNotEmpty) return ddUrl;
     final envVal = _env('PASSWORD_RESET_CONTINUE_URL');
     if (envVal.isNotEmpty) return envVal;
     return _remotePasswordResetUrl ?? _defaultPasswordResetUrl;
   }
 
   static String get androidPackageName {
-    if (_dartDefineAndroidPackage.isNotEmpty) return _dartDefineAndroidPackage;
+    final ddPkg = dartDefineAndroidPackageOverride ?? _dartDefineAndroidPackage;
+    if (ddPkg.isNotEmpty) return ddPkg;
     final envVal = _env('ANDROID_PACKAGE_NAME');
     if (envVal.isNotEmpty) return envVal;
     return _remoteAndroidPackage ?? _defaultAndroidPackage;
   }
 
   static String get iosBundleId {
-    if (_dartDefineIosBundleId.isNotEmpty) return _dartDefineIosBundleId;
+    final ddIos = dartDefineIosBundleIdOverride ?? _dartDefineIosBundleId;
+    if (ddIos.isNotEmpty) return ddIos;
     final envVal = _env('IOS_BUNDLE_ID');
     if (envVal.isNotEmpty) return envVal;
     return _remoteIosBundleId ?? _defaultIosBundleId;

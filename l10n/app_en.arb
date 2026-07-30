@@ -393,6 +393,8 @@
   "termsEffective": "Effective: May 2025",
   "permissionCameraDesc": "To scan crop leaves for disease detection",
   "permissionLocationDesc": "To map disease outbreaks in your region",
+  "permissionNotifications": "Notifications",
+  "permissionNotificationsDesc": "To send treatment reminders and outbreak alerts",
   "permissionsTitle": "Permissions & Privacy",
   "permissionsBody": "Your data stays on your device. We never sell or share your information.",
   "onboardingEnableStart": "Enable & Get Started",
@@ -596,5 +598,25 @@
   "onboardingRegionBody": "Select your region so we can show locally relevant disease risks and weather. You can change this later in Settings.",
   "selectRegion": "Select your region",
   "userRegionLabel": "Region",
-  "scanFirstCropHint": "Scan your first crop to see your farm health score"
+  "scanFirstCropHint": "Scan your first crop to see your farm health score",
+  "scanSummaryHealthy": "{disease} looks healthy.",
+  "@scanSummaryHealthy": {
+    "placeholders": {
+      "disease": {"type": "String"}
+    }
+  },
+  "scanSummaryDiseased": "{disease} detected.",
+  "@scanSummaryDiseased": {
+    "placeholders": {
+      "disease": {"type": "String"}
+    }
+  },
+  "ttsResultSummary": "{disease}. Severity is {severity}. Treatment steps: {treatments}",
+  "@ttsResultSummary": {
+    "placeholders": {
+      "disease": {"type": "String"},
+      "severity": {"type": "String"},
+      "treatments": {"type": "String"}
+    }
+  }
 }

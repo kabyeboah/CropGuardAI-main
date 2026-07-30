@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
+import 'app_logger.dart';
+
 
 /// Real connection quality, not just whether a network interface exists.
 enum ConnectionStatus {
@@ -112,33 +114,40 @@ class ConnectivityService with WidgetsBindingObserver {
     _probing = true;
     try {
       await checkStatus();
+    } catch (e, s) {
+      AppLogger.e("Connectivity check failed: $e", e, s);
     } finally {
       _probing = false;
     }
   }
 
   Future<ConnectionStatus> _probe() async {
-    // No interface at all → definitely offline, skip the network round-trip.
-    final interfaces = await _connectivity.checkConnectivity();
-    if (interfaces.every((r) => r == ConnectivityResult.none)) {
-      return ConnectionStatus.offline;
-    }
-
-    final stopwatch = Stopwatch()..start();
     try {
-      final socket = await Socket.connect(
-        _probeHost,
-        _probePort,
-        timeout: _probeTimeout,
-      );
-      socket.destroy();
-      stopwatch.stop();
-      return stopwatch.elapsed > _poorLatency
-          ? ConnectionStatus.poor
-          : ConnectionStatus.online;
-    } catch (_) {
-      // Interface present but the probe could not be reached — connected to a
-      // network with no usable internet.
+      // No interface at all → definitely offline, skip the network round-trip.
+      final interfaces = await _connectivity.checkConnectivity();
+      if (interfaces.every((r) => r == ConnectivityResult.none)) {
+        return ConnectionStatus.offline;
+      }
+
+      final stopwatch = Stopwatch()..start();
+      try {
+        final socket = await Socket.connect(
+          _probeHost,
+          _probePort,
+          timeout: _probeTimeout,
+        );
+        socket.destroy();
+        stopwatch.stop();
+        return stopwatch.elapsed > _poorLatency
+            ? ConnectionStatus.poor
+            : ConnectionStatus.online;
+      } catch (_) {
+        // Interface present but the probe could not be reached — connected to a
+        // network with no usable internet.
+        return ConnectionStatus.offline;
+      }
+    } catch (e, s) {
+      AppLogger.e("Connectivity probe exception (e.g. platform channel not ready): $e", e, s);
       return ConnectionStatus.offline;
     }
   }

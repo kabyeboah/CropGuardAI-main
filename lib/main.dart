@@ -20,6 +20,9 @@ import 'firebase_options.dart';
 import 'dart:async';
 import 'core/utils/app_logger.dart';
 
+// Start the stopwatch immediately when the app entrypoint file is loaded
+final Stopwatch startupStopwatch = Stopwatch()..start();
+
 void main() async {
   // firebaseReady is set to true once Firebase.initializeApp() completes so
   // the zone error handler can safely decide whether Crashlytics is available.
@@ -52,13 +55,34 @@ void main() async {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
     };
-    await setupServiceLocator();
-    await NotificationHelper.init();
-    await BackgroundTaskHelper.init();
+    try {
+      await setupServiceLocator();
+    } catch (e, s) {
+      AppLogger.e('Service locator registration failed', e, s);
+    }
+
+    // Initialize helpers asynchronously so slow/flaky native channel initializations
+    // cannot block the initial frame (runApp) and leave the screen blank.
+    unawaited(() async {
+      try {
+        await NotificationHelper.init();
+      } catch (e, s) {
+        AppLogger.e('NotificationHelper initialization failed', e, s);
+      }
+      try {
+        await BackgroundTaskHelper.init();
+      } catch (e, s) {
+        AppLogger.e('BackgroundTaskHelper initialization failed', e, s);
+      }
+    }());
 
     // Start observing app lifecycle for the biometric app-lock (no-op until the
     // user enables it in Settings).
-    sl<AppLockController>().start();
+    try {
+      sl<AppLockController>().start();
+    } catch (e, s) {
+      AppLogger.e('AppLockController startup failed', e, s);
+    }
 
     // Attribute crashes and analytics to the current user across every auth
     // path (login/register/google/anonymous/logout). uid is cleared on sign-out.

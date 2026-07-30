@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
+import '../config/app_secrets.dart';
 import 'app_logger.dart';
 
 /// Receives inbound deep links (Android App Links / iOS Universal Links) and
@@ -23,25 +26,64 @@ class DeepLinkService {
     _sub = null;
     try {
       final initial = await _appLinks.getInitialLink();
-      if (initial != null) _handle(initial, router);
+      if (initial != null) handleUri(initial, router);
     } catch (e, s) {
       AppLogger.e('Failed to read initial deep link', e, s);
     }
     _sub = _appLinks.uriLinkStream.listen(
-      (uri) => _handle(uri, router),
+      (uri) => handleUri(uri, router),
       onError: (Object e, StackTrace s) =>
           AppLogger.e('Deep link stream error', e, s),
     );
   }
 
-  void _handle(Uri uri, GoRouter router) {
+  @visibleForTesting
+  void handleUri(Uri uri, GoRouter router) {
+    // 1. Validate scheme
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      AppLogger.w('Rejected deep link with invalid scheme: ${uri.scheme}');
+      return;
+    }
+
+    // 2. Validate host (must match password reset continue URL host)
+    try {
+      final expectedUri = Uri.parse(AppSecrets.passwordResetContinueUrl);
+      if (uri.host != expectedUri.host) {
+        AppLogger.w('Rejected deep link with unauthorized host: ${uri.host}');
+        return;
+      }
+    } catch (e, s) {
+      AppLogger.e('Failed to parse configured continue URL host', e, s);
+      return;
+    }
+
     final params = uri.queryParameters;
     final code = params['oobCode'];
     final mode = params['mode'];
     final isReset =
         mode == 'resetPassword' || uri.path.contains('reset-password');
+
     if (code != null && code.isNotEmpty && isReset) {
-      router.go('/reset_password?oobCode=$code');
+      // 3. Validate code against safe characters (Firebase action codes are base64-like)
+      final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
+      if (!codeRegex.hasMatch(code)) {
+        AppLogger.e('Rejected deep link with malformed or suspicious oobCode.');
+        return;
+      }
+
+      // 4. Validate mode parameter if present
+      if (mode != null && mode.isNotEmpty) {
+        final modeRegex = RegExp(r'^[a-zA-Z0-9]+$');
+        if (!modeRegex.hasMatch(mode)) {
+          AppLogger.e('Rejected deep link with malformed mode.');
+          return;
+        }
+      }
+
+      final encodedCode = Uri.encodeComponent(code);
+      router.go('/reset_password?oobCode=$encodedCode');
+    } else {
+      AppLogger.w('Received deep link that is not a password reset action.');
     }
   }
 

@@ -1,16 +1,18 @@
+import 'dart:async' show unawaited;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/cached_tile_provider.dart';
 import '../../../core/utils/ghana_region.dart';
+import '../../../core/utils/locale_formatter.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../components/cropguard_card.dart';
@@ -137,12 +139,16 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   final MapController _mapController = MapController();
   bool _mapReady = false;
   List<Marker> _markers = [];
-  // Resolves a tapped marker back to its hotspot for the detail sheet.
-  final Map<Key, _Hotspot> _markerHotspots = {};
+  // Resolves a tapped marker back to its report for the detail sheet.
+  final Map<Key, Map<String, dynamic>> _markerReports = {};
   // Active filters; 'All' means no filtering on that dimension.
+  // Tile load failure tracking for graceful degradation.
+  bool _mapTilesFailed = false;
+  int _tileFailureCount = 0;
   String _cropFilter = 'All';
   String _severityFilter = 'All';
   String _timeframeFilter = 'Last 30 Days';
+  String _sortBy = 'Most Cases';
   Position? _userPosition;
   // Density heatmap overlay toggle.
   bool _showHeatmap = false;
@@ -196,7 +202,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   }
 
   DateTime? _dateOf(Map<String, dynamic> r) {
-    final ts = r['timestamp'] ?? r['date'];
+    final ts = r['reportedAt'] ?? r['timestamp'] ?? r['date'];
+    if (ts is String) return DateTime.tryParse(ts);
     if (ts is Timestamp) return ts.toDate();
     if (ts is DateTime) return ts;
     if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
@@ -274,11 +281,29 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     });
 
     hotspots.sort((a, b) {
-      final byCount = b.count.compareTo(a.count);
-      if (byCount != 0) return byCount;
-      final ad = a.latest ?? DateTime(1970);
-      final bd = b.latest ?? DateTime(1970);
-      return bd.compareTo(ad);
+      if (_sortBy == 'Most Recent') {
+        final ad = a.latest ?? DateTime(1970);
+        final bd = b.latest ?? DateTime(1970);
+        final byDate = bd.compareTo(ad);
+        if (byDate != 0) return byDate;
+        return b.count.compareTo(a.count);
+      } else if (_sortBy == 'Closest' && _userPosition != null) {
+        final distA = a.center != null
+            ? Geolocator.distanceBetween(_userPosition!.latitude, _userPosition!.longitude, a.center!.latitude, a.center!.longitude)
+            : double.infinity;
+        final distB = b.center != null
+            ? Geolocator.distanceBetween(_userPosition!.latitude, _userPosition!.longitude, b.center!.latitude, b.center!.longitude)
+            : double.infinity;
+        final byDist = distA.compareTo(distB);
+        if (byDist != 0) return byDist;
+        return b.count.compareTo(a.count);
+      } else {
+        final byCount = b.count.compareTo(a.count);
+        if (byCount != 0) return byCount;
+        final ad = a.latest ?? DateTime(1970);
+        final bd = b.latest ?? DateTime(1970);
+        return bd.compareTo(ad);
+      }
     });
     return hotspots;
   }
@@ -299,14 +324,19 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
 
   void _buildMarkers() {
     final markers = <Marker>[];
-    _markerHotspots.clear();
-    for (var i = 0; i < _hotspots.length; i++) {
-      final h = _hotspots[i];
-      final position = h.center;
+    _markerReports.clear();
+    final reports = _filteredIndividualReports();
+    for (var i = 0; i < reports.length; i++) {
+      final r = reports[i];
+      final position = _parseLatLng(r);
       if (position == null) continue;
-      // A stable, unique key per hotspot so the tap handler can resolve it.
-      final key = ValueKey('hotspot_$i');
-      _markerHotspots[key] = h;
+      // A stable, unique key per report so the tap handler can resolve it.
+      final key = ValueKey('report_${r['id'] ?? i}');
+      _markerReports[key] = r;
+
+      final severity = _severityOf(r);
+      final cases = (r['cases'] as num?)?.toInt() ?? 1;
+
       markers.add(
         Marker(
           key: key,
@@ -315,19 +345,18 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
           height: 40,
           child: Container(
             decoration: BoxDecoration(
-              color: _severityColor(h.severity),
+              color: _severityColor(severity),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: const [
                 BoxShadow(color: Colors.black26, blurRadius: 4),
               ],
             ),
-            // A hotspot with multiple reports shows its count; a single report
-            // keeps the warning glyph.
+            // Individual report marker shows warning glyph, or case count if > 1.
             child: Center(
-              child: h.count > 1
+              child: cases > 1
                   ? Text(
-                      '${h.count}',
+                      '$cases',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -353,7 +382,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     if (d.inHours < 24) return '${d.inHours}h ago';
     if (d.inDays < 7) return '${d.inDays}d ago';
     if (d.inDays < 30) return '${(d.inDays / 7).floor()}w ago';
-    return DateFormat('MMM d, yyyy').format(dt);
+    return LocaleFormatter.formatMonthDayYear(context, dt);
   }
 
   /// Builds density "heatmap" circles from the current hotspots. Each hotspot
@@ -378,38 +407,26 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
 
   void _showMarkerInfo(Marker marker) {
     if (!mounted) return;
-    final h = marker.key == null ? null : _markerHotspots[marker.key];
-    if (h == null) return;
+    final r = marker.key == null ? null : _markerReports[marker.key];
+    if (r == null) return;
     final colors = context.colors;
 
-    final members = _allReports.where((r) =>
-        _diseaseOf(r) == h.disease && _regionOf(r) == h.region).toList();
-    if (members.isEmpty) return;
+    final disease = _diseaseOf(r);
+    final region = _regionOf(r);
+    final severity = _severityOf(r);
+    final cases = (r['cases'] as num?)?.toInt() ?? 1;
+    final timestamp = _dateOf(r);
+    final reportId = r['id'] as String?;
+    final position = _parseLatLng(r);
 
-    // Sort by date descending
-    members.sort((a, b) {
-      final da = _dateOf(a) ?? DateTime(1970);
-      final db = _dateOf(b) ?? DateTime(1970);
-      return db.compareTo(da);
-    });
+    final verified = (r['verifiedBy'] as List?) ?? [];
+    final refuted = (r['refutedBy'] as List?) ?? [];
+    final totalVerified = verified.length;
+    final totalRefuted = refuted.length;
 
-    final latestReport = members.first;
-    final latestReportId = latestReport['id'] as String?;
-
-    int totalVerified = 0;
-    int totalRefuted = 0;
-    bool isUserVerified = false;
-    bool isUserRefuted = false;
-    final currentUserId = _auth.currentUserId;
-
-    for (final r in members) {
-      final verified = (r['verifiedBy'] as List?) ?? [];
-      final refuted = (r['refutedBy'] as List?) ?? [];
-      totalVerified += verified.length;
-      totalRefuted += refuted.length;
-      if (currentUserId.isNotEmpty && verified.contains(currentUserId)) isUserVerified = true;
-      if (currentUserId.isNotEmpty && refuted.contains(currentUserId)) isUserRefuted = true;
-    }
+    final currentUserId = _auth.currentUserIdOrNull ?? '';
+    bool isUserVerified = currentUserId.isNotEmpty && verified.contains(currentUserId);
+    bool isUserRefuted = currentUserId.isNotEmpty && refuted.contains(currentUserId);
 
     bool loading = false;
 
@@ -426,11 +443,11 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.circle, size: 14, color: _severityColor(h.severity)),
+                Icon(Icons.circle, size: 14, color: _severityColor(severity)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    h.disease,
+                    disease,
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -439,15 +456,15 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _detailRow(Icons.place_outlined, h.region),
+            _detailRow(Icons.place_outlined, region),
             _detailRow(Icons.warning_amber_outlined,
-                '${h.severity[0].toUpperCase()}${h.severity.substring(1)} severity'),
+                '${severity[0].toUpperCase()}${severity.substring(1)} severity'),
             _detailRow(Icons.assessment_outlined,
-                '${h.count} report${h.count == 1 ? '' : 's'}'),
+                '$cases case${cases == 1 ? '' : 's'}'),
             _detailRow(
               Icons.schedule_outlined,
-              h.latest != null
-                  ? 'Last seen ${_timeAgo(h.latest!)}'
+              timestamp != null
+                  ? 'Seen ${_timeAgo(timestamp)}'
                   : 'Date unknown',
             ),
             if (totalVerified > 0)
@@ -460,16 +477,16 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
             StatefulBuilder(
               builder: (ctx, setSheetState) {
                 if (isUserVerified) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
-                        const SizedBox(width: 8),
+                        Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                        SizedBox(width: 8),
                         Text(
                           'You verified this outbreak',
                           style: TextStyle(
-                            color: const Color(0xFF16A34A),
+                            color: Color(0xFF16A34A),
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -479,16 +496,16 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                   );
                 }
                 if (isUserRefuted) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        const Icon(Icons.cancel, color: Color(0xFFDC2626), size: 20),
-                        const SizedBox(width: 8),
+                        Icon(Icons.cancel, color: Color(0xFFDC2626), size: 20),
+                        SizedBox(width: 8),
                         Text(
                           'You flagged this outbreak',
                           style: TextStyle(
-                            color: const Color(0xFFDC2626),
+                            color: Color(0xFFDC2626),
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -510,12 +527,12 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: loading || latestReportId == null || currentUserId.isEmpty
+                        onPressed: loading || reportId == null || currentUserId.isEmpty
                             ? null
                             : () async {
                                 setSheetState(() => loading = true);
                                 final res = await _communityRepo.verifyOutbreakReport(
-                                  reportId: latestReportId,
+                                  reportId: reportId,
                                   userId: currentUserId,
                                   confirm: true,
                                 );
@@ -525,7 +542,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Outbreak verified successfully.')),
                                     );
-                                    _load();
+                                    unawaited(_load());
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Failed to verify outbreak.')),
@@ -553,12 +570,12 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: loading || latestReportId == null || currentUserId.isEmpty
+                        onPressed: loading || reportId == null || currentUserId.isEmpty
                             ? null
                             : () async {
                                 setSheetState(() => loading = true);
                                 final res = await _communityRepo.verifyOutbreakReport(
-                                  reportId: latestReportId,
+                                  reportId: reportId,
                                   userId: currentUserId,
                                   confirm: false,
                                 );
@@ -568,7 +585,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Outbreak flagged as incorrect.')),
                                     );
-                                    _load();
+                                    unawaited(_load());
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Failed to flag outbreak.')),
@@ -596,7 +613,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
               child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  if (h.center != null) _mapController.move(h.center!, 11);
+                  if (position != null) _mapController.move(position, 11);
                 },
                 icon: const Icon(Icons.my_location, size: 18),
                 label: const Text('Zoom to outbreak'),
@@ -665,6 +682,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _mapTilesFailed = false;
+      _tileFailureCount = 0;
     });
     try {
       final result = await _communityRepo.getOutbreakReports();
@@ -720,6 +739,12 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     }).toList();
   }
 
+  List<Map<String, dynamic>> _filteredIndividualReports() {
+    final filtered = _filteredReports();
+    if (_severityFilter == 'All') return filtered;
+    return filtered.where((r) => _severityOf(r) == _severityFilter).toList();
+  }
+
   /// Re-aggregates from the cached raw reports when a filter changes — no
   /// network round-trip.
   void _applyFilters() {
@@ -749,6 +774,21 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   }
 
   Future<void> _showReportSheet({OutbreakReportPrefill? prefill}) async {
+    if (!_auth.isSignedIn || _auth.currentUserIdOrNull == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('You must be signed in to submit a report.'),
+            action: SnackBarAction(
+              label: 'Sign In',
+              onPressed: () => context.push('/login'),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     // Acquire GPS location before opening the sheet so the user doesn't wait.
     Position? position;
     try {
@@ -787,6 +827,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
       text: (prefill != null && !prefillKnown) ? prefill.disease : '',
     );
     String? otherDiseaseError;
+    String? manualRegion;
+    String? manualRegionError;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -816,11 +858,30 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                   position != null
                       ? 'Location: ${position.latitude.toStringAsFixed(4)}, '
                           '${position.longitude.toStringAsFixed(4)}'
-                      : 'Location unavailable — report will be saved without coordinates.',
+                      : 'Location unavailable — please select region manually.',
                   style:
                       TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant,
                           fontSize: 12),
                 ),
+                if (position == null) ...[
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: manualRegion,
+                    decoration: InputDecoration(
+                      labelText: 'Region (Required)',
+                      hintText: 'Select region where outbreak was observed',
+                      border: const OutlineInputBorder(),
+                      errorText: manualRegionError,
+                    ),
+                    items: GhanaRegion.allRegions
+                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                        .toList(),
+                    onChanged: (v) => setSheetState(() {
+                      manualRegion = v;
+                      manualRegionError = null;
+                    }),
+                  ),
+                ],
                 if (prefillConfidence != null) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -920,9 +981,25 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                     onPressed: _submitting
                         ? null
                         : () async {
-                            if (_auth.currentUserId.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('You must be signed in to submit a report.')),
+                            // Capture messenger and l10n strings before any
+                            // async gap so they remain valid even if the widget
+                            // tree changes (e.g. sheet closes mid-flight).
+                            final messenger = ScaffoldMessenger.of(context);
+                            const signInMsg = 'You must be signed in to submit a report.';
+                            const signInLabel = 'Sign In';
+
+                            final currentUserId = _auth.currentUserIdOrNull;
+                            if (currentUserId == null || currentUserId.isEmpty) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: const Text(signInMsg),
+                                  action: SnackBarAction(
+                                    label: signInLabel,
+                                    onPressed: () {
+                                      if (mounted) context.push('/login');
+                                    },
+                                  ),
+                                ),
                               );
                               return;
                             }
@@ -935,6 +1012,15 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                   context.l10n.diseaseNameRequired);
                               return;
                             }
+
+                            if (position == null && (manualRegion == null || manualRegion!.isEmpty)) {
+                              setSheetState(() => manualRegionError = 'Please select a region for your report');
+                              return;
+                            }
+
+                            // Capture all localized strings before any await.
+                            final outbreakReportedMsg = context.l10n.outbreakReported;
+                            final failedMsg = context.l10n.failedToSubmitReport;
 
                             Map<String, dynamic>? duplicate;
                             if (position != null) {
@@ -963,6 +1049,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
 
                             if (duplicate != null) {
                               final duplicateId = duplicate['id'] as String?;
+                              // Capture primary colour before async gap.
+                              final primaryColor = context.colors.primary;
                               final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (dialogCtx) => AlertDialog(
@@ -978,7 +1066,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: context.colors.primary,
+                                        backgroundColor: primaryColor,
                                         foregroundColor: Colors.white,
                                       ),
                                       onPressed: () => Navigator.pop(dialogCtx, true),
@@ -988,35 +1076,36 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                 ),
                               );
 
+                              if (!mounted) return;
+
                               if (confirmed == null) {
-                                // Dialog was dismissed/cancelled. Abort submission but keep report sheet open.
                                 return;
                               }
 
                               if (confirmed == true && duplicateId != null) {
-                                Navigator.pop(ctx); // Close the report sheet
+                                if (ctx.mounted) Navigator.pop(ctx);
                                 setState(() => _submitting = true);
                                 try {
                                   final res = await _communityRepo.verifyOutbreakReport(
                                     reportId: duplicateId,
-                                    userId: _auth.currentUserId,
+                                    userId: currentUserId,
                                     confirm: true,
                                   );
                                   if (mounted) {
                                     if (res.isSuccess) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(content: Text('Outbreak verified successfully.')),
                                       );
                                       await _load();
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Failed to verify outbreak.')),
+                                      messenger.showSnackBar(
+                                        SnackBar(content: Text(res.failure?.message ?? 'Failed to verify outbreak.')),
                                       );
                                     }
                                   }
                                 } catch (_) {
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    messenger.showSnackBar(
                                       const SnackBar(content: Text('Failed to verify outbreak.')),
                                     );
                                   }
@@ -1025,29 +1114,37 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                 }
                                 return;
                               }
-                              // User clicked "Submit Anyway"
-                              Navigator.pop(ctx); // Close the report sheet
+                              // confirmed == false → submit anyway.
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (!mounted) return;
                               setState(() => _submitting = true);
                             } else {
-                              Navigator.pop(ctx); // Close the report sheet
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (!mounted) return;
                               setState(() => _submitting = true);
                             }
 
                             try {
-                              final reportPayload = {
-                                'userId': _auth.currentUserId,
+                              final now = DateTime.now();
+                              final reportRegion = position != null
+                                  ? GhanaRegion.forCoordinates(
+                                      position.latitude, position.longitude)
+                                  : manualRegion!;
+
+                              final reportPayload = <String, dynamic>{
+                                'userId': currentUserId,
                                 'disease': diseaseName,
                                 'diseaseName': diseaseName,
                                 'cropType': _cropOfDisease(diseaseName),
                                 'severity': selectedSeverity,
                                 'source': prefill != null ? 'scan' : 'manual',
+                                'reportedAt': now.toIso8601String(),
+                                'region': reportRegion,
                                 if (prefillConfidence != null)
                                   'confidence': prefillConfidence,
                                 if (position != null) ...{
                                   'latitude': position.latitude,
                                   'longitude': position.longitude,
-                                  'region': GhanaRegion.forCoordinates(
-                                      position.latitude, position.longitude),
                                 },
                                 'notes': notesController.text.trim(),
                                 'timestamp': FieldValue.serverTimestamp(),
@@ -1056,20 +1153,20 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               final res = await _communityRepo.submitOutbreakReport(reportPayload);
                               if (mounted) {
                                 if (res.isSuccess) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(context.l10n.outbreakReported)),
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(outbreakReportedMsg)),
                                   );
-                                  await _load();
+                                  unawaited(_load());
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(context.l10n.failedToSubmitReport)),
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(res.failure?.message ?? failedMsg)),
                                   );
                                 }
                               }
                             } catch (_) {
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(context.l10n.failedToSubmitReport)),
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(failedMsg)),
                                 );
                               }
                             } finally {
@@ -1091,13 +1188,28 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Scaffold(
-      backgroundColor: colors.background,
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.surface,
         title: Text(context.l10n.outbreakMap,
             style: Theme.of(context).textTheme.titleLarge),
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
         actions: [
           IconButton(
             tooltip: _showHeatmap ? 'Hide heatmap' : 'Show heatmap',
@@ -1136,72 +1248,158 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
           SizedBox(
             height: 220,
             width: double.infinity,
-            // The map stays mounted at all times so its controller is stable;
-            // a translucent overlay covers it during (re)loads.
-            child: Stack(
-              children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _kGhanaCenter,
-                    initialZoom: 6.5,
-                    minZoom: 3,
-                    maxZoom: 18,
-                    onMapReady: () {
-                      _mapReady = true;
-                      if (_markers.isNotEmpty) _fitMarkers();
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: _kOsmTileUrl,
-                      userAgentPackageName: 'com.crop.guard.app',
-                      maxZoom: 19,
-                      // Persistent disk cache: tiles stay available offline.
-                      tileProvider: CachedTileProvider(),
+            child: _mapTilesFailed
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: colors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    // Density heatmap sits below the markers so pins stay tappable.
-                    if (_showHeatmap) CircleLayer(circles: _heatCircles()),
-                    MarkerClusterLayerWidget(
-                      options: MarkerClusterLayerOptions(
-                        markers: _markers,
-                        maxClusterRadius: 45,
-                        size: const Size(40, 40),
-                        padding: const EdgeInsets.all(48),
-                        maxZoom: 15,
-                        onMarkerTap: _showMarkerInfo,
-                        builder: (context, markers) => Container(
-                          decoration: BoxDecoration(
-                            color: colors.diseaseRed,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off, size: 40, color: colors.muted),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Map unavailable offline',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colors.onSurface,
+                            fontSize: 15,
                           ),
-                          child: Center(
-                            child: Text(
-                              '${markers.length}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Using static list view below',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _mapTilesFailed = false;
+                              _tileFailureCount = 0;
+                            });
+                            _load();
+                          },
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text('Retry Map', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(120, 36),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: _kGhanaCenter,
+                          initialZoom: 6.5,
+                          minZoom: 3,
+                          maxZoom: 18,
+                          onMapReady: () {
+                            _mapReady = true;
+                            if (_markers.isNotEmpty) _fitMarkers();
+                          },
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: _kOsmTileUrl,
+                            userAgentPackageName: 'com.crop.guard.app',
+                            maxZoom: 19,
+                            // Persistent disk cache: tiles stay available offline.
+                            tileProvider: CachedTileProvider(),
+                            errorTileCallback: (tile, error, stackTrace) {
+                              _tileFailureCount++;
+                              if (_tileFailureCount >= 3 && !_mapTilesFailed) {
+                                setState(() {
+                                  _mapTilesFailed = true;
+                                });
+                              }
+                            },
+                          ),
+                          // Density heatmap sits below the markers so pins stay tappable.
+                          if (_showHeatmap) CircleLayer(circles: _heatCircles()),
+                          MarkerClusterLayerWidget(
+                            options: MarkerClusterLayerOptions(
+                              markers: _markers,
+                              maxClusterRadius: 45,
+                              size: const Size(40, 40),
+                              padding: const EdgeInsets.all(48),
+                              maxZoom: 15,
+                              onMarkerTap: _showMarkerInfo,
+                              builder: (context, markers) => Container(
+                                decoration: BoxDecoration(
+                                  color: colors.diseaseRed,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${markers.length}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
+                          const RichAttributionWidget(
+                            attributions: [
+                              TextSourceAttribution('© OpenStreetMap contributors'),
+                            ],
+                          ),
+                        ],
+                      ),
+                      if (_loading)
+                        Container(
+                          color: colors.surfaceVariant.withValues(alpha: 0.7),
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: FloatingActionButton.small(
+                          heroTag: 'my_location_btn',
+                          backgroundColor: colors.surface,
+                          foregroundColor: colors.primary,
+                          elevation: 3,
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            if (_userPosition != null && _mapReady) {
+                              _mapController.move(
+                                LatLng(_userPosition!.latitude, _userPosition!.longitude),
+                                12,
+                              );
+                            } else {
+                              await _getUserLocation();
+                              if (_userPosition != null && _mapReady) {
+                                _mapController.move(
+                                  LatLng(_userPosition!.latitude, _userPosition!.longitude),
+                                  12,
+                                );
+                              } else if (mounted) {
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Location unavailable.')),
+                                );
+                              }
+                            }
+                          },
+                          child: const Icon(Icons.my_location, size: 20),
                         ),
                       ),
-                    ),
-                    const RichAttributionWidget(
-                      attributions: [
-                        TextSourceAttribution('© OpenStreetMap contributors'),
-                      ],
-                    ),
-                  ],
-                ),
-                if (_loading)
-                  Container(
-                    color: colors.surfaceVariant.withValues(alpha: 0.7),
-                    child: const Center(child: CircularProgressIndicator()),
+                    ],
                   ),
-              ],
-            ),
           ),
           // Severity legend.
           Padding(
@@ -1269,9 +1467,34 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(context.l10n.recentDiseaseReports,
-                style: Theme.of(context).textTheme.titleMedium),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(context.l10n.recentDiseaseReports,
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                DropdownButton<String>(
+                  value: _sortBy,
+                  isDense: true,
+                  underline: const SizedBox.shrink(),
+                  style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                  items: const [
+                    DropdownMenuItem(value: 'Most Cases', child: Text('Sort: Most Cases')),
+                    DropdownMenuItem(value: 'Most Recent', child: Text('Sort: Most Recent')),
+                    DropdownMenuItem(value: 'Closest', child: Text('Sort: Closest')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null && v != _sortBy) {
+                      setState(() {
+                        _sortBy = v;
+                        _applyFilters();
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           Expanded(
             child: _loading
@@ -1325,58 +1548,66 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                     h.center!.latitude,
                                     h.center!.longitude,
                                   ) / 1000.0;
-                                  distanceText = ' • ~${dist.toStringAsFixed(0)} km away';
+                                  distanceText = ' • ~${LocaleFormatter.formatNumber(context, dist.round())} km away';
                                 }
 
-                                return CropGuardCard(
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: sevColor.withValues(alpha: 0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    if (h.center != null && _mapReady) {
+                                      _mapController.move(h.center!, 10);
+                                    }
+                                  },
+                                  child: CropGuardCard(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: sevColor.withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: Icon(Icons.warning_amber,
+                                              color: sevColor, size: 20),
                                         ),
-                                        child: Icon(Icons.warning_amber,
-                                            color: sevColor, size: 20),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(disease,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyMedium
-                                                    ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600)),
-                                            Text('$region • $date$distanceText',
-                                                style: TextStyle(
-                                                    color: colors.muted,
-                                                    fontSize: 12)),
-                                          ],
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(disease,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600)),
+                                              Text('$region • $date$distanceText',
+                                                  style: TextStyle(
+                                                      color: colors.muted,
+                                                      fontSize: 12)),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: colors.diseaseBg,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: colors.diseaseBg,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(context.l10n.reportsCount(cases),
+                                              style: TextStyle(
+                                                  color: colors.diseaseRed,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold)),
                                         ),
-                                        child: Text(context.l10n.reportsCount(cases),
-                                            style: TextStyle(
-                                                color: colors.diseaseRed,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold)),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
@@ -1385,6 +1616,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

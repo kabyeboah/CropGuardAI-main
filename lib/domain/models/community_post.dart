@@ -8,6 +8,8 @@ class CommunityPost {
   final String? imageUri;
   final String? expertResponse;
   final int timestamp;
+  /// UI-only sync state: 'pending', 'syncing', 'synced', 'failed'.
+  final String? syncStatus;
 
   const CommunityPost({
     required this.id,
@@ -18,9 +20,10 @@ class CommunityPost {
     this.imageUri,
     this.expertResponse,
     required this.timestamp,
+    this.syncStatus,
   });
 
-  factory CommunityPost.fromMap(Map<String, dynamic> map, String id) {
+  factory CommunityPost.fromMap(Map<String, dynamic> map, String id, {String? syncStatus}) {
     return CommunityPost(
       id: id,
       userId: map['userId'] as String? ?? '',
@@ -31,6 +34,7 @@ class CommunityPost {
       expertResponse: map['expertResponse'] as String?,
       timestamp: (map['timestamp'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch,
+      syncStatus: syncStatus,
     );
   }
 
@@ -44,5 +48,29 @@ class CommunityPost {
       if (expertResponse != null) 'expertResponse': expertResponse,
       'timestamp': timestamp,
     };
+  }
+
+  CommunityPost copyWith({
+    String? id,
+    String? userId,
+    String? body,
+    String? author,
+    String? tag,
+    String? imageUri,
+    String? expertResponse,
+    int? timestamp,
+    String? syncStatus,
+  }) {
+    return CommunityPost(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      body: body ?? this.body,
+      author: author ?? this.author,
+      tag: tag ?? this.tag,
+      imageUri: imageUri ?? this.imageUri,
+      expertResponse: expertResponse ?? this.expertResponse,
+      timestamp: timestamp ?? this.timestamp,
+      syncStatus: syncStatus ?? this.syncStatus,
+    );
   }
 }

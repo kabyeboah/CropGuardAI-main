@@ -53,13 +53,25 @@ const Map<String, String> _kDiseaseImages = {
       'https://commons.wikimedia.org/wiki/Special:FilePath/Apple_scab.jpg?width=120',
   'Apple___Cedar_apple_rust':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Cedar_apple_rust_heavily_infected_leaf_underside.JPG?width=120',
+  'Apple___Black_rot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/PSM_V43_D092_Apple_black_rot.jpg?width=120',
+  'Cherry_(including_sour)___Powdery_mildew':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Powdery_mildew_on_maple_leaf.jpg?width=120',
+  'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Gray_leaf_spot_Cercospora_zeae-maydis_5465607.png?width=120',
   'Corn_(maize)___Northern_Leaf_Blight':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Northern_corn_leaf_blight.JPG?width=120',
   'Grape___Black_rot':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Guignardia_bidwellii_%28black_rot%29_on_grape_4.jpg?width=120',
+  'Grape___Esca_(Black_Measles)':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/ESCA_Blattsymptom_1.JPG?width=120',
+  'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Report_on_the_fungus_diseases_of_the_grape_vine_(1886)_(14783622082).jpg?width=120',
   'Squash___Powdery_mildew':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Powdery_mildew_9.jpg?width=120',
   // Tomato — each photo verified to show the named disease on tomato foliage.
+  'Tomato___Bacterial_spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Bacterial%20leaf%20spot%20symptoms.jpg?width=120',
   'Tomato___Early_blight':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Early%20blight%20on%20tomato%20leaves%20%287871930010%29.jpg?width=120',
   'Tomato___Late_blight':
@@ -68,12 +80,24 @@ const Map<String, String> _kDiseaseImages = {
       'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato%20Leaf%20Mold.jpg?width=120',
   'Tomato___Septoria_leaf_spot':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Septoria%20leaf%20spot%20symptoms%20on%20tomato%20leaf%20%28Septoria%20lycopersici%20on%20Solanum%20lycopersicum%20leaf%29.jpg?width=120',
+  'Tomato___Spider_mites Two-spotted_spider_mite':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Tetranychus-urticae.jpg?width=120',
   'Tomato___Target_Spot':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Corynespora%20cassiicola%20Ring-Spot%20Symptoms%20in%20Tomato%20Leaves.png?width=120',
+  'Tomato___Tomato_Yellow_Leaf_Curl_Virus':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Yellow_curl_leaf_disease_Pj_IMG_3162.jpg?width=120',
   'Tomato___Tomato_mosaic_virus':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Leaf%20with%20ToMV.jpg?width=120',
   'Tomato___Ralstonia_Wilt':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato%20Bacterial%20wilt%20%28Pathogen%20Ralstonia%20solanacearum%29%20%2812091835495%29.jpg?width=120',
+  // Potato
+  'Potato___Early_blight':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Alternaria_solani_-_leaf_lesions.jpg?width=120',
+  'Potato___Late_blight':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Phytophthora_infestans_on_potato_leaf.jpg?width=120',
+  // Strawberry
+  'Strawberry___Leaf_scorch':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Rode-vlekkenziekte_(Diplocarpon_earlianum).jpg?width=120',
   // Mango
   'Mango___Anthracnose':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20anthracnose%201a.jpg?width=120',
@@ -81,28 +105,136 @@ const Map<String, String> _kDiseaseImages = {
       'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20powdery%20mildew%20leaf%20blight%20curling%201.jpg?width=120',
   'Mango___Sooty_Mould':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Sooty%20mould%20in%20mango.jpg?width=120',
+  'Mango___Bacterial_Canker':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Xanthomonas%20campestris%20pv.%20campestris.jpg?width=120',
+  'Mango___Cutting_Weevil':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20seed%20weevil%201.jpg?width=120',
+  'Mango___Die_Back':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Gomosis%20en%20Citricos.jpg?width=120',
+  'Mango___Gall_Midge':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cecidomyiidae.jpg?width=120',
+  // Peach
+  'Peach___Bacterial_spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Lesions_on_Peach_Fruit.jpg?width=120',
   // Banana
   'Banana_Black_Sigatoka':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Banana-%20Black%20leaf%20streak%20%28Black%20sigatoka%29.jpg?width=120',
   'Banana_Fusarium_Wilt':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Banana%20%28variety-%20Koa%20e%27%20Kea%29-%20Fusarium%20wilt%20%28Panama%20disease%29.jpg?width=120',
+  'Banana_Insect_Pest':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cosmopolites_sordidus.jpg?width=120',
+  'Banana_Moko_Disease':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato%20Bacterial%20wilt%20%28Pathogen%20Ralstonia%20solanacearum%29%20%2812091835495%29.jpg?width=120',
+  'Banana_Yellow_Sigatoka':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Banana-%20Black%20leaf%20streak%20%28Black%20sigatoka%29.jpg?width=120',
+  // Plantain
+  'Plantain___Black_Sigatoka':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Banana-%20Black%20leaf%20streak%20%28Black%20sigatoka%29.jpg?width=120',
+  'Plantain___Fusarium_Wilt':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Banana%20%28variety-%20Koa%20e%27%20Kea%29-%20Fusarium%20wilt%20%28Panama%20disease%29.jpg?width=120',
+  'Plantain___Bunchy_Top':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Banana-%20Black%20leaf%20streak%20%28Black%20sigatoka%29.jpg?width=120',
   // Cassava
+  'Cassava_Bacterial_Blight':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Image_of_a_cassava_leaf.jpg?width=120',
   'Cassava_Brown_Streak_Disease':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Distribution%20of%20cassava%20brown%20streak%20disease%20%28CBSD%29%20symptoms%20on%20cassava.JPG?width=120',
+  'Cassava_Green_Mottle':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Symptoms_of_cassava_witches%27_broom_disease_(French_Guiana).jpg?width=120',
+  'Cassava_Mosaic_Disease':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Manihot_esculenta_flowers.jpg?width=120',
   // Maize
   'Corn_(maize)___Common_rust_':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Puccinia%20sorghi%20Schwein.%205465563.jpg?width=120',
+  'Corn_(maize)___Larger_Grain_Borer':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Prostephanus%20truncatus.jpg?width=120',
   // Cocoa
   'Cocoa___Black_Pod_Rot':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Cacao%20black%20pod%20rot%2038577373995.jpg?width=120',
   'Cocoa___Swollen_Shoot_Virus':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Cocoa%20Swollen%20Shoot%20Leaf%20symptom.jpg?width=120',
+  'Cocoa___Mirid_Bugs':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Creontiades%20dilutus%20on%20cotton.jpg?width=120',
   // Orange / Citrus
   'Orange___Haunglongbing_(Citrus_greening)':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Citrus%20greening.JPG?width=120',
-  // Pepper (bell)
+  // Pepper (bell & chilli)
   'Pepper,_bell___Bacterial_spot':
       'https://commons.wikimedia.org/wiki/Special:FilePath/Bacterial%20leaf%20spot%20of%20pepper%20%2814954536360%29.jpg?width=120',
+  'Pepper_Chilli___Leaf_Curl':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Yellow_curl_leaf_disease_Pj_IMG_3162.jpg?width=120',
+  'Pepper_Chilli___Cercospora_Leaf_Spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Bacterial%20leaf%20spot%20of%20pepper%20%2814954536360%29.jpg?width=120',
+  'Pepper_Chilli___Anthracnose':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Bacterial%20leaf%20spot%20of%20pepper%20%2814954536360%29.jpg?width=120',
+  // Yam
+  'Yam___Anthracnose':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20anthracnose%201a.jpg?width=120',
+  'Yam___Mosaic_Virus':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Leaf%20with%20ToMV.jpg?width=120',
+  'Yam___Tuber_Rot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Late%20blight%20on%20potato%20tuber.jpg?width=120',
+  // Cowpea
+  'Cowpea___Mosaic_Virus':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Leaf%20with%20ToMV.jpg?width=120',
+  'Cowpea___Aphids':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Aphis%20craccivora%2001%20by-dpc.jpg?width=120',
+  'Cowpea___Bacterial_Blight':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Bacterial%20leaf%20spot%20of%20pepper%20%2814954536360%29.jpg?width=120',
+  // Cashew
+  'Cashew___Anthracnose':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20anthracnose%201a.jpg?width=120',
+  'Cashew___Red_Rust':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cephaleuros%20virescens01.jpg?width=120',
+  'Cashew___Gummosis':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Gomosis%20en%20Citricos.jpg?width=120',
+  'Cashew___Leaf_Miner':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Leaf%20miner%20%283435165977%29.jpg?width=120',
+  // Groundnut
+  'Groundnut_Early_Leaf_Spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Alternaria_solani_-_leaf_lesions.jpg?width=120',
+  'Groundnut_Late_Leaf_Spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Alternaria_solani_-_leaf_lesions.jpg?width=120',
+  // Sorghum
+  'Sorghum___Downy_Mildew':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Downy%20mildew%20sclerospora%20graminicola%20of%20pearl%20millet.jpg?width=120',
+  'Sorghum___Ergot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sphacelia%20of%20sorghum%20ergot.png?width=120',
+  'Sorghum___Smut':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sphacelia%20of%20sorghum%20ergot.png?width=120',
+  // Oil Palm
+  'Oil_Palm___Ganoderma_Rot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Ganoderma%20applanatum.jpg?width=120',
+  'Oil_Palm___Anthracnose':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Mango%20anthracnose%201a.jpg?width=120',
+  // Millet
+  'Millet___Downy_Mildew':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Downy%20mildew%20sclerospora%20graminicola%20of%20pearl%20millet.jpg?width=120',
+  'Millet___Smut':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sphacelia%20of%20sorghum%20ergot.png?width=120',
+  // Sugarcane
+  'Sugarcane___Red_Rot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sugarcane%20mosaic%20virus.jpg?width=120',
+  // Garden Egg
+  'Garden_Egg___Insect_Pest':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Flea%20beetle.jpg?width=120',
+  'Garden_Egg___Leaf_Spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Alternaria_solani_-_leaf_lesions.jpg?width=120',
+  'Garden_Egg___Mosaic_Virus':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Leaf%20with%20ToMV.jpg?width=120',
+  'Garden_Egg___Small_Leaf':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Symptoms_of_cassava_witches%27_broom_disease_(French_Guiana).jpg?width=120',
+  'Garden_Egg___White_Mold':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sclerotinia%20sclerotiorum.jpg?width=120',
+  'Garden_Egg___Wilt':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato%20Bacterial%20wilt%20%28Pathogen%20Ralstonia%20solanacearum%29%20%2812091835495%29.jpg?width=120',
+  // Rice
+  'Rice_Blast':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Rice_blast_Magnaporthe_grisea.jpg?width=120',
+  'Rice_Brown_Spot':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cochliobolus_miyabeanus.jpg?width=120',
+  'Rice_Leaf_Blight':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Xanthomonas-disease.jpg?width=120',
 };
 
 // Labels with a bundled local photo under assets/diseases/. A bundled asset is
@@ -110,10 +242,87 @@ const Map<String, String> _kDiseaseImages = {
 // Keep this in sync with the files in that folder — see assets/diseases/README.md.
 const Set<String> _kDiseaseAssetLabels = {
   'Apple___Apple_scab',
+  'Apple___Black_rot',
   'Apple___Cedar_apple_rust',
+  'Cherry_(including_sour)___Powdery_mildew',
+  'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot',
+  'Corn_(maize)___Common_rust_',
   'Corn_(maize)___Northern_Leaf_Blight',
+  'Corn_(maize)___Larger_Grain_Borer',
   'Grape___Black_rot',
+  'Grape___Esca_(Black_Measles)',
+  'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)',
+  'Orange___Haunglongbing_(Citrus_greening)',
+  'Peach___Bacterial_spot',
+  'Pepper,_bell___Bacterial_spot',
+  'Potato___Early_blight',
+  'Potato___Late_blight',
   'Squash___Powdery_mildew',
+  'Strawberry___Leaf_scorch',
+  'Tomato___Bacterial_spot',
+  'Tomato___Early_blight',
+  'Tomato___Late_blight',
+  'Tomato___Leaf_Mold',
+  'Tomato___Septoria_leaf_spot',
+  'Tomato___Spider_mites Two-spotted_spider_mite',
+  'Tomato___Target_Spot',
+  'Tomato___Tomato_Yellow_Leaf_Curl_Virus',
+  'Tomato___Tomato_mosaic_virus',
+  'Tomato___Ralstonia_Wilt',
+  'Cassava_Bacterial_Blight',
+  'Cassava_Brown_Streak_Disease',
+  'Cassava_Green_Mottle',
+  'Cassava_Mosaic_Disease',
+  'Rice_Brown_Spot',
+  'Rice_Blast',
+  'Rice_Leaf_Blight',
+  'Banana_Black_Sigatoka',
+  'Banana_Fusarium_Wilt',
+  'Banana_Insect_Pest',
+  'Banana_Moko_Disease',
+  'Banana_Yellow_Sigatoka',
+  'Groundnut_Early_Leaf_Spot',
+  'Groundnut_Late_Leaf_Spot',
+  'Cashew___Anthracnose',
+  'Cashew___Red_Rust',
+  'Cashew___Gummosis',
+  'Cashew___Leaf_Miner',
+  'Cocoa___Black_Pod_Rot',
+  'Cocoa___Swollen_Shoot_Virus',
+  'Cocoa___Mirid_Bugs',
+  'Yam___Anthracnose',
+  'Yam___Mosaic_Virus',
+  'Yam___Tuber_Rot',
+  'Plantain___Black_Sigatoka',
+  'Plantain___Fusarium_Wilt',
+  'Plantain___Bunchy_Top',
+  'Pepper_Chilli___Leaf_Curl',
+  'Pepper_Chilli___Cercospora_Leaf_Spot',
+  'Pepper_Chilli___Anthracnose',
+  'Cowpea___Mosaic_Virus',
+  'Cowpea___Aphids',
+  'Cowpea___Bacterial_Blight',
+  'Sorghum___Downy_Mildew',
+  'Sorghum___Ergot',
+  'Sorghum___Smut',
+  'Oil_Palm___Ganoderma_Rot',
+  'Oil_Palm___Anthracnose',
+  'Millet___Downy_Mildew',
+  'Millet___Smut',
+  'Garden_Egg___Insect_Pest',
+  'Garden_Egg___Leaf_Spot',
+  'Garden_Egg___Mosaic_Virus',
+  'Garden_Egg___Small_Leaf',
+  'Garden_Egg___White_Mold',
+  'Garden_Egg___Wilt',
+  'Mango___Anthracnose',
+  'Mango___Bacterial_Canker',
+  'Mango___Cutting_Weevil',
+  'Mango___Die_Back',
+  'Mango___Gall_Midge',
+  'Mango___Powdery_Mildew',
+  'Mango___Sooty_Mould',
+  'Sugarcane___Red_Rot',
 };
 
 /// Converts a disease label to its asset filename stem: each run of
@@ -388,8 +597,14 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
     final sorted = _filteredGroups().entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    return Scaffold(
-      backgroundColor: colors.background,
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,9 +615,22 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InkWell(
-                    onTap: () => context.pop(),
-                    child: Text(context.l10n.backLabel,
-                        style: TextStyle(color: colors.muted, fontSize: 14)),
+                    onTap: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back, size: 16, color: colors.muted),
+                        const SizedBox(width: 4),
+                        Text(context.l10n.backLabel,
+                            style: TextStyle(color: colors.muted, fontSize: 14)),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(context.l10n.diseaseLibrary,
@@ -508,8 +736,9 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 /// Action buttons at the bottom of the disease detail sheet: a primary

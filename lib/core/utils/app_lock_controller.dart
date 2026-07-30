@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// re-locks when resuming from background after [_grace]. Firebase keeps the
 /// user signed in; this only gates UI access.
 class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
-  AppLockController(this._prefs) {
+  AppLockController(this._prefs, {Duration grace = const Duration(seconds: 15)})
+      : _grace = grace {
     _enabled = _prefs.getBool(kEnabledPref) ?? false;
     _isLocked = _enabled; // require an unlock on cold start when enabled
   }
@@ -17,7 +18,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Grace period so quickly switching apps (or the biometric prompt itself
   /// briefly backgrounding us) doesn't force a re-lock.
-  static const Duration _grace = Duration(seconds: 15);
+  final Duration _grace;
 
   final SharedPreferences _prefs;
   bool _enabled = false;
@@ -62,11 +63,11 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!_enabled || _authenticating) return;
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      _pausedAt = DateTime.now();
-    } else if (state == AppLifecycleState.resumed) {
+    if (state != AppLifecycleState.resumed) {
+      _pausedAt ??= DateTime.now();
+    } else {
       final pausedAt = _pausedAt;
+      _pausedAt = null;
       if (!_isLocked &&
           pausedAt != null &&
           DateTime.now().difference(pausedAt) > _grace) {

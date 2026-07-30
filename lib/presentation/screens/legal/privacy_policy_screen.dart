@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../data/remote/firebase_auth_service.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -16,29 +18,46 @@ class PrivacyPolicyScreen extends StatelessWidget {
       _Section(l10n.privacySection4Title, l10n.privacySection4Body),
       _Section(l10n.privacySection5Title, l10n.privacySection5Body),
     ];
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        title: Text(l10n.privacyPolicy),
-        leading: BackButton(onPressed: () => context.pop()),
-        backgroundColor: colors.surface,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.privacyPolicy,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(l10n.privacyLastUpdated,
-                style: TextStyle(color: colors.muted, fontSize: 12)),
-            const SizedBox(height: 20),
-            ...sections.map((s) => _SectionView(section: s)),
-          ],
+    final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go(isSignedIn ? '/home' : '/login');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          title: Text(l10n.privacyPolicy),
+          leading: BackButton(
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(isSignedIn ? '/home' : '/login');
+              }
+            },
+          ),
+          backgroundColor: colors.surface,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.privacyPolicy,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(l10n.privacyLastUpdated,
+                  style: TextStyle(color: colors.muted, fontSize: 12)),
+              const SizedBox(height: 20),
+              ...sections.map((s) => _SectionView(section: s)),
+            ],
+          ),
         ),
       ),
     );
@@ -60,29 +79,46 @@ class TermsOfServiceScreen extends StatelessWidget {
       _Section(l10n.termsSection5Title, l10n.termsSection5Body),
       _Section(l10n.termsSection6Title, l10n.termsSection6Body),
     ];
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        title: Text(l10n.termsOfService),
-        leading: BackButton(onPressed: () => context.pop()),
-        backgroundColor: colors.surface,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.termsOfService,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(l10n.termsEffective,
-                style: TextStyle(color: colors.muted, fontSize: 12)),
-            const SizedBox(height: 20),
-            ...sections.map((s) => _SectionView(section: s)),
-          ],
+    final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go(isSignedIn ? '/home' : '/login');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          title: Text(l10n.termsOfService),
+          leading: BackButton(
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(isSignedIn ? '/home' : '/login');
+              }
+            },
+          ),
+          backgroundColor: colors.surface,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.termsOfService,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(l10n.termsEffective,
+                  style: TextStyle(color: colors.muted, fontSize: 12)),
+              const SizedBox(height: 20),
+              ...sections.map((s) => _SectionView(section: s)),
+            ],
+          ),
         ),
       ),
     );

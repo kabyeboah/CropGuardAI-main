@@ -81,11 +81,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final colors = context.colors;
     final l10n = context.l10n;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.resetPasswordTitle),
-        leading: BackButton(onPressed: () => context.go('/login')),
-      ),
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/login');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.resetPasswordTitle),
+          leading: BackButton(
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/login');
+              }
+            },
+          ),
+        ),
       backgroundColor: colors.background,
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -141,6 +155,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ],
                       ),
+        ),
       ),
     );
   }

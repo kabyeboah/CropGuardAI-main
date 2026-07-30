@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/config/app_secrets.dart';
+import '../../core/error/failures.dart';
+import '../../core/utils/retry_utils.dart';
 
 /// Wraps FirebaseAuth — equivalent of AuthRepositoryImpl + use cases
 class FirebaseAuthService {
@@ -25,13 +30,41 @@ class FirebaseAuthService {
   bool get isSignedIn => _auth.currentUser != null;
   bool get isAnonymous => _auth.currentUser?.isAnonymous ?? false;
 
+  bool _isAuthTransientError(Object error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'network-request-failed':
+        case 'too-many-requests':
+        case 'internal-error':
+        case 'service-unavailable':
+          return true;
+        default:
+          return false;
+      }
+    }
+    return error is TimeoutException || error is SocketException;
+  }
+
   // ─── Email / Password ─────────────────────────────────────────────────
   Future<UserCredential> signIn({
     required String email,
     required String password,
   }) async {
-    return _auth.signInWithEmailAndPassword(
-        email: email.trim(), password: password);
+    try {
+      return await RetryUtils.retry(
+        () => _auth.signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        ),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Authentication failed (code: ${e.code})');
+    } catch (e) {
+      throw AuthFailure('Sign in failed: ${e.toString()}');
+    }
   }
 
   Future<UserCredential> register({
@@ -39,63 +72,144 @@ class FirebaseAuthService {
     required String password,
     required String name,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(), password: password);
-    await credential.user?.updateDisplayName(name.trim());
-    return credential;
+    try {
+      final credential = await RetryUtils.retry(
+        () => _auth.createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: password,
+        ),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+      await RetryUtils.retry(
+        () => credential.user?.updateDisplayName(name.trim()),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 10),
+        retryIf: _isAuthTransientError,
+      );
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Registration failed (code: ${e.code})');
+    } catch (e) {
+      throw AuthFailure('Registration failed: ${e.toString()}');
+    }
   }
 
   Future<void> sendPasswordReset(String email) async {
-    // handleCodeInApp + a deep-link continue URL makes the reset link open the
-    // app directly rather than the Firebase-hosted web page.
-    await _auth.sendPasswordResetEmail(
-      email: email.trim(),
-      actionCodeSettings: ActionCodeSettings(
-        url: _passwordResetContinueUrl,
-        handleCodeInApp: true,
-        androidPackageName: _androidPackageName,
-        androidInstallApp: true,
-        androidMinimumVersion: '1',
-        iOSBundleId: _iosBundleId,
-      ),
-    );
+    try {
+      await RetryUtils.retry(
+        () => _auth.sendPasswordResetEmail(
+          email: email.trim(),
+          actionCodeSettings: ActionCodeSettings(
+            url: _passwordResetContinueUrl,
+            handleCodeInApp: true,
+            androidPackageName: _androidPackageName,
+            androidInstallApp: true,
+            androidMinimumVersion: '1',
+            iOSBundleId: _iosBundleId,
+          ),
+        ),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Password reset failed (code: ${e.code})');
+    } catch (e) {
+      throw AuthFailure('Password reset failed: ${e.toString()}');
+    }
   }
 
   /// Validates a password-reset `oobCode` from the deep link; returns the email
   /// the code is for. Throws if the code is invalid or expired.
-  Future<String> verifyPasswordResetCode(String code) {
-    return _auth.verifyPasswordResetCode(code);
+  Future<String> verifyPasswordResetCode(String code) async {
+    try {
+      return await RetryUtils.retry(
+        () => _auth.verifyPasswordResetCode(code),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure('Invalid or expired code: ${e.message}');
+    } catch (e) {
+      throw AuthFailure('Verification failed: ${e.toString()}');
+    }
   }
 
   /// Completes the in-app password reset using the `oobCode` from the link.
   Future<void> confirmPasswordReset({
     required String code,
     required String newPassword,
-  }) {
-    return _auth.confirmPasswordReset(code: code, newPassword: newPassword);
+  }) async {
+    try {
+      await RetryUtils.retry(
+        () => _auth.confirmPasswordReset(code: code, newPassword: newPassword),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure('Failed to reset password: ${e.message}');
+    } catch (e) {
+      throw AuthFailure('Confirmation failed: ${e.toString()}');
+    }
   }
 
   // ─── Google Sign-In ───────────────────────────────────────────────────
   Future<UserCredential> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) throw Exception('Google sign-in cancelled');
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    return _auth.signInWithCredential(credential);
+    try {
+      final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
+      if (googleUser == null) throw AuthFailure('Google sign-in cancelled');
+      final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      return await RetryUtils.retry(
+        () => _auth.signInWithCredential(credential),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Google authentication failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Google sign-in failed: ${e.toString()}');
+    }
   }
 
   // ─── Anonymous ────────────────────────────────────────────────────────
   Future<UserCredential> signInAnonymously() async {
-    return _auth.signInAnonymously();
+    try {
+      return await RetryUtils.retry(
+        () => _auth.signInAnonymously(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Anonymous sign-in failed (code: ${e.code})');
+    } catch (e) {
+      throw AuthFailure('Anonymous sign-in failed: ${e.toString()}');
+    }
   }
 
   // ─── Sign Out ─────────────────────────────────────────────────────────
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    try {
+      await _googleSignIn.signOut().timeout(const Duration(seconds: 10));
+      await RetryUtils.retry(
+        () => _auth.signOut(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 10),
+        retryIf: _isAuthTransientError,
+      );
+    } catch (e) {
+      throw AuthFailure('Sign out failed: ${e.toString()}');
+    }
   }
 
   // ─── Re-authentication ────────────────────────────────────────────────
@@ -110,51 +224,119 @@ class FirebaseAuthService {
       false;
 
   Future<void> reauthenticateWithPassword(String password) async {
-    final user = _auth.currentUser;
-    final email = user?.email;
-    if (user == null || email == null || email.isEmpty) {
-      throw Exception('No email account to re-authenticate');
+    try {
+      final user = _auth.currentUser;
+      final email = user?.email;
+      if (user == null || email == null || email.isEmpty) {
+        throw AuthFailure('No email account to re-authenticate');
+      }
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      await RetryUtils.retry(
+        () => user.reauthenticateWithCredential(credential),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Re-authentication failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Re-authentication failed: ${e.toString()}');
     }
-    final credential = EmailAuthProvider.credential(
-      email: email,
-      password: password,
-    );
-    await user.reauthenticateWithCredential(credential);
   }
 
   Future<void> reauthenticateWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) throw Exception('Google sign-in cancelled');
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('No user signed in');
-    await user.reauthenticateWithCredential(credential);
+    try {
+      final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
+      if (googleUser == null) throw AuthFailure('Google sign-in cancelled');
+      final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final user = _auth.currentUser;
+      if (user == null) throw AuthFailure('No user signed in');
+      await RetryUtils.retry(
+        () => user.reauthenticateWithCredential(credential),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Re-authentication failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Re-authentication failed: ${e.toString()}');
+    }
   }
 
   // ─── Delete Account ───────────────────────────────────────────────────
   Future<void> deleteAccount() async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('No user signed in');
-    await user.delete();
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw AuthFailure('No user signed in');
+      await RetryUtils.retry(
+        () => user.delete(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Delete account failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Delete account failed: ${e.toString()}');
+    }
   }
 
   // ─── Update Profile ───────────────────────────────────────────────────
   Future<void> updateDisplayName(String name) async {
-    await _auth.currentUser?.updateDisplayName(name);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw AuthFailure('No user signed in');
+      await RetryUtils.retry(
+        () => user.updateDisplayName(name),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 10),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Update display name failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Update display name failed: ${e.toString()}');
+    }
   }
 
   Future<void> updatePhotoUrl(String url) async {
-    await _auth.currentUser?.updatePhotoURL(url);
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw AuthFailure('No user signed in');
+      await RetryUtils.retry(
+        () => user.updatePhotoURL(url),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 10),
+        retryIf: _isAuthTransientError,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(e.message ?? 'Update photo URL failed (code: ${e.code})');
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw AuthFailure('Update photo URL failed: ${e.toString()}');
+    }
   }
+
+  String? get currentUserIdOrNull => _auth.currentUser?.uid;
 
   String get currentUserId {
     final uid = _auth.currentUser?.uid;
-    assert(uid != null, 'currentUserId called with no authenticated user');
-    return uid ?? '';
+    if (uid == null || uid.isEmpty) {
+      throw AuthFailure('No authenticated user found.');
+    }
+    return uid;
   }
   String get currentUserEmail => _auth.currentUser?.email ?? '';
   String get currentUserName =>

@@ -39,6 +39,9 @@ class GhanaRegion {
     'Ahafo': (6.8000, -2.5167),
   };
 
+  /// List of all 16 administrative regions in Ghana.
+  static List<String> get allRegions => _regionCentroids.keys.toList();
+
   /// Returns the nearest Ghana region for [lat]/[lng], or [outsideGhana] when
   /// the coordinate is outside the country's bounding box.
   static String forCoordinates(double lat, double lng) {

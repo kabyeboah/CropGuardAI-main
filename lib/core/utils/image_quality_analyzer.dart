@@ -2,16 +2,30 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 class ImageQualityAnalyzer {
   static const int _analysisMaxSide = 320;
   static const int _minShortSidePx = 160;
-  static const double _minLaplacianVariance = 38.0;
-  static const double _minMeanLuminance = 0.11;
-  static const double _maxMeanLuminance = 0.90;
+  static double minLaplacianVariance = 18.0; // lowered from 28 to reduce false rejections on gallery photos
+  static const double _minMeanLuminance = 0.08; // lowered from 0.11 for better low-light tolerance
+  static const double _maxMeanLuminance = 0.95; // raised from 0.90
 
-  static ImageQualityResult analyze(img.Image image) {
+  static Future<ImageQualityResult?> analyzeFile(String imagePath, {double? minBlurThreshold}) async {
+    return compute((args) {
+      final path = args['path'] as String;
+      final threshold = args['threshold'] as double?;
+      final file = File(path);
+      if (!file.existsSync()) return null;
+      final bytes = file.readAsBytesSync();
+      final image = img.decodeImage(bytes);
+      if (image == null) return null;
+      return analyze(image, minBlurThreshold: threshold);
+    }, {'path': imagePath, 'threshold': minBlurThreshold});
+  }
+
+  static ImageQualityResult analyze(img.Image image, {double? minBlurThreshold}) {
     final shortSide = min(image.width, image.height);
     if (shortSide < _minShortSidePx) {
       return const ImageQualityResult(false, ImageQualityIssue.tooSmall);
@@ -26,8 +40,9 @@ class ImageQualityAnalyzer {
       return const ImageQualityResult(false, ImageQualityIssue.tooBright);
     }
 
+    final effectiveThreshold = minBlurThreshold ?? minLaplacianVariance;
     final lapVar = _laplacianVariance(grayscale);
-    if (lapVar < _minLaplacianVariance) {
+    if (lapVar < effectiveThreshold) {
       return const ImageQualityResult(false, ImageQualityIssue.blurry);
     }
 
@@ -85,8 +100,8 @@ class ImageQualityAnalyzer {
   }
 
   static PreviewQualityBand _focusBand(double lapVar) {
-    if (lapVar < 28.0) return PreviewQualityBand.poor;
-    if (lapVar >= 65.0) return PreviewQualityBand.good;
+    if (lapVar < 18.0) return PreviewQualityBand.poor;
+    if (lapVar >= 55.0) return PreviewQualityBand.good;
     return PreviewQualityBand.fair;
   }
 
@@ -237,4 +252,15 @@ class ScanPreviewQuality {
   const ScanPreviewQuality(this.lighting, this.focus, this.placement);
 
   PreviewQualityBand get coverage => placement;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScanPreviewQuality &&
+          lighting == other.lighting &&
+          focus == other.focus &&
+          placement == other.placement;
+
+  @override
+  int get hashCode => Object.hash(lighting, focus, placement);
 }

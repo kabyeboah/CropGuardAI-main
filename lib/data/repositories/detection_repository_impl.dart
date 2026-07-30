@@ -21,9 +21,29 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   }
 
   @override
-  Future<Result<List<DetectionResult>>> getHistory({String? userId}) async {
+  Future<Result<List<DetectionResult>>> getHistory({
+    String? userId,
+    int? limit,
+    int? offset,
+    bool? isHealthy,
+    List<String>? cropTypes,
+    int? dateFrom,
+    int? dateTo,
+    String? searchQuery,
+    String? orderBy,
+  }) async {
     try {
-      final detections = await _dbHelper.getAllDetections(userId: userId);
+      final detections = await _dbHelper.getAllDetections(
+        userId: userId,
+        limit: limit,
+        offset: offset,
+        isHealthy: isHealthy,
+        cropTypes: cropTypes,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+        searchQuery: searchQuery,
+        orderBy: orderBy,
+      );
       return Result.success(detections);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
@@ -115,6 +135,16 @@ class DetectionRepositoryImpl implements IDetectionRepository {
     try {
       await _dbHelper.deleteField(id);
       return Result.success(null);
+    } catch (e) {
+      return Result.error(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<List<String>>> getDistinctCropTypes({String? userId}) async {
+    try {
+      final crops = await _dbHelper.getDistinctCropTypes(userId: userId);
+      return Result.success(crops);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
     }

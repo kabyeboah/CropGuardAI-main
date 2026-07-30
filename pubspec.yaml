@@ -1,20 +1,22 @@
 name: cropguard_flutter
 description: CropGuard AI - Crop Disease Detection App (Flutter)
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
   flutter: ">=3.10.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
+  cupertino_icons: ^1.0.8
+
   # Navigation
   go_router: ^17.3.0
 
   # Firebase
-  firebase_core: ^4.10.0
+  firebase_core: 4.10.0
   firebase_auth: ^6.5.2
   cloud_firestore: ^6.5.0
   firebase_storage: ^13.4.2
@@ -77,7 +79,7 @@ dependencies:
 
   # Feedback
   vibration: ^3.1.8
-  audioplayers: ^6.0.0
+  audioplayers: ^6.8.1  # 6.5.0 had a Swift compile bug; fixed in 6.5.1+
 
   # Security
   flutter_jailbreak_detection: ^1.1.0
@@ -122,6 +124,14 @@ dev_dependencies:
   mocktail: ^1.0.4
   sqflite_common_ffi: ^2.3.3
 
+dependency_overrides:
+  firebase_core_platform_interface: 6.0.3
+  # audioplayers_darwin 6.5.0 has a Swift compiler bug on line 88 of AudioContext.swift
+  # (.AVAudioSession.CategoryOptions.allowBluetoothHFP should be .allowBluetoothHFP).
+  # The pub-cache file has been patched in place. This override pins the version so
+  # a future `pub get` doesn't silently regress. Remove once audioplayers upgrades
+  # audioplayers_darwin past 6.5.0.
+  audioplayers_darwin: 6.5.0
 
 flutter:
   generate: true

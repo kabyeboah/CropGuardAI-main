@@ -1,4 +1,5 @@
 import '../../core/utils/result.dart';
+import '../../data/local/pending_sync_queue.dart';
 import '../models/community_post.dart';
 
 abstract class ICommunityRepository {
@@ -33,4 +34,6 @@ abstract class ICommunityRepository {
     required String observedSymptoms,
     required String imagePath,
   });
+
+  Future<List<Map<String, dynamic>>> getPendingSyncItems(PendingSyncType type);
 }

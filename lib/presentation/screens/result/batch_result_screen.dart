@@ -15,17 +15,29 @@ class BatchResultScreen extends StatelessWidget {
     final colors = context.colors;
     final result = provider.batchResult;
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        title: Text(context.l10n.batchScanSummary,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: colors.primary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        appBar: AppBar(
+          title: Text(context.l10n.batchScanSummary,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: colors.primary,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+          ),
         ),
-      ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : result == null
@@ -134,6 +146,7 @@ class BatchResultScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+      ),
     );
   }
 }

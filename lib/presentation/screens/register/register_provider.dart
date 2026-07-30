@@ -13,14 +13,8 @@ class RegisterProvider extends ChangeNotifier {
 
   RegisterProvider(this._registerUseCase, this._db, this._auth);
 
-  String name = '';
-  String email = '';
-  String password = '';
-  String confirmPassword = '';
-  bool termsAccepted = false;
   RegisterStatus status = RegisterStatus.idle;
   String? errorMessage;
-  bool obscurePassword = true;
 
   // ── Guest migration state ──────────────────────────────────────────────────
   String? _anonUid;
@@ -29,31 +23,16 @@ class RegisterProvider extends ChangeNotifier {
 
   int get anonScanCount => _anonScanCount;
 
-  void setName(String v) { name = v; notifyListeners(); }
-  void setEmail(String v) { email = v; notifyListeners(); }
-  void setPassword(String v) { password = v; notifyListeners(); }
-  void setConfirmPassword(String v) { confirmPassword = v; notifyListeners(); }
-  void setTermsAccepted(bool v) { termsAccepted = v; notifyListeners(); }
-  void togglePasswordVisibility() {
-    obscurePassword = !obscurePassword;
-    notifyListeners();
-  }
-
-  int get passwordStrength {
-    if (password.isEmpty) return 0;
-    if (password.length < 6) return 1;
-    final hasDigit = password.contains(RegExp(r'[0-9]'));
-    final hasSpecial = password.contains(RegExp(r'[^a-zA-Z0-9]'));
-    if (password.length >= 12 && hasDigit && hasSpecial) return 4;
-    if (password.length >= 8 && hasDigit) return 3;
-    return 2;
-  }
-
   /// [onMigrationNeeded] is called instead of [onSuccess] when the user was
   /// a guest with saved scans. Call [acceptMigration] or [declineMigration]
   /// from the dialog to complete the flow and trigger navigation.
-  Future<void> register(
-    VoidCallback onSuccess, {
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required bool termsAccepted,
+    required VoidCallback onSuccess,
     void Function(int count)? onMigrationNeeded,
   }) async {
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {

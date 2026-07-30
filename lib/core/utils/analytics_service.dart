@@ -79,4 +79,7 @@ class AnalyticsService {
 
   Future<void> logSignUp({required String method}) =>
       _log('sign_up', {'method': method});
+
+  Future<void> logColdStart(int durationMs) =>
+      _log('cold_start_time', {'duration_ms': durationMs});
 }

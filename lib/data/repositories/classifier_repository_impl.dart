@@ -26,6 +26,15 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
   Future<Result<Classification?>> classifyFromPath(String imagePath) async {
     try {
       final result = await _classifier.classifyFromPath(imagePath);
+      if (result == null) {
+        return Result.error(MLFailure('Classification failed to return a result'));
+      }
+      if (result.engineUnavailable) {
+        return Result.error(MLFailure('ML engine unavailable on this platform or device'));
+      }
+      if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
+        return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
+      }
       return Result.success(_mapClassification(result));
     } catch (e) {
       return Result.error(MLFailure(e.toString()));
@@ -36,6 +45,15 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
   Future<Result<Classification?>> classifyFromBytes(Uint8List rgbaBytes, int width, int height) async {
     try {
       final result = await _classifier.classifyFromBytes(rgbaBytes, width, height);
+      if (result == null) {
+        return Result.error(MLFailure('Classification failed to return a result'));
+      }
+      if (result.engineUnavailable) {
+        return Result.error(MLFailure('ML engine unavailable on this platform or device'));
+      }
+      if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
+        return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
+      }
       return Result.success(_mapClassification(result));
     } catch (e) {
       return Result.error(MLFailure(e.toString()));

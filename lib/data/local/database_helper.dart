@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 12;
+  static const _dbVersion = 13;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -22,6 +22,11 @@ class DatabaseHelper {
 
   Database? _db;
   Completer<Database>? _dbCompleter;
+  String? _testPath;
+
+  DatabaseHelper();
+
+  DatabaseHelper.forTest(String dbName) : _testPath = dbName;
 
   /// Thread-safe database accessor. If two async callers both arrive before
   /// [_initDb] completes, they share a single in-flight [Completer] rather
@@ -42,9 +47,22 @@ class DatabaseHelper {
     return _db!;
   }
 
+  Future<void> close() async {
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+      _dbCompleter = null;
+    }
+  }
+
   Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, _dbName);
+    final String path;
+    if (_testPath != null) {
+      path = inMemoryDatabasePath;
+    } else {
+      final dbPath = await getDatabasesPath();
+      path = join(dbPath, _dbName);
+    }
     return openDatabase(
       path,
       version: _dbVersion,
@@ -106,7 +124,10 @@ class DatabaseHelper {
       // Adds the offline pending-sync queue table.
       await db.execute(PendingSyncQueue.createTableSql);
     }
-    // if (oldVersion < 13) { /* next migration here */ }
+    if (oldVersion < 13) {
+      // Add status column to pending_sync table.
+      await _addColumnIfMissing(db, 'pending_sync', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+    }
   }
 
   /// Adds [column] to [table] only when the column does not yet exist.
@@ -161,15 +182,57 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<DetectionResult>> getAllDetections({String? userId}) async {
+  Future<List<DetectionResult>> getAllDetections({
+    String? userId,
+    int? limit,
+    int? offset,
+    bool? isHealthy,
+    List<String>? cropTypes,
+    int? dateFrom,
+    int? dateTo,
+    String? searchQuery,
+    String? orderBy,
+  }) async {
     final db = await database;
-    final where = userId != null ? 'userId = ?' : null;
-    final whereArgs = userId != null ? [userId] : null;
+    final List<String> whereClauses = [];
+    final List<Object?> whereArgs = [];
+
+    if (userId != null) {
+      whereClauses.add('userId = ?');
+      whereArgs.add(userId);
+    }
+    if (isHealthy != null) {
+      whereClauses.add('isHealthy = ?');
+      whereArgs.add(isHealthy ? 1 : 0);
+    }
+    if (cropTypes != null && cropTypes.isNotEmpty) {
+      final placeholders = List.filled(cropTypes.length, '?').join(', ');
+      whereClauses.add('cropType IN ($placeholders)');
+      whereArgs.addAll(cropTypes);
+    }
+    if (dateFrom != null) {
+      whereClauses.add('timestamp >= ?');
+      whereArgs.add(dateFrom);
+    }
+    if (dateTo != null) {
+      whereClauses.add('timestamp < ?');
+      whereArgs.add(dateTo);
+    }
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      whereClauses.add('(displayName LIKE ? OR cropType LIKE ?)');
+      final likeQuery = '%${searchQuery.trim()}%';
+      whereArgs.addAll([likeQuery, likeQuery]);
+    }
+
+    final where = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+
     final maps = await db.query(
       tableDetections,
       where: where,
-      whereArgs: whereArgs,
-      orderBy: 'timestamp DESC',
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: orderBy ?? 'timestamp DESC',
+      limit: limit,
+      offset: offset,
     );
     return maps.map(DetectionResult.fromMap).toList();
   }
@@ -261,6 +324,17 @@ class DatabaseHelper {
           ),
         ) ??
         0;
+  }
+
+  Future<List<String>> getDistinctCropTypes({String? userId}) async {
+    final db = await database;
+    final where = userId != null ? ' WHERE userId = ?' : '';
+    final args = userId != null ? [userId] : null;
+    final list = await db.rawQuery(
+      'SELECT DISTINCT cropType FROM $tableDetections$where ORDER BY cropType ASC',
+      args,
+    );
+    return list.map((row) => row['cropType'] as String).toList();
   }
 
   // ─── Stats ───────────────────────────────────────────────────────────────
@@ -378,7 +452,11 @@ class DatabaseHelper {
     return id;
   }
 
-  Future<List<TreatmentPlan>> getAllTreatments({String? userId}) async {
+  Future<List<TreatmentPlan>> getAllTreatments({
+    String? userId,
+    int? limit,
+    int? offset,
+  }) async {
     final db = await database;
     final where = userId != null ? 'userId = ?' : null;
     final whereArgs = userId != null ? [userId] : null;
@@ -387,6 +465,8 @@ class DatabaseHelper {
       where: where,
       whereArgs: whereArgs,
       orderBy: 'dueDateMs ASC',
+      limit: limit,
+      offset: offset,
     );
     return maps.map(TreatmentPlan.fromMap).toList();
   }
@@ -406,11 +486,27 @@ class DatabaseHelper {
     await db.delete(tableTreatmentPlans, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<int> getCompletedTreatmentsCount() async {
+  Future<int> getCompletedTreatmentsCount({String? userId}) async {
     final db = await database;
+    final where = userId != null ? ' WHERE userId = ? AND completed = 1' : ' WHERE completed = 1';
+    final args = userId != null ? [userId] : null;
     return Sqflite.firstIntValue(
           await db.rawQuery(
-            'SELECT COUNT(*) FROM $tableTreatmentPlans WHERE completed = 1',
+            'SELECT COUNT(*) FROM $tableTreatmentPlans$where',
+            args,
+          ),
+        ) ??
+        0;
+  }
+
+  Future<int> getPendingTreatmentsCount({String? userId}) async {
+    final db = await database;
+    final where = userId != null ? ' WHERE userId = ? AND completed = 0' : ' WHERE completed = 0';
+    final args = userId != null ? [userId] : null;
+    return Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM $tableTreatmentPlans$where',
+            args,
           ),
         ) ??
         0;

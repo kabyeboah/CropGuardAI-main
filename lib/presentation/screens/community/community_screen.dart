@@ -11,30 +11,51 @@ import '../../../domain/models/community_post.dart';
 import '../../components/cropguard_card.dart';
 import '../../components/cropguard_text_field.dart';
 import '../../components/offline_banner.dart';
-import '../../components/primary_button.dart';
 import 'community_provider.dart';
 
-class CommunityScreen extends StatelessWidget {
+class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
+
+  @override
+  State<CommunityScreen> createState() => _CommunityScreenState();
+}
+
+class _CommunityScreenState extends State<CommunityScreen> {
+  final _composerController = TextEditingController();
+
+  @override
+  void dispose() {
+    _composerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CommunityProvider>();
     final colors = context.colors;
-    final canPop = Navigator.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: colors.background,
+    return PopScope(
+      canPop: Navigator.of(context).canPop(),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go('/home');
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.surface,
         title: Text(context.l10n.community,
             style: Theme.of(context).textTheme.titleLarge),
-        leading: canPop
-            ? const BackButton()
-            : IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/home'),
-              ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -48,8 +69,7 @@ class CommunityScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     CropGuardTextField(
-                      value: provider.composerText,
-                      onChanged: provider.onComposerChanged,
+                      controller: _composerController,
                       label: context.l10n.shareUpdate,
                       placeholder: context.l10n.composerHint,
                     ),
@@ -116,27 +136,65 @@ class CommunityScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+                    const SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          icon: Icon(Icons.image_outlined,
-                              color: colors.primary),
-                          onPressed: provider.isPosting ||
-                                  provider.isUploadingImage
+                        OutlinedButton.icon(
+                          onPressed: provider.isPosting || provider.isUploadingImage
                               ? null
                               : () async {
                                   final picker = ImagePicker();
                                   final file = await picker.pickImage(
-                                      source: ImageSource.gallery);
-                                  provider.onImageSelected(file?.path);
+                                    source: ImageSource.gallery,
+                                    maxWidth: 1024,
+                                    maxHeight: 1024,
+                                    imageQuality: 85,
+                                  );
+                                  await provider.onImageSelected(file?.path);
                                 },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: colors.primary),
+                            foregroundColor: colors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                          label: const Text('Add Photo', style: TextStyle(fontWeight: FontWeight.w600)),
                         ),
-                        const Spacer(),
-                        PrimaryButton(
-                          text: context.l10n.post,
-                          isLoading: provider.isPosting,
-                          onPressed: provider.isPosting ? null : provider.postUpdate,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: provider.isPosting
+                                ? null
+                                : () => provider.postUpdate(
+                                      _composerController.text,
+                                      onPosted: () {
+                                        _composerController.clear();
+                                      },
+                                    ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              minimumSize: const Size(0, 44),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: provider.isPosting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.send_rounded, size: 18),
+                            label: Text(
+                              context.l10n.post,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -159,7 +217,10 @@ class CommunityScreen extends StatelessWidget {
                               TextButton(
                                 onPressed: provider.isPosting
                                     ? null
-                                    : provider.retryPost,
+                                    : () => provider.retryPost(
+                                          onPosted: () =>
+                                              _composerController.clear(),
+                                        ),
                                 child: Text(context.l10n.retry,
                                     style: const TextStyle(fontSize: 12)),
                               ),
@@ -212,8 +273,9 @@ class CommunityScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 String _relativeTimestamp(int ms) {
@@ -262,27 +324,49 @@ class _PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${post.author} • ${post.tag} • ${_relativeTimestamp(post.timestamp)}',
-              style: TextStyle(color: colors.muted, fontSize: 11),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    '${post.author} • ${post.tag} • ${_relativeTimestamp(post.timestamp)}',
+                    style: TextStyle(color: colors.muted, fontSize: 11),
+                  ),
+                ),
+                if (post.syncStatus != null) ...[
+                  const SizedBox(width: 8),
+                  _SyncStatusBadge(status: post.syncStatus!),
+                ],
+              ],
             ),
             const SizedBox(height: 6),
             Text(post.body, style: Theme.of(context).textTheme.bodyMedium),
-            if (post.imageUri != null &&
-                (post.imageUri!.startsWith('http://') ||
-                    post.imageUri!.startsWith('https://')))
+            if (post.imageUri != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: CachedNetworkImage(
-                    imageUrl: post.imageUri!,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
-                        const Icon(Icons.broken_image),
-                  ),
+                  child: (post.imageUri!.startsWith('http://') ||
+                          post.imageUri!.startsWith('https://'))
+                      ? CachedNetworkImage(
+                          imageUrl: post.imageUri!,
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) =>
+                              const Icon(Icons.broken_image),
+                        )
+                      : File(post.imageUri!).existsSync()
+                          ? Image.file(
+                              File(post.imageUri!),
+                              height: 160,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : const SizedBox(
+                              height: 160,
+                              child: Center(child: Icon(Icons.broken_image)),
+                            ),
                 ),
               ),
             if (post.expertResponse != null) ...[
@@ -311,6 +395,82 @@ class _PostCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SyncStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _SyncStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bgColor;
+    final Color textColor;
+    final IconData icon;
+    final String label;
+
+    switch (status) {
+      case 'pending':
+        bgColor = Colors.amber.shade50;
+        textColor = Colors.amber.shade800;
+        icon = Icons.access_time;
+        label = 'Pending';
+        break;
+      case 'syncing':
+        bgColor = Colors.blue.shade50;
+        textColor = Colors.blue.shade800;
+        icon = Icons.sync;
+        label = 'Syncing';
+        break;
+      case 'failed':
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade800;
+        icon = Icons.error_outline;
+        label = 'Failed';
+        break;
+      case 'synced':
+      default:
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade800;
+        icon = Icons.check_circle_outline;
+        label = 'Synced';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: textColor.withValues(alpha: 0.2), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status == 'syncing')
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: textColor,
+              ),
+            )
+          else
+            Icon(icon, size: 10, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }

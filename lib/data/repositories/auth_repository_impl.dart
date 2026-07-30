@@ -33,6 +33,7 @@ class AuthRepositoryImpl implements IAuthRepository {
         return Result.error(AuthFailure('Sign in failed: User is null'));
       }
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -48,6 +49,7 @@ class AuthRepositoryImpl implements IAuthRepository {
         return Result.error(AuthFailure('Registration failed: User is null'));
       }
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -58,6 +60,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.signInWithGoogle();
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -68,6 +71,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.signInAnonymously();
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -78,6 +82,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.signOut();
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -88,6 +93,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.deleteAccount();
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -98,6 +104,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.sendPasswordReset(email);
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -108,6 +115,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       final email = await _authService.verifyPasswordResetCode(code);
       return Result.success(email);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -122,6 +130,7 @@ class AuthRepositoryImpl implements IAuthRepository {
           code: code, newPassword: newPassword);
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -132,6 +141,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.updateDisplayName(name);
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
@@ -142,6 +152,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       await _authService.updatePhotoUrl(url);
       return Result.success(null);
     } catch (e) {
+      if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
     }
   }
