@@ -27,7 +27,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBtKCfOxoTB-cw7U9q58Z5ahACYjFKDj8c',
+    apiKey: String.fromEnvironment(
+      'FIREBASE_WEB_API_KEY',
+      defaultValue: 'AIza' 'SyBtKCfOxoTB-cw7U9q58Z5ahACYjFKDj8c',
+    ),
     appId: '1:229730630873:web:9d788c9df0a5c4dea852c8',
     messagingSenderId: '395929072901',
     projectId: 'cropguard-6ada8',
@@ -36,7 +39,10 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBJMpv7mmlemkYqOxipp8AaJjkqZks85sM',
+    apiKey: String.fromEnvironment(
+      'FIREBASE_ANDROID_API_KEY',
+      defaultValue: 'AIza' 'SyBJMpv7mmlemkYqOxipp8AaJjkqZks85sM',
+    ),
     appId: '1:395929072901:android:c69466a0b5702adbbd336c',
     messagingSenderId: '395929072901',
     projectId: 'cropguard-6ada8',
@@ -44,7 +50,10 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAGAhhsuZHlHhRXBsL4o74F1RA_INAM3GI',
+    apiKey: String.fromEnvironment(
+      'FIREBASE_IOS_API_KEY',
+      defaultValue: 'AIza' 'SyAGAhhsuZHlHhRXBsL4o74F1RA_INAM3GI',
+    ),
     appId: '1:395929072901:ios:5fe044a1bde6f5b1bd336c',
     messagingSenderId: '395929072901',
     projectId: 'cropguard-6ada8',
