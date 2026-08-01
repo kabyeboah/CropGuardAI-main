@@ -8,6 +8,8 @@ import '../../../data/remote/image_upload_service.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
 import '../../../domain/repositories/i_profile_repository.dart';
 
+import '../../../domain/models/reporter_trust_stats.dart';
+
 class ProfileStats {
   final int totalScans;
   final int healthyScans;
@@ -53,6 +55,7 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   ProfileStats stats = const ProfileStats();
+  ReporterTrustStats trustStats = const ReporterTrustStats();
   bool alertsEnabled = true;
   bool highQualityScans = true;
   ConnectionStatus connectionStatus = ConnectionStatus.online;
@@ -83,6 +86,14 @@ class ProfileProvider extends ChangeNotifier {
         diseasedScans: rawStats['diseased'] ?? 0,
       );
       isPro = total >= 100;
+    }
+
+    final userId = _authRepository.currentUser?.id;
+    if (userId != null && userId.isNotEmpty) {
+      final trustResult = await _repository.getReporterTrustStats(userId);
+      if (trustResult.isSuccess && trustResult.data != null) {
+        trustStats = trustResult.data!;
+      }
     }
 
     alertsEnabled = _repository.getAlertsEnabled();

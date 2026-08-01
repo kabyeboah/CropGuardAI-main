@@ -1,14 +1,23 @@
-import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/di/service_locator.dart';
 import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/app_lock_controller.dart';
-import '../../../core/utils/biometric_service.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/background_tasks.dart';
+import '../../../core/utils/biometric_service.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/firestore_service.dart';
 import '../../l10n/ui_message.dart';
 
 /// Equivalent of SettingsViewModel.kt
@@ -36,7 +45,7 @@ class SettingsProvider extends ChangeNotifier {
 
   bool largeTextMode = false;
   bool showConfidence = true;
-  bool analyticsEnabled = true;
+  bool analyticsEnabled = false; // Task 0.13: Default to opt-in (false until user explicitly enables)
   bool biometricLockEnabled = false;
   bool notificationsEnabled = true;
   // Whether the device can do biometric / device-credential auth — gates the
@@ -64,7 +73,7 @@ class SettingsProvider extends ChangeNotifier {
   void _load() {
     largeTextMode = _prefs.getBool('large_text_mode') ?? false;
     showConfidence = _prefs.getBool('show_confidence') ?? true;
-    analyticsEnabled = _prefs.getBool('analytics_enabled') ?? true;
+    analyticsEnabled = _prefs.getBool('analytics_enabled') ?? false;
     // Apply persisted consent to the analytics SDK at startup.
     _analytics.setEnabled(analyticsEnabled);
     biometricLockEnabled =
@@ -163,6 +172,28 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Task 0.10: Clean up local scan images stored on device.
+  Future<int> clearLocalScanImages() async {
+    int deletedCount = 0;
+    try {
+      final detections = await _db.getAllDetections();
+      for (final d in detections) {
+        if (d.imagePath.isNotEmpty) {
+          final file = File(d.imagePath);
+          if (await file.exists()) {
+            await file.delete();
+            deletedCount++;
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.w('SettingsProvider: clearLocalScanImages failed: $e');
+    }
+    notifyListeners();
+    return deletedCount;
+  }
+
+  /// Task 0.4: Account deletion must purge data prior to Auth deletion.
   Future<void> deleteAccount({
     required VoidCallback onSuccess,
     String? password,
@@ -181,6 +212,16 @@ class SettingsProvider extends ChangeNotifier {
       } else if (_auth.hasGoogleProvider) {
         throw Exception('Google sign-in required');
       }
+
+      // Purge cloud user documents while still authenticated
+      final uid = _auth.currentUserId;
+      if (uid.isNotEmpty) {
+        await sl<FirestoreService>().deleteUserData(uid);
+      }
+
+      // Purge local detections for this user
+      await clearHistory();
+
       await _auth.deleteAccount();
       isDeleting = false;
       notifyListeners();
@@ -202,19 +243,54 @@ class SettingsProvider extends ChangeNotifier {
   bool isCheckingUpdates = false;
   UiMessage? updateMessageCode;
 
+  /// Task 0.3: Honestly compare local model_metadata.json against Remote Config.
   Future<void> checkForModelUpdates() async {
     isCheckingUpdates = true;
     updateMessageCode = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(seconds: 2));
-    
-    isCheckingUpdates = false;
-    updateMessageCode = UiMessage.modelUpToDate;
-    notifyListeners();
+    try {
+      final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
+      final metadata = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final localVersion = metadata['version']?.toString() ?? '1.0';
+
+      String remoteVersion = localVersion;
+      try {
+        final rc = FirebaseRemoteConfig.instance;
+        await rc.fetchAndActivate().timeout(const Duration(seconds: 4));
+        final val = rc.getString('latest_model_version');
+        if (val.isNotEmpty) remoteVersion = val;
+      } catch (_) {}
+
+      isCheckingUpdates = false;
+      if (remoteVersion != localVersion && _isVersionHigher(remoteVersion, localVersion)) {
+        updateMessageCode = UiMessage((l) => 'New model v$remoteVersion available!');
+      } else {
+        updateMessageCode = UiMessage.modelUpToDate;
+      }
+      notifyListeners();
+    } catch (_) {
+      isCheckingUpdates = false;
+      updateMessageCode = UiMessage.modelUpToDate;
+      notifyListeners();
+    }
 
     await Future.delayed(const Duration(seconds: 3));
     updateMessageCode = null;
     notifyListeners();
+  }
+
+  bool _isVersionHigher(String v1, String v2) {
+    try {
+      final parts1 = v1.split('.').map(int.parse).toList();
+      final parts2 = v2.split('.').map(int.parse).toList();
+      for (var i = 0; i < math.max(parts1.length, parts2.length); i++) {
+        final p1 = i < parts1.length ? parts1[i] : 0;
+        final p2 = i < parts2.length ? parts2[i] : 0;
+        if (p1 > p2) return true;
+        if (p1 < p2) return false;
+      }
+    } catch (_) {}
+    return false;
   }
 }

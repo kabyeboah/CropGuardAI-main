@@ -13,6 +13,8 @@ import '../../components/cropguard_text_field.dart';
 import '../../components/offline_banner.dart';
 import 'community_provider.dart';
 
+import '../../components/voice_dictation_button.dart';
+
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
 
@@ -48,6 +50,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             style: Theme.of(context).textTheme.titleLarge),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -68,10 +71,18 @@ class _CommunityScreenState extends State<CommunityScreen> {
               child: CropGuardCard(
                 child: Column(
                   children: [
-                    CropGuardTextField(
-                      controller: _composerController,
-                      label: context.l10n.shareUpdate,
-                      placeholder: context.l10n.composerHint,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: CropGuardTextField(
+                            controller: _composerController,
+                            label: context.l10n.shareUpdate,
+                            placeholder: context.l10n.composerHint,
+                          ),
+                        ),
+                        VoiceDictationButton(controller: _composerController),
+                      ],
                     ),
                     if (provider.selectedImageUri != null)
                       Padding(

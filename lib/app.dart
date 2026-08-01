@@ -45,10 +45,12 @@ class _CropGuardAppState extends State<CropGuardApp> {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
-            final scale = settings.largeTextMode ? 1.3 : 1.0;
+            final baseScaler = MediaQuery.of(context).textScaler;
+            final multiplier = settings.largeTextMode ? 1.3 : 1.0;
+            final combinedScale = baseScaler.scale(1.0) * multiplier;
             return MediaQuery(
               data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(scale),
+                textScaler: TextScaler.linear(combinedScale),
               ),
               child: child ?? const SizedBox.shrink(),
             );

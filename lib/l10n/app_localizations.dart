@@ -1677,19 +1677,19 @@ abstract class AppLocalizations {
   /// No description provided for @riskLevelHigh.
   ///
   /// In en, this message translates to:
-  /// **'HIGH'**
+  /// **'High Risk'**
   String get riskLevelHigh;
 
   /// No description provided for @riskLevelModerate.
   ///
   /// In en, this message translates to:
-  /// **'MODERATE'**
+  /// **'Moderate Risk'**
   String get riskLevelModerate;
 
   /// No description provided for @riskLevelLow.
   ///
   /// In en, this message translates to:
-  /// **'LOW'**
+  /// **'Low Risk'**
   String get riskLevelLow;
 
   /// No description provided for @cropTomato.
@@ -2849,6 +2849,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{disease}. Severity is {severity}. Treatment steps: {treatments}'**
   String ttsResultSummary(String disease, String severity, String treatments);
+
+  /// No description provided for @riskForecastTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbreak Risk Forecast'**
+  String get riskForecastTitle;
+
+  /// No description provided for @riskForecastSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Proactive per-region disease outbreak risk score'**
+  String get riskForecastSubtitle;
+
+  /// No description provided for @riskForecastLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating regional outbreak risk...'**
+  String get riskForecastLoading;
+
+  /// No description provided for @riskLevelNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No Elevated Risk'**
+  String get riskLevelNone;
+
+  /// No description provided for @confidenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence'**
+  String get confidenceLabel;
+
+  /// No description provided for @confidenceInsufficientData.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient Data'**
+  String get confidenceInsufficientData;
+
+  /// No description provided for @confidenceLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low Confidence'**
+  String get confidenceLow;
+
+  /// No description provided for @confidenceMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium Confidence'**
+  String get confidenceMedium;
+
+  /// No description provided for @confidenceHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High Confidence'**
+  String get confidenceHigh;
+
+  /// No description provided for @riskInsufficientDataMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer than 3 local outbreak reports recorded in the last 30 days. Insufficient data to synthesize risk score.'**
+  String get riskInsufficientDataMsg;
+
+  /// No description provided for @viewRiskMap.
+  ///
+  /// In en, this message translates to:
+  /// **'View Outbreak Map'**
+  String get viewRiskMap;
+
+  /// No description provided for @riskOverlayToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Risk Overlay'**
+  String get riskOverlayToggle;
+
+  /// No description provided for @reporterTrustTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Community Reputation & Trust'**
+  String get reporterTrustTitle;
+
+  /// No description provided for @verifiedReportsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified Reports'**
+  String get verifiedReportsLabel;
+
+  /// No description provided for @verificationsGivenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifications Given'**
+  String get verificationsGivenLabel;
+
+  /// No description provided for @trustScoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust Score'**
+  String get trustScoreLabel;
+
+  /// No description provided for @reporterTrustExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your community outbreak reports and verifications directly weight the regional risk engine.'**
+  String get reporterTrustExplanation;
 }
 
 class _AppLocalizationsDelegate

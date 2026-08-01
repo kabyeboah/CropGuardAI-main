@@ -46,6 +46,19 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions.add("default")
+    productFlavors {
+        create("dev") {
+            dimension = "default"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "CropGuard Dev")
+        }
+        create("prod") {
+            dimension = "default"
+            resValue("string", "app_name", "CropGuard")
+        }
+    }
+
     buildTypes {
         release {
             val hasKeystore = keystorePropertiesFile.exists() || System.getenv("STORE_FILE") != null

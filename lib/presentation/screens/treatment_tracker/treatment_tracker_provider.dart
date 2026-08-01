@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/scan_severity.dart';
 import '../../../data/local/database_helper.dart';
+import '../../../data/local/pending_sync_queue.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../data/remote/firestore_service.dart';
+import '../../../domain/models/field.dart';
 import '../../../domain/models/treatment_plan.dart';
 
 /// Request to auto-create a treatment plan when the tracker opens — passed as
@@ -172,15 +175,36 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
     final dueDays = _scheduleForSeverity(severity, planSteps.length);
 
+    // Look up farmer's field for this crop type to calculate post-planting dates
+    Field? userField;
+    try {
+      final userFields = await _db.getFields(userId: _userId);
+      userField = userFields.firstWhere(
+        (f) => f.cropType.trim().toLowerCase() == crop.trim().toLowerCase() && f.plantingDate != null,
+      );
+    } catch (_) {}
+
+    final plantingDt = userField?.plantingDate != null
+        ? DateTime.fromMillisecondsSinceEpoch(userField!.plantingDate!)
+        : null;
+
     for (var i = 0; i < planSteps.length; i++) {
       final dueDate = now.add(Duration(days: dueDays[i]));
+      
+      String stepText = planSteps[i];
+      if (plantingDt != null) {
+        final postPlantingDay = dueDate.difference(plantingDt).inDays.clamp(0, 999);
+        final fieldName = userField?.name.isNotEmpty == true ? userField!.name : crop;
+        stepText = 'Day $postPlantingDay post-planting ($fieldName): $stepText';
+      }
+
       final plan = TreatmentPlan(
         id: '',
         userId: _userId,
         detectionId: detectionId,
         cropType: crop,
         diseaseName: disease,
-        step: planSteps[i],
+        step: stepText,
         completed: false,
         dueDate: dueDate,
         createdAt: now,
@@ -193,17 +217,67 @@ class TreatmentTrackerProvider extends ChangeNotifier {
         Duration(days: dueDays[i]),
       ));
 
-      if (!_isGuest) {
-        unawaited(
-          _firestore.addTreatment({
-            ...plan.copyWith(completed: false).toMap(),
-            'id': id,
-          }),
-        );
-      }
+      unawaited(_syncAddTreatment({
+        ...plan.copyWith(completed: false).toMap(),
+        'id': id,
+      }));
     }
 
     await _load();
+  }
+
+  Future<void> _syncAddTreatment(Map<String, dynamic> payload) async {
+    if (_isGuest) return;
+    try {
+      await _firestore.addTreatment(payload).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      try {
+        final db = await _db.database;
+        await PendingSyncQueue.enqueue(
+          db,
+          type: PendingSyncType.treatmentAdd,
+          payload: payload,
+        );
+      } catch (err) {
+        AppLogger.e('Failed to enqueue treatmentAdd: $err');
+      }
+    }
+  }
+
+  Future<void> _syncUpdateTreatment(String id, Map<String, dynamic> updateData) async {
+    if (_isGuest) return;
+    try {
+      await _firestore.updateTreatment(id, updateData).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      try {
+        final db = await _db.database;
+        await PendingSyncQueue.enqueue(
+          db,
+          type: PendingSyncType.treatmentUpdate,
+          payload: {'id': id, 'data': updateData},
+        );
+      } catch (err) {
+        AppLogger.e('Failed to enqueue treatmentUpdate: $err');
+      }
+    }
+  }
+
+  Future<void> _syncDeleteTreatment(String id) async {
+    if (_isGuest) return;
+    try {
+      await _firestore.deleteTreatment(id).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      try {
+        final db = await _db.database;
+        await PendingSyncQueue.enqueue(
+          db,
+          type: PendingSyncType.treatmentDelete,
+          payload: {'id': id},
+        );
+      } catch (err) {
+        AppLogger.e('Failed to enqueue treatmentDelete: $err');
+      }
+    }
   }
 
   Future<void> addFromDetection({
@@ -293,27 +367,19 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     }
     _safeNotify();
 
-    if (!_isGuest) {
-      unawaited(
-        _firestore.updateTreatment(plan.id, {'completed': updated ? 1 : 0}),
-      );
-    }
+    unawaited(_syncUpdateTreatment(plan.id, {'completed': updated ? 1 : 0}));
   }
 
   Future<void> deletePlan(String id) async {
     await _db.deleteTreatment(id);
-    if (!_isGuest) {
-      unawaited(_firestore.deleteTreatment(id));
-    }
+    unawaited(_syncDeleteTreatment(id));
     await _load(reset: true);
   }
 
   Future<void> deletePlanGroup(TreatmentPlanGroup group) async {
     for (final step in group.steps) {
       await _db.deleteTreatment(step.id);
-      if (!_isGuest) {
-        unawaited(_firestore.deleteTreatment(step.id));
-      }
+      unawaited(_syncDeleteTreatment(step.id));
     }
     await _load(reset: true);
   }

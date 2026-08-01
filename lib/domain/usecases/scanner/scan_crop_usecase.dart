@@ -5,18 +5,21 @@ import '../../../core/utils/result.dart';
 import '../../../core/utils/streak_manager.dart';
 import '../../models/detection_result.dart';
 import '../../repositories/i_classifier_repository.dart';
+import '../../repositories/i_community_repository.dart';
 import '../../repositories/i_detection_repository.dart';
 
 class ScanCropUseCase {
   final IClassifierRepository _classifierRepository;
   final IDetectionRepository _detectionRepository;
   final StreakManager _streakManager;
+  final ICommunityRepository? _communityRepository;
 
   ScanCropUseCase(
     this._classifierRepository,
     this._detectionRepository,
-    this._streakManager,
-  );
+    this._streakManager, [
+    this._communityRepository,
+  ]);
 
   Future<Result<DetectionResult>> call(String imagePath, String userId) async {
     final classificationResult = await _classifierRepository.classifyFromPath(imagePath);
@@ -62,6 +65,11 @@ class ScanCropUseCase {
 
     unawaited(_streakManager.recordScan());
 
-    return Result.success(detection.copyWith(id: saveResult.data));
+    final savedDetection = detection.copyWith(id: saveResult.data);
+    if (_communityRepository != null) {
+      unawaited(_communityRepository.uploadScan(savedDetection.toMap()));
+    }
+
+    return Result.success(savedDetection);
   }
 }

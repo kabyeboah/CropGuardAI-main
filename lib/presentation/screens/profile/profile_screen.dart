@@ -147,6 +147,10 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
+                      // Reporter Trust & Reputation Card
+                      _ReporterTrustCard(provider: provider),
+                      const SizedBox(height: 16),
+
                       // Account options
                       CropGuardCard(
                         child: Column(
@@ -191,6 +195,11 @@ class ProfileScreen extends StatelessWidget {
                               icon: Icons.medical_services_outlined,
                               label: context.l10n.treatmentTracker,
                               onTap: () => context.push('/treatment_tracker'),
+                            ),
+                            _ProfileRow(
+                              icon: Icons.assignment_turned_in_outlined,
+                              label: 'My Submissions',
+                              onTap: () => context.push('/submissions'),
                             ),
                           ],
                         ),
@@ -552,6 +561,123 @@ class _PrefToggle extends StatelessWidget {
           Switch(value: value, onChanged: onChanged),
         ],
       ),
+    );
+  }
+}
+
+class _ReporterTrustCard extends StatelessWidget {
+  final ProfileProvider provider;
+
+  const _ReporterTrustCard({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final trust = provider.trustStats;
+
+    return CropGuardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.shield_outlined, color: colors.primary, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.l10n.reporterTrustTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  trust.reputationBadgeTitle,
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _TrustCell(
+                label: context.l10n.verifiedReportsLabel,
+                value: trust.verifiedReportsCount.toString(),
+                colors: colors,
+              ),
+              _TrustCell(
+                label: context.l10n.verificationsGivenLabel,
+                value: trust.verificationsGivenCount.toString(),
+                colors: colors,
+              ),
+              _TrustCell(
+                label: context.l10n.trustScoreLabel,
+                value: trust.trustScore.toString(),
+                colors: colors,
+                highlight: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            context.l10n.reporterTrustExplanation,
+            style: TextStyle(color: colors.muted, fontSize: 11, height: 1.3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final dynamic colors;
+  final bool highlight;
+
+  const _TrustCell({
+    required this.label,
+    required this.value,
+    required this.colors,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight ? colors.primary : colors.greenXL,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(color: colors.muted, fontSize: 11),
+        ),
+      ],
     );
   }
 }

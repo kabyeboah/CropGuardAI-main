@@ -95,7 +95,7 @@ class RegisterProvider extends ChangeNotifier {
 
   Future<void> acceptMigration() async {
     if (_anonUid != null) {
-      await _db.reassignDetections(_anonUid!, _auth.currentUserId);
+      await _db.reassignUserData(_anonUid!, _auth.currentUserId);
     }
     _completeMigration();
   }

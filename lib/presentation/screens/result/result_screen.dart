@@ -134,6 +134,7 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
         actions: [
           IconButton(
+            tooltip: 'Share Report',
             icon: const Icon(Icons.share, color: Colors.white),
             onPressed: () async {
               await ScanReportPdfExporter.shareScanReport(result);
@@ -147,10 +148,13 @@ class _ResultScreenState extends State<ResultScreen> {
           children: [
             // Image
             if (File(result.imagePath).existsSync())
-              SizedBox(
-                height: 220,
-                width: double.infinity,
-                child: Image.file(File(result.imagePath), fit: BoxFit.cover),
+              Semantics(
+                label: 'Captured leaf image for ${result.displayName}',
+                child: SizedBox(
+                  height: 220,
+                  width: double.infinity,
+                  child: Image.file(File(result.imagePath), fit: BoxFit.cover),
+                ),
               )
             else
               Container(
@@ -179,10 +183,16 @@ class _ResultScreenState extends State<ResultScreen> {
               color: headerBg,
               child: Row(
                 children: [
-                  Icon(
-                    isHealthy ? Icons.check_circle : Icons.warning_amber,
-                    color: headerColor,
-                    size: 32,
+                  Semantics(
+                    label: isHealthy
+                        ? 'Status: Healthy crop'
+                        : 'Status: Disease detected — ${result.displayName}',
+                    excludeSemantics: true,
+                    child: Icon(
+                      isHealthy ? Icons.check_circle : Icons.warning_amber,
+                      color: headerColor,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -203,9 +213,14 @@ class _ResultScreenState extends State<ResultScreen> {
                       ],
                     ),
                   ),
-                  SeverityBadge(severity: result.severity),
+                  Semantics(
+                    label: 'Severity: ${result.severity}',
+                    excludeSemantics: true,
+                    child: SeverityBadge(severity: result.severity),
+                  ),
                   const SizedBox(width: 8),
                   IconButton(
+                    tooltip: 'Read result aloud',
                     icon: const Icon(Icons.volume_up, color: Colors.white),
                     style: IconButton.styleFrom(
                       backgroundColor: headerColor.withValues(alpha: 0.3),
@@ -231,10 +246,13 @@ class _ResultScreenState extends State<ResultScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (showConfidence) ...[
-                    CropGuardCard(
-                      child: ConfidenceBar(
-                        confidence: result.confidence,
-                        color: headerColor,
+                    Semantics(
+                      label: 'Confidence: ${(result.confidence * 100).toStringAsFixed(0)}%',
+                      child: CropGuardCard(
+                        child: ConfidenceBar(
+                          confidence: result.confidence,
+                          color: headerColor,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

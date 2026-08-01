@@ -40,6 +40,7 @@ import '../screens/analysing/analysing_screen.dart';
 import '../screens/result/batch_result_screen.dart';
 import '../screens/more/more_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
+import '../screens/submissions/my_submissions_screen.dart';
 import '../screens/forgot_password/forgot_password_provider.dart';
 import '../screens/forgot_password/forgot_password_screen.dart';
 import '../screens/reset_password/reset_password_screen.dart';
@@ -223,6 +224,11 @@ class AppRouter {
         builder: (ctx, state) => const ProfileScreen(),
       ),
       GoRoute(
+        path: '/submissions',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (ctx, state) => const MySubmissionsScreen(),
+      ),
+      GoRoute(
         path: '/community',
         parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => ChangeNotifierProvider(
@@ -247,6 +253,8 @@ class AppRouter {
           prefill: state.extra is OutbreakReportPrefill
               ? state.extra as OutbreakReportPrefill
               : null,
+          initialCrop: state.uri.queryParameters['crop'],
+          initialRegion: state.uri.queryParameters['region'],
         ),
       ),
       GoRoute(

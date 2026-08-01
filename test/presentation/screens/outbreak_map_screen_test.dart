@@ -86,6 +86,8 @@ void main() {
     sl.registerSingleton<FirebaseAuthService>(mockAuthService);
 
     when(() => mockAuthService.currentUserId).thenReturn('test-user-id');
+    when(() => mockAuthService.currentUserIdOrNull).thenReturn('test-user-id');
+    when(() => mockAuthService.isSignedIn).thenReturn(true);
   });
 
   tearDown(() {
@@ -186,5 +188,51 @@ void main() {
     // Verify map is restored
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.text('Map unavailable offline'), findsNothing);
+  });
+
+  testWidgets('Falls back to seed outbreak data when Firestore returns empty list',
+      (tester) async {
+    when(() => mockCommunityRepo.getOutbreakReports())
+        .thenAnswer((_) async => Result.success([]));
+
+    await tester.pumpWidget(_wrap(const OutbreakMapScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OutbreakMapScreen), findsOneWidget);
+    // Verify seed data appears (e.g. Cocoa Black Pod Rot)
+    expect(find.text('Cocoa Black Pod Rot'), findsOneWidget);
+  });
+
+  testWidgets('Auto-opens report sheet when prefill parameter is supplied',
+      (tester) async {
+    when(() => mockCommunityRepo.getOutbreakReports())
+        .thenAnswer((_) async => Result.success([]));
+
+    const prefill = OutbreakReportPrefill(
+      disease: 'Cassava Mosaic Disease',
+      severity: 'high',
+    );
+
+    await tester.pumpWidget(_wrap(const OutbreakMapScreen(prefill: prefill)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Report Disease Here'), findsWidgets);
+    expect(find.text('Cassava Mosaic Disease'), findsWidgets);
+  });
+
+  testWidgets('Tapping Report Outbreak FAB opens the report modal sheet',
+      (tester) async {
+    when(() => mockCommunityRepo.getOutbreakReports())
+        .thenAnswer((_) async => Result.success([]));
+
+    await tester.pumpWidget(_wrap(const OutbreakMapScreen()));
+    await tester.pumpAndSettle();
+
+    final fab = find.text('Report Disease Here');
+    expect(fab, findsOneWidget);
+    await tester.tap(fab);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Report Disease Here'), findsWidgets);
   });
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/tts_manager.dart';
 import '../../../data/ml/disease_info.dart';
 import '../../components/cropguard_card.dart';
 import '../../components/primary_button.dart';
@@ -382,16 +383,19 @@ class _DiseaseThumb extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = _diseaseImageProvider(entry);
     if (provider == null) return const _PlaceholderThumb();
-    return SizedBox(
-      width: 48,
-      height: 48,
-      child: Image(
-        image: provider,
+    return Semantics(
+      label: '${entry.displayName} on ${entry.cropType}',
+      child: SizedBox(
         width: 48,
         height: 48,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => const _PlaceholderThumb(),
+        child: Image(
+          image: provider,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+          errorBuilder: (_, __, ___) => const _PlaceholderThumb(),
+        ),
       ),
     );
   }
@@ -426,14 +430,18 @@ class _DiseaseBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: AspectRatio(
         aspectRatio: 16 / 9,
-        child: provider == null
-            ? placeholder()
-            : Image(
-                image: provider,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => placeholder(),
-              ),
+        child: Semantics(
+          label: '${entry.displayName} — ${entry.cropType} disease image',
+          excludeSemantics: true,
+          child: provider == null
+              ? placeholder()
+              : Image(
+                  image: provider,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => placeholder(),
+                ),
+        ),
       ),
     );
   }
@@ -536,6 +544,22 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                               .titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.volume_up_rounded, color: colors.primary),
+                        tooltip: 'Listen to Disease Info',
+                        onPressed: () {
+                          final langCode = Localizations.localeOf(context).languageCode;
+                          final speakText = StringBuffer()
+                            ..write('${info.displayName}. ${info.cropType} disease. ');
+                          if (info.cause.isNotEmpty) {
+                            speakText.write('Cause: ${info.cause}. ');
+                          }
+                          if (info.treatments.isNotEmpty) {
+                            speakText.write('Treatments: ${info.treatments.join('. ')}');
+                          }
+                          TtsManager().speak(speakText.toString(), languageCode: langCode);
+                        },
                       ),
                       SeverityBadge(severity: info.severity),
                     ],

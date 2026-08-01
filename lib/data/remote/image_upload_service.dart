@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/app_logger.dart';
+import '../../core/utils/image_compressor.dart';
 import 'cloudinary_service.dart';
 import 'firebase_storage_service.dart';
 
@@ -10,8 +13,7 @@ import 'firebase_storage_service.dart';
 /// 1. Cloudinary Service (if CLOUDINARY_CLOUD_NAME & CLOUDINARY_UPLOAD_PRESET are set)
 /// 2. Firebase Storage Service (automatic fallback if Cloudinary is unconfigured or fails)
 ///
-/// Security note: Cloudinary upload presets used in mobile apps MUST be unsigned presets
-/// configured with strict client rate-limiting in Cloudinary Console.
+/// Automatically compresses images to ~1080px long edge, ~80% JPEG quality prior to upload.
 class ImageUploadService {
   final CloudinaryService _cloudinaryService;
   final FirebaseStorageService _firebaseStorageService;
@@ -21,10 +23,19 @@ class ImageUploadService {
   Future<String> uploadImage(String localPath, {String? userId}) async {
     final effectiveUserId = userId ?? 'anonymous';
 
+    String effectivePath = localPath;
+    try {
+      final file = File(localPath);
+      final compressed = await ImageCompressor.compressImage(file);
+      effectivePath = compressed.path;
+    } catch (e) {
+      AppLogger.w('ImageUploadService: Compression pre-step failed, using raw file: $e');
+    }
+
     // 1. Try Cloudinary if configured
     if (AppSecrets.hasCloudinaryConfig) {
       try {
-        return await _cloudinaryService.uploadImage(localPath);
+        return await _cloudinaryService.uploadImage(effectivePath);
       } catch (e) {
         AppLogger.w('ImageUploadService: Cloudinary upload failed ($e). Falling back to Firebase Storage.');
       }
@@ -33,7 +44,7 @@ class ImageUploadService {
     // 2. Fallback to Firebase Storage
     try {
       return await _firebaseStorageService.uploadCommunityImage(
-        localPath: localPath,
+        localPath: effectivePath,
         userId: effectiveUserId,
       );
     } catch (e) {

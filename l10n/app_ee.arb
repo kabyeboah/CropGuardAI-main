@@ -707,5 +707,25 @@
         "type": "String"
       }
     }
-  }
+  },
+  "riskForecastTitle": "Dɔléle Afɔku Nɔnɔme",
+  "riskForecastSubtitle": "Nutoa me dɔléle afɔku nɔnɔme fiafia",
+  "riskForecastLoading": "Nutoa me dɔléle afɔku buam...",
+  "riskLevelNone": "Afɔku aɖeke meli o",
+  "riskLevelLow": "Afɔku bɔbɔɔ",
+  "riskLevelModerate": "Afɔku domedome",
+  "riskLevelHigh": "Afɔku kɔkɔ",
+  "confidenceLabel": "Kakaɖedzi",
+  "confidenceInsufficientData": "Nyatakaka mesɔ gbɔ o",
+  "confidenceLow": "Kakaɖedzi bɔbɔɔ",
+  "confidenceMedium": "Kakaɖedzi domedome",
+  "confidenceHigh": "Kakaɖedzi kɔkɔ",
+  "riskInsufficientDataMsg": "Nutoa me nyatakaka mesɔ gbɔ gbe 30 vɔwo me o. Nyatakaka mesɔ gbɔ fiafia afɔku o.",
+  "viewRiskMap": "Kpɔ Dɔléle Kart",
+  "riskOverlayToggle": "Afɔku Karta",
+  "reporterTrustTitle": "Kɔmiuniti Kakaɖedzi & Bubudede",
+  "verifiedReportsLabel": "Nyatakaka siwo dzi woɖo kpe",
+  "verificationsGivenLabel": "Kakaɖedzido megbe",
+  "trustScoreLabel": "Kakaɖedzi Xɔxɔ",
+  "reporterTrustExplanation": "Wò nutoa me dɔléle nyatakakawo kple kakaɖedzi kpenɔ nutoa me afɔku mɔ̃a ŋu pɛpɛpɛ."
 }

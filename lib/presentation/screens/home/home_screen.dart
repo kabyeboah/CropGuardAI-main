@@ -22,6 +22,7 @@ import 'widgets/weather_forecast_widget.dart';
 import 'widgets/disease_trend_chart.dart';
 import 'widgets/planting_calendar_widget.dart';
 import 'widgets/disease_risk_forecast_widget.dart';
+import 'widgets/risk_card.dart';
 
 /// Equivalent of HomeScreen.kt
 class HomeScreen extends StatefulWidget {
@@ -155,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Stack(
                   children: [
                     IconButton(
+                      tooltip: 'Notifications',
                       constraints: const BoxConstraints(
                         minWidth: DeviceLayout.minTouchTarget,
                         minHeight: DeviceLayout.minTouchTarget,
@@ -194,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 IconButton(
+                  tooltip: 'Profile',
                   icon: CircleAvatar(
                     radius: 16,
                     backgroundColor: colors.primary,
@@ -409,6 +412,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         else if (provider.weatherError != null)
                           Text(context.l10n.weatherUnavailable(provider.weatherError ?? ''),
                             style: TextStyle(color: colors.diseaseRed, fontSize: 12)),
+
+                        const SizedBox(height: 12),
+                        const RiskCard(),
 
                         // Weather-driven disease-risk outlook (preventive).
                         if (provider.weather != null) ...[
@@ -829,6 +835,7 @@ class _CropCalendarTile extends StatelessWidget {
             ),
           ),
           IconButton(
+            tooltip: 'Remove crop',
             icon: Icon(Icons.close, size: 18, color: colors.muted),
             onPressed: onRemove,
             padding: EdgeInsets.zero,

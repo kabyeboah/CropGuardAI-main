@@ -1,5 +1,6 @@
 class AppNotification {
   final String id;
+  final String userId;
   final String title;
   final String body;
   final String type;
@@ -8,6 +9,7 @@ class AppNotification {
 
   const AppNotification({
     required this.id,
+    this.userId = '',
     required this.title,
     required this.body,
     required this.type,
@@ -15,9 +17,10 @@ class AppNotification {
     required this.createdAt,
   });
 
-  AppNotification copyWith({bool? isRead}) {
+  AppNotification copyWith({String? userId, bool? isRead}) {
     return AppNotification(
       id: id,
+      userId: userId ?? this.userId,
       title: title,
       body: body,
       type: type,
@@ -29,6 +32,7 @@ class AppNotification {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'userId': userId,
       'title': title,
       'body': body,
       'type': type,
@@ -40,6 +44,7 @@ class AppNotification {
   factory AppNotification.fromMap(Map<String, dynamic> map) {
     return AppNotification(
       id: map['id']?.toString() ?? '',
+      userId: map['userId'] as String? ?? '',
       title: map['title'] as String? ?? '',
       body: map['body'] as String? ?? '',
       type: map['type'] as String? ?? 'info',

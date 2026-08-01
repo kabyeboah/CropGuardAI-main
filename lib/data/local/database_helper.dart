@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 14;
+  static const _dbVersion = 15;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -135,6 +135,15 @@ class DatabaseHelper {
       // instead of showing a fabricated disease as a confident result.
       await _addColumnIfMissing(db, tableDetections, 'isDegraded', 'INTEGER NOT NULL DEFAULT 0');
     }
+    if (oldVersion < 15) {
+      await _addColumnIfMissing(db, tableNotifications, 'userId', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(db, 'pending_sync', 'retry_count', "INTEGER NOT NULL DEFAULT 0");
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId ON $tableDetections (userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_fields_userId ON $tableFields (userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_treatment_plans_userId ON $tableTreatmentPlans (userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notifications_userId ON $tableNotifications (userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_sync_status ON pending_sync (status)');
+    }
   }
 
   /// Adds [column] to [table] only when the column does not yet exist.
@@ -166,6 +175,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS $tableNotifications (
         id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL DEFAULT '',
         title TEXT NOT NULL,
         body TEXT NOT NULL,
         type TEXT NOT NULL DEFAULT 'reminder',
@@ -310,16 +320,34 @@ class DatabaseHelper {
     } catch (_) {}
   }
 
-  /// Re-assigns all detections that belong to [fromUserId] to [toUserId].
+  /// Re-assigns all detections, fields, and treatment plans that belong to [fromUserId] to [toUserId].
   /// Used when an anonymous guest upgrades to a real account.
-  Future<void> reassignDetections(String fromUserId, String toUserId) async {
+  Future<void> reassignUserData(String fromUserId, String toUserId) async {
     final db = await database;
-    await db.update(
-      tableDetections,
-      {'userId': toUserId},
-      where: 'userId = ?',
-      whereArgs: [fromUserId],
-    );
+    await db.transaction((txn) async {
+      await txn.update(
+        tableDetections,
+        {'userId': toUserId},
+        where: 'userId = ?',
+        whereArgs: [fromUserId],
+      );
+      await txn.update(
+        tableFields,
+        {'userId': toUserId},
+        where: 'userId = ?',
+        whereArgs: [fromUserId],
+      );
+      await txn.update(
+        tableTreatmentPlans,
+        {'userId': toUserId},
+        where: 'userId = ?',
+        whereArgs: [fromUserId],
+      );
+    });
+  }
+
+  Future<void> reassignDetections(String fromUserId, String toUserId) async {
+    await reassignUserData(fromUserId, toUserId);
   }
 
   Future<int> countDetectionsForUser(String userId) async {
@@ -536,28 +564,37 @@ class DatabaseHelper {
     return id;
   }
 
-  Future<List<AppNotification>> getNotifications() async {
+  Future<List<AppNotification>> getNotifications({String? userId}) async {
     final db = await database;
     final maps = await db.query(
       tableNotifications,
+      where: (userId != null && userId.isNotEmpty) ? 'userId = ? OR userId = ""' : null,
+      whereArgs: (userId != null && userId.isNotEmpty) ? [userId] : null,
       orderBy: 'createdAtMs DESC',
     );
     return maps.map(AppNotification.fromMap).toList();
   }
 
-  Future<int> getUnreadNotificationsCount() async {
+  Future<int> getUnreadNotificationsCount({String? userId}) async {
     final db = await database;
+    final where = (userId != null && userId.isNotEmpty)
+        ? 'isRead = 0 AND (userId = ? OR userId = "")'
+        : 'isRead = 0';
+    final args = (userId != null && userId.isNotEmpty) ? [userId] : null;
     return Sqflite.firstIntValue(
           await db.rawQuery(
-            'SELECT COUNT(*) FROM $tableNotifications WHERE isRead = 0',
+            'SELECT COUNT(*) FROM $tableNotifications WHERE $where',
+            args,
           ),
         ) ??
         0;
   }
 
-  Future<void> markNotificationsAsRead() async {
+  Future<void> markNotificationsAsRead({String? userId}) async {
     final db = await database;
-    await db.update(tableNotifications, {'isRead': 1});
+    final where = (userId != null && userId.isNotEmpty) ? 'userId = ? OR userId = ""' : null;
+    final args = (userId != null && userId.isNotEmpty) ? [userId] : null;
+    await db.update(tableNotifications, {'isRead': 1}, where: where, whereArgs: args);
   }
 
   Future<void> markNotificationRead(String id) async {
@@ -576,16 +613,16 @@ class DatabaseHelper {
   }
 
   // Backward-compatible wrappers.
-  Future<List<Map<String, dynamic>>> getAllNotifications() async {
-    final items = await getNotifications();
+  Future<List<Map<String, dynamic>>> getAllNotifications({String? userId}) async {
+    final items = await getNotifications(userId: userId);
     return items.map((item) => item.toMap()).toList();
   }
 
-  Future<int> getUnreadNotificationCount() async {
-    return getUnreadNotificationsCount();
+  Future<int> getUnreadNotificationCount({String? userId}) async {
+    return getUnreadNotificationsCount(userId: userId);
   }
 
-  Future<void> markAllNotificationsRead() async {
-    await markNotificationsAsRead();
+  Future<void> markAllNotificationsRead({String? userId}) async {
+    await markNotificationsAsRead(userId: userId);
   }
 }

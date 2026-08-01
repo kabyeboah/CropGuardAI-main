@@ -822,13 +822,13 @@ class AppLocalizationsDag extends AppLocalizations {
       'Low disease risk this week based on the forecast. Keep up routine scouting.';
 
   @override
-  String get riskLevelHigh => 'HIGH';
+  String get riskLevelHigh => 'Sarati Kpɛŋ';
 
   @override
-  String get riskLevelModerate => 'MODERATE';
+  String get riskLevelModerate => 'Sarati Sunsuuni';
 
   @override
-  String get riskLevelLow => 'LOW';
+  String get riskLevelLow => 'Sarati Bi\'ela';
 
   @override
   String get cropTomato => 'Tomato';
@@ -1492,4 +1492,57 @@ class AppLocalizationsDag extends AppLocalizations {
   String ttsResultSummary(String disease, String severity, String treatments) {
     return '$disease. Severity is $severity. Treatment steps: $treatments';
   }
+
+  @override
+  String get riskForecastTitle => 'Doro Sarati Teeba';
+
+  @override
+  String get riskForecastSubtitle => 'Tiŋgbani doro sarati zahimbu';
+
+  @override
+  String get riskForecastLoading => 'Zahimdi doro sarati...';
+
+  @override
+  String get riskLevelNone => 'Sarati Ka Ni';
+
+  @override
+  String get confidenceLabel => 'Yɛlmaŋli';
+
+  @override
+  String get confidenceInsufficientData => 'Lahabali Bi Saɣiya';
+
+  @override
+  String get confidenceLow => 'Yɛlmaŋli Bi\'ela';
+
+  @override
+  String get confidenceMedium => 'Yɛlmaŋli Sunsuuni';
+
+  @override
+  String get confidenceHigh => 'Yɛlmaŋli Kpɛŋ';
+
+  @override
+  String get riskInsufficientDataMsg =>
+      'Lahabali bi saɣi dabisa 30 din gari maa ni bɔm doro sarati zahimbu.';
+
+  @override
+  String get viewRiskMap => 'Nyihi Doro Mafi';
+
+  @override
+  String get riskOverlayToggle => 'Sarati Mafi Piligu';
+
+  @override
+  String get reporterTrustTitle => 'Tiŋgbani Yɛlmaŋli ne Naani';
+
+  @override
+  String get verifiedReportsLabel => 'Lahabali Din Di Yɛlmaŋli';
+
+  @override
+  String get verificationsGivenLabel => 'Yɛlmaŋli Diisibu';
+
+  @override
+  String get trustScoreLabel => 'Naani Kalinli';
+
+  @override
+  String get reporterTrustExplanation =>
+      'A tiŋgbani doro lahabali ni yɛlmaŋli diisibu tiri maŋmaŋ sarati mashin pɛpɛpɛ.';
 }

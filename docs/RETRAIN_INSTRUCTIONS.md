@@ -14,6 +14,19 @@ How to use the Colab notebook to retrain the disease detection model and put the
 
 ---
 
+## Step 0 — Harvest Corrected Feedback Labels
+
+Farmer-reported diagnosis corrections are continuously collected in Firestore's `feedback` collection. Before retraining:
+
+1. Run the feedback export tool:
+```bash
+python3 tools/export_feedback.py --service-account-key path/to/service-account.json
+```
+2. Review `docs/feedback_export.json` to identify misclassification clusters (e.g. `Tomato___Early_blight -> Tomato___Late_blight`).
+3. Audit flagged scan images from Cloud Storage / local storage and move verified images into the target training class folders prior to Step 3.
+
+---
+
 ## Step 1 — Open the Notebook in Colab
 
 1. Go to [colab.research.google.com](https://colab.research.google.com)

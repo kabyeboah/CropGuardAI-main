@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/locale_formatter.dart';
+import '../../../core/utils/tts_manager.dart';
 import '../../../domain/models/treatment_plan.dart';
 import '../../components/cropguard_card.dart';
 import 'treatment_tracker_provider.dart';
@@ -187,7 +188,7 @@ class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
                                       ] else if (_selectedFilter ==
                                           _PlanFilter.active) ...[
                                         if (activeGroups.isEmpty)
-                                          _FilteredEmptyState(
+                                          const _FilteredEmptyState(
                                             title: 'No Active Plans',
                                             subtitle:
                                                 'All your treatment plans have been completed!',
@@ -201,7 +202,7 @@ class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
                                             ),
                                       ] else ...[
                                         if (completedGroups.isEmpty)
-                                          _FilteredEmptyState(
+                                          const _FilteredEmptyState(
                                             title: 'No Completed Plans Yet',
                                             subtitle:
                                                 'Complete all steps in a treatment plan to compile it here.',
@@ -625,6 +626,16 @@ class _StepItemTile extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              icon: Icon(Icons.volume_up_rounded, size: 18, color: colors.primary),
+              tooltip: 'Listen to Step',
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                final langCode = Localizations.localeOf(context).languageCode;
+                TtsManager().speak(step.step, languageCode: langCode);
+              },
             ),
           ],
         ),

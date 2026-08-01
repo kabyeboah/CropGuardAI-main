@@ -1,4 +1,7 @@
-# Certificate pinning rotation (CropGuard AI)
+# Certificate Pinning Rotation Plan (Planned Production Security Control)
+
+> [!NOTE]
+> **Status**: Future Work / Planned Security Runbook. Certificate pinning is currently un-wired in P0 client builds to avoid bricking offline pilot deployments; this runbook specifies the operational process for enabling pinning in production release builds.
 
 Network pinning for production hosts must use **real** SHA-256 SPKI hashes from your TLS certificates. Placeholder pins break connectivity or provide no security benefit.
 

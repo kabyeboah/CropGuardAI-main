@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/error/failures.dart';
+import '../../core/utils/app_logger.dart';
 import '../../core/utils/retry_utils.dart';
 import '../../domain/models/community_post.dart';
 
@@ -207,9 +208,80 @@ class FirestoreService {
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
       );
-      return snap.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+      return snap.docs
+          .map((d) => {'id': d.id, ...d.data()})
+          .where((data) =>
+              data['isSeed'] != true &&
+              data['source'] != 'seed' &&
+              !(data['id']?.toString().startsWith('seed_') ?? false))
+          .toList();
     } catch (e) {
       throw ServerFailure('Failed to get outbreak reports: $e');
+    }
+  }
+
+  Future<Map<String, int>> getReporterTrustStats(String userId) async {
+    if (userId.isEmpty) {
+      return {
+        'totalSubmitted': 0,
+        'verifiedReports': 0,
+        'verificationsGiven': 0,
+        'refutedReports': 0,
+      };
+    }
+    try {
+      final myReportsSnap = await RetryUtils.retry(
+        () => _db
+            .collection('outbreak_reports')
+            .where('userId', isEqualTo: userId)
+            .get(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+
+      final totalSubmitted = myReportsSnap.docs.length;
+      int verifiedReports = 0;
+      int refutedReports = 0;
+
+      for (final doc in myReportsSnap.docs) {
+        final data = doc.data();
+        final verifiedBy = (data['verifiedBy'] as List?) ?? [];
+        final refutedBy = (data['refutedBy'] as List?) ?? [];
+        if (verifiedBy.length >= 2 || (verifiedBy.length > refutedBy.length && verifiedBy.isNotEmpty)) {
+          verifiedReports++;
+        }
+        if (refutedBy.length > verifiedBy.length) {
+          refutedReports++;
+        }
+      }
+
+      final verificationsGivenSnap = await RetryUtils.retry(
+        () => _db
+            .collection('outbreak_reports')
+            .where('verifiedBy', arrayContains: userId)
+            .get(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+
+      final verificationsGiven = verificationsGivenSnap.docs.length;
+
+      return {
+        'totalSubmitted': totalSubmitted,
+        'verifiedReports': verifiedReports,
+        'verificationsGiven': verificationsGiven,
+        'refutedReports': refutedReports,
+      };
+    } catch (e) {
+      AppLogger.w('FirestoreService: getReporterTrustStats failed: $e');
+      return {
+        'totalSubmitted': 0,
+        'verifiedReports': 0,
+        'verificationsGiven': 0,
+        'refutedReports': 0,
+      };
     }
   }
 
@@ -312,6 +384,74 @@ class FirestoreService {
       );
     } catch (e) {
       throw ServerFailure('Failed to submit missing crop report: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserExpertRequests(String userId) async {
+    if (userId.isEmpty) return [];
+    try {
+      final snap = await RetryUtils.retry(
+        () => _db
+            .collection('expert_requests')
+            .where('userId', isEqualTo: userId)
+            .get(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+      return snap.docs.map((d) => {'id': d.id, ...d.data(), 'type': 'expert_request'}).toList();
+    } catch (e) {
+      AppLogger.w('FirestoreService: getUserExpertRequests error: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserMissingCrops(String userId) async {
+    if (userId.isEmpty) return [];
+    try {
+      final snap = await RetryUtils.retry(
+        () => _db
+            .collection('missing_crops')
+            .where('userId', isEqualTo: userId)
+            .get(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+      return snap.docs.map((d) => {'id': d.id, ...d.data(), 'type': 'missing_crop'}).toList();
+    } catch (e) {
+      AppLogger.w('FirestoreService: getUserMissingCrops error: $e');
+      return [];
+    }
+  }
+
+  /// Purges all documents owned by [uid] across users, community_posts, treatments, and scans
+  /// collections prior to deleting the Auth user.
+  Future<void> deleteUserData(String uid) async {
+    if (uid.isEmpty) return;
+    try {
+      // 1. Delete user profile doc
+      await _db.collection('users').doc(uid).delete();
+
+      // 2. Delete user's community posts
+      final postsQuery = await _db.collection('community_posts').where('userId', isEqualTo: uid).get();
+      for (final doc in postsQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      // 3. Delete user's treatments
+      final treatmentsQuery = await _db.collection('treatments').where('userId', isEqualTo: uid).get();
+      for (final doc in treatmentsQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      // 4. Delete user's cloud scans
+      final scansQuery = await _db.collection('scans').where('userId', isEqualTo: uid).get();
+      for (final doc in scansQuery.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      AppLogger.w('FirestoreService: deleteUserData error (proceeding with auth deletion): $e');
     }
   }
 }

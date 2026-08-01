@@ -68,11 +68,12 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   @override
   Future<Result<void>> uploadScan(Map<String, dynamic> scanData) async {
     try {
-      await _firestoreService.uploadScan(scanData);
+      await _firestoreService.uploadScan(scanData).timeout(const Duration(seconds: 4));
       return Result.success(null);
     } catch (e) {
-      if (e is Failure) return Result.error(e);
-      return Result.error(ServerFailure(e.toString()));
+      await _enqueue(PendingSyncType.scanUpload, scanData);
+      AppLogger.w('CommunityRepo.uploadScan offline/timeout — queued: $e');
+      return Result.success(null);
     }
   }
 
@@ -285,6 +286,25 @@ class CommunityRepositoryImpl implements ICommunityRepository {
               observedSymptoms: payload['observedSymptoms'] as String,
               imagePath: cloudUrl,
             );
+            return true;
+          case PendingSyncType.scanUpload:
+            final docId = payload['id']?.toString() ?? payload['timestamp']?.toString();
+            if (docId != null && docId.isNotEmpty) {
+              await _firestoreService.upsertScan(docId, payload);
+            } else {
+              await _firestoreService.uploadScan(payload);
+            }
+            return true;
+          case PendingSyncType.treatmentAdd:
+            await _firestoreService.addTreatment(payload);
+            return true;
+          case PendingSyncType.treatmentUpdate:
+            final treatmentId = payload['id'] as String;
+            final updateData = Map<String, dynamic>.from(payload['data'] as Map);
+            await _firestoreService.updateTreatment(treatmentId, updateData);
+            return true;
+          case PendingSyncType.treatmentDelete:
+            await _firestoreService.deleteTreatment(payload['id'] as String);
             return true;
         }
       } catch (_) {

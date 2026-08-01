@@ -1,7 +1,9 @@
 import '../../core/utils/result.dart';
+import '../models/reporter_trust_stats.dart';
 
 abstract class IProfileRepository {
   Future<Result<Map<String, int>>> getFarmStats();
+  Future<Result<ReporterTrustStats>> getReporterTrustStats(String userId);
   Future<Result<void>> signOut();
 
   // Settings

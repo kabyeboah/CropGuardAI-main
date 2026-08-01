@@ -57,8 +57,8 @@ class _AnalisingScreenState extends State<AnalisingScreen>
               ],
             ),
             content: const Text(
-              'The native ML scan engine is not supported on this platform/device. '
-              'You can ask the farming community for disease identification.',
+              "The scan engine couldn't start on this device. "
+              "You can ask the farming community for disease identification.",
             ),
             actions: [
               TextButton(

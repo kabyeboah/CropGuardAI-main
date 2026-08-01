@@ -22,6 +22,7 @@ dependencies:
   firebase_storage: ^13.4.2
   firebase_remote_config: ^6.5.2
   firebase_app_check: ^0.4.4
+  firebase_messaging: ^16.3.0
   google_sign_in: ^6.2.2
 
   # Local storage
@@ -56,6 +57,9 @@ dependencies:
 
   # Permissions
   permission_handler: ^12.0.3
+
+  # Audio recording for voice dictation
+  record: ^5.2.0
 
   # Internationalization
   intl: ^0.20.2
@@ -132,6 +136,7 @@ dependency_overrides:
   # a future `pub get` doesn't silently regress. Remove once audioplayers upgrades
   # audioplayers_darwin past 6.5.0.
   audioplayers_darwin: 6.5.0
+  record_linux: ^1.2.0
 
 flutter:
   generate: true

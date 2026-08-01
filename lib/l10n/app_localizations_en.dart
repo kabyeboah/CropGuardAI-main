@@ -822,13 +822,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Low disease risk this week based on the forecast. Keep up routine scouting.';
 
   @override
-  String get riskLevelHigh => 'HIGH';
+  String get riskLevelHigh => 'High Risk';
 
   @override
-  String get riskLevelModerate => 'MODERATE';
+  String get riskLevelModerate => 'Moderate Risk';
 
   @override
-  String get riskLevelLow => 'LOW';
+  String get riskLevelLow => 'Low Risk';
 
   @override
   String get cropTomato => 'Tomato';
@@ -1492,4 +1492,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String ttsResultSummary(String disease, String severity, String treatments) {
     return '$disease. Severity is $severity. Treatment steps: $treatments';
   }
+
+  @override
+  String get riskForecastTitle => 'Outbreak Risk Forecast';
+
+  @override
+  String get riskForecastSubtitle =>
+      'Proactive per-region disease outbreak risk score';
+
+  @override
+  String get riskForecastLoading => 'Calculating regional outbreak risk...';
+
+  @override
+  String get riskLevelNone => 'No Elevated Risk';
+
+  @override
+  String get confidenceLabel => 'Confidence';
+
+  @override
+  String get confidenceInsufficientData => 'Insufficient Data';
+
+  @override
+  String get confidenceLow => 'Low Confidence';
+
+  @override
+  String get confidenceMedium => 'Medium Confidence';
+
+  @override
+  String get confidenceHigh => 'High Confidence';
+
+  @override
+  String get riskInsufficientDataMsg =>
+      'Fewer than 3 local outbreak reports recorded in the last 30 days. Insufficient data to synthesize risk score.';
+
+  @override
+  String get viewRiskMap => 'View Outbreak Map';
+
+  @override
+  String get riskOverlayToggle => 'Risk Overlay';
+
+  @override
+  String get reporterTrustTitle => 'Community Reputation & Trust';
+
+  @override
+  String get verifiedReportsLabel => 'Verified Reports';
+
+  @override
+  String get verificationsGivenLabel => 'Verifications Given';
+
+  @override
+  String get trustScoreLabel => 'Trust Score';
+
+  @override
+  String get reporterTrustExplanation =>
+      'Your community outbreak reports and verifications directly weight the regional risk engine.';
 }

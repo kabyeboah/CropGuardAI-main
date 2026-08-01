@@ -707,5 +707,25 @@
         "type": "String"
       }
     }
-  }
+  },
+  "riskForecastTitle": "Doro Sarati Teeba",
+  "riskForecastSubtitle": "Tiŋgbani doro sarati zahimbu",
+  "riskForecastLoading": "Zahimdi doro sarati...",
+  "riskLevelNone": "Sarati Ka Ni",
+  "riskLevelLow": "Sarati Bi'ela",
+  "riskLevelModerate": "Sarati Sunsuuni",
+  "riskLevelHigh": "Sarati Kpɛŋ",
+  "confidenceLabel": "Yɛlmaŋli",
+  "confidenceInsufficientData": "Lahabali Bi Saɣiya",
+  "confidenceLow": "Yɛlmaŋli Bi'ela",
+  "confidenceMedium": "Yɛlmaŋli Sunsuuni",
+  "confidenceHigh": "Yɛlmaŋli Kpɛŋ",
+  "riskInsufficientDataMsg": "Lahabali bi saɣi dabisa 30 din gari maa ni bɔm doro sarati zahimbu.",
+  "viewRiskMap": "Nyihi Doro Mafi",
+  "riskOverlayToggle": "Sarati Mafi Piligu",
+  "reporterTrustTitle": "Tiŋgbani Yɛlmaŋli ne Naani",
+  "verifiedReportsLabel": "Lahabali Din Di Yɛlmaŋli",
+  "verificationsGivenLabel": "Yɛlmaŋli Diisibu",
+  "trustScoreLabel": "Naani Kalinli",
+  "reporterTrustExplanation": "A tiŋgbani doro lahabali ni yɛlmaŋli diisibu tiri maŋmaŋ sarati mashin pɛpɛpɛ."
 }

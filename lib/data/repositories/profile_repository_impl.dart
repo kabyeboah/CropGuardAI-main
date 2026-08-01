@@ -5,9 +5,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/result.dart';
+import '../../domain/models/reporter_trust_stats.dart';
 import '../../domain/repositories/i_profile_repository.dart';
 import '../local/database_helper.dart';
 import '../remote/firebase_auth_service.dart';
+import '../remote/firestore_service.dart';
 
 class ProfileRepositoryImpl implements IProfileRepository {
   static const _localPhotoPathKey = 'profile_photo_local_path';
@@ -15,8 +17,9 @@ class ProfileRepositoryImpl implements IProfileRepository {
   final FirebaseAuthService _auth;
   final DatabaseHelper _db;
   final SharedPreferences _prefs;
+  final FirestoreService _firestore;
 
-  ProfileRepositoryImpl(this._auth, this._db, this._prefs);
+  ProfileRepositoryImpl(this._auth, this._db, this._prefs, this._firestore);
 
   @override
   Future<Result<Map<String, int>>> getFarmStats() async {
@@ -27,6 +30,22 @@ class ProfileRepositoryImpl implements IProfileRepository {
       return Result.success(stats);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<ReporterTrustStats>> getReporterTrustStats(String userId) async {
+    try {
+      final statsMap = await _firestore.getReporterTrustStats(userId);
+      final trustStats = ReporterTrustStats.calculate(
+        totalSubmitted: statsMap['totalSubmitted'] ?? 0,
+        verifiedReports: statsMap['verifiedReports'] ?? 0,
+        verificationsGiven: statsMap['verificationsGiven'] ?? 0,
+        refutedReports: statsMap['refutedReports'] ?? 0,
+      );
+      return Result.success(trustStats);
+    } catch (e) {
+      return Result.error(ServerFailure(e.toString()));
     }
   }
 

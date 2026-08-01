@@ -822,13 +822,13 @@ class AppLocalizationsTw extends AppLocalizations {
       'Low disease risk this week based on the forecast. Keep up routine scouting.';
 
   @override
-  String get riskLevelHigh => 'HIGH';
+  String get riskLevelHigh => 'Asianee Kɛseɛ';
 
   @override
-  String get riskLevelModerate => 'MODERATE';
+  String get riskLevelModerate => 'Asianee Mfinimfini';
 
   @override
-  String get riskLevelLow => 'LOW';
+  String get riskLevelLow => 'Asianee Ketewa';
 
   @override
   String get cropTomato => 'Tomato';
@@ -1492,4 +1492,58 @@ class AppLocalizationsTw extends AppLocalizations {
   String ttsResultSummary(String disease, String severity, String treatments) {
     return '$disease. Severity is $severity. Treatment steps: $treatments';
   }
+
+  @override
+  String get riskForecastTitle => 'Yareɛ Asiane Nkɔmhyɛ';
+
+  @override
+  String get riskForecastSubtitle =>
+      'Mantam yareɛ asiane firi ewiemu ne nkɔsoɔ mu';
+
+  @override
+  String get riskForecastLoading => 'Rebu mantam yareɛ asiane no...';
+
+  @override
+  String get riskLevelNone => 'Asianee Biara Nni Hɔ';
+
+  @override
+  String get confidenceLabel => 'Gye Die';
+
+  @override
+  String get confidenceInsufficientData => 'Nkyerɛkyerɛmu Nsoɔ';
+
+  @override
+  String get confidenceLow => 'Gye Die Ketewa';
+
+  @override
+  String get confidenceMedium => 'Gye Die Mfinimfini';
+
+  @override
+  String get confidenceHigh => 'Gye Die Kɛseɛ';
+
+  @override
+  String get riskInsufficientDataMsg =>
+      'Nkyerɛkyerɛmu dɔɔsoɔ nni hɔ wɔ nna 30 a atwam mu a wɔbɛtumi de abu asiane no.';
+
+  @override
+  String get viewRiskMap => 'Hwɛ Yareɛ Mfoni';
+
+  @override
+  String get riskOverlayToggle => 'Asianee Mfoni Katawɔnso';
+
+  @override
+  String get reporterTrustTitle => 'Mpɔtam Nsɛm Agyedeɛ ne Ahotosoɔ';
+
+  @override
+  String get verifiedReportsLabel => 'Amanneɛbɔ a Wɔasi So Dua';
+
+  @override
+  String get verificationsGivenLabel => 'Nsi Sika a Wɔama';
+
+  @override
+  String get trustScoreLabel => 'Ahotosoɔ Nsɔaeɛ';
+
+  @override
+  String get reporterTrustExplanation =>
+      'Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee.';
 }

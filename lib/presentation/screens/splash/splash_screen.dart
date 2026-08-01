@@ -7,6 +7,7 @@ import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/root_detection_helper.dart';
+import '../../../core/utils/version_check_service.dart';
 import '../../../core/utils/analytics_service.dart';
 import '../../../main.dart' show startupStopwatch;
 
@@ -76,6 +77,55 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         );
       }
+    }
+
+    if (!mounted) return;
+
+    // ── Force-update gate (0.14) ───────────────────────────────────────────
+    // Check Remote Config `min_required_app_version`. On failure, proceed
+    // normally — a flaky Remote Config check must never block app access.
+    bool updateRequired = false;
+    try {
+      updateRequired = await VersionCheckService.isUpdateRequired();
+    } catch (e) {
+      AppLogger.w('SplashScreen: force-update check failed: $e');
+    }
+    if (!mounted) return;
+    if (updateRequired) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            icon: const Icon(Icons.system_update, size: 40, color: Color(0xFF16A34A)),
+            title: const Text(
+              'Update Required',
+              textAlign: TextAlign.center,
+            ),
+            content: const Text(
+              'A newer version of CropGuard AI is available and required to continue. '
+              'Please update the app from the store.',
+              textAlign: TextAlign.center,
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              ElevatedButton.icon(
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: const Text('Update Now'),
+                onPressed: () {
+                  // The user must go to the store — no dismiss path.
+                  // In production, launch the store URL here.
+                  AppLogger.i('SplashScreen: user tapped Update Now');
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      // After the dialog closes (if it ever does), stop routing — do not let
+      // an unsupported version into the app.
+      return;
     }
 
     if (!mounted) return;

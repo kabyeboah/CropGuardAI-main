@@ -25,6 +25,8 @@ import '../../domain/repositories/i_profile_repository.dart';
 import '../../data/repositories/profile_repository_impl.dart';
 import '../../data/repositories/weather_repository_impl.dart';
 import '../../domain/repositories/i_weather_repository.dart';
+import '../../data/repositories/risk_repository_impl.dart';
+import '../../domain/repositories/i_risk_repository.dart';
 
 // Use Cases
 import '../../domain/usecases/auth/login_usecase.dart';
@@ -37,6 +39,7 @@ import '../../domain/usecases/history/get_history_usecase.dart';
 import '../../domain/usecases/history/delete_detection_usecase.dart';
 import '../../domain/usecases/history/restore_detection_usecase.dart';
 import '../../domain/usecases/home/get_home_data_usecase.dart';
+import '../../domain/usecases/risk/get_risk_assessment_usecase.dart';
 import '../../domain/usecases/scanner/scan_crop_usecase.dart';
 import '../../domain/usecases/weather/get_weather_usecase.dart';
 
@@ -91,8 +94,17 @@ Future<void> setupServiceLocator() async {
     sl<ImageUploadService>(),
   ));
   sl.registerLazySingleton<IClassifierRepository>(() => ClassifierRepositoryImpl(sl<CropDiseaseClassifier>()));
-  sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(sl<FirebaseAuthService>(), sl<DatabaseHelper>(), sl<SharedPreferences>()));
+  sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
+    sl<FirebaseAuthService>(),
+    sl<DatabaseHelper>(),
+    sl<SharedPreferences>(),
+    sl<FirestoreService>(),
+  ));
   sl.registerLazySingleton<IWeatherRepository>(() => WeatherRepositoryImpl());
+  sl.registerLazySingleton<IRiskRepository>(() => RiskRepositoryImpl(
+    sl<ICommunityRepository>(),
+    sl<IWeatherRepository>(),
+  ));
 
   // 3. Use Cases (Business logic)
   sl.registerLazySingleton<LoginUseCase>(() => LoginUseCase(sl<IAuthRepository>()));
@@ -109,8 +121,10 @@ Future<void> setupServiceLocator() async {
     sl<IClassifierRepository>(),
     sl<IDetectionRepository>(),
     sl<StreakManager>(),
+    sl<ICommunityRepository>(),
   ));
   sl.registerLazySingleton<GetWeatherUseCase>(() => GetWeatherUseCase(sl<IWeatherRepository>()));
+  sl.registerLazySingleton<GetRiskAssessmentUseCase>(() => GetRiskAssessmentUseCase(sl<IRiskRepository>()));
 
   // Wire offline → online drain: whenever connectivity is restored, replay
   // any community/feedback operations that were queued while offline.

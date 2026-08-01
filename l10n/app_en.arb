@@ -659,5 +659,25 @@
       "severity": {"type": "String"},
       "treatments": {"type": "String"}
     }
-  }
+  },
+  "riskForecastTitle": "Outbreak Risk Forecast",
+  "riskForecastSubtitle": "Proactive per-region disease outbreak risk score",
+  "riskForecastLoading": "Calculating regional outbreak risk...",
+  "riskLevelNone": "No Elevated Risk",
+  "riskLevelLow": "Low Risk",
+  "riskLevelModerate": "Moderate Risk",
+  "riskLevelHigh": "High Risk",
+  "confidenceLabel": "Confidence",
+  "confidenceInsufficientData": "Insufficient Data",
+  "confidenceLow": "Low Confidence",
+  "confidenceMedium": "Medium Confidence",
+  "confidenceHigh": "High Confidence",
+  "riskInsufficientDataMsg": "Fewer than 3 local outbreak reports recorded in the last 30 days. Insufficient data to synthesize risk score.",
+  "viewRiskMap": "View Outbreak Map",
+  "riskOverlayToggle": "Risk Overlay",
+  "reporterTrustTitle": "Community Reputation & Trust",
+  "verifiedReportsLabel": "Verified Reports",
+  "verificationsGivenLabel": "Verifications Given",
+  "trustScoreLabel": "Trust Score",
+  "reporterTrustExplanation": "Your community outbreak reports and verifications directly weight the regional risk engine."
 }

@@ -14,6 +14,14 @@ enum PendingSyncType {
   expertRequest,
   /// A "crop not found" report (missing crop / novel disease submission).
   cropNotFound,
+  /// Upload scan history result to Cloud Firestore.
+  scanUpload,
+  /// Add treatment plan to Cloud Firestore.
+  treatmentAdd,
+  /// Update treatment plan in Cloud Firestore.
+  treatmentUpdate,
+  /// Delete treatment plan from Cloud Firestore.
+  treatmentDelete,
 }
 
 /// A lightweight SQLite-backed queue that stores failed cloud writes so they
@@ -27,6 +35,7 @@ class PendingSyncQueue {
   PendingSyncQueue._();
 
   static const _table = 'pending_sync';
+  static const maxRetries = 5;
   static bool _isDraining = false;
 
   // ---------------------------------------------------------------------------
@@ -36,11 +45,12 @@ class PendingSyncQueue {
   /// Returns the CREATE TABLE SQL for inclusion in [DatabaseHelper]'s schema.
   static String get createTableSql => '''
     CREATE TABLE IF NOT EXISTS $_table (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      type      TEXT    NOT NULL,
-      payload   TEXT    NOT NULL,
-      status    TEXT    NOT NULL DEFAULT 'pending',
-      created   INTEGER NOT NULL
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      type        TEXT    NOT NULL,
+      payload     TEXT    NOT NULL,
+      status      TEXT    NOT NULL DEFAULT 'pending',
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      created     INTEGER NOT NULL
     )
   ''';
 
@@ -81,6 +91,7 @@ class PendingSyncQueue {
       'type': type.name,
       'payload': jsonEncode(sanitizePayload(payload)),
       'status': 'pending',
+      'retry_count': 0,
       'created': DateTime.now().millisecondsSinceEpoch,
     });
     AppLogger.i('PendingSyncQueue: queued ${type.name}');
@@ -106,13 +117,14 @@ class PendingSyncQueue {
     }
     _isDraining = true;
     try {
-      final rows = await db.query(_table, orderBy: 'created ASC');
+      final rows = await db.query(_table, where: "status != 'abandoned'", orderBy: 'created ASC');
       if (rows.isEmpty) return;
 
       AppLogger.i('PendingSyncQueue: draining ${rows.length} pending operation(s)');
 
       for (final row in rows) {
         final id = row['id'] as int;
+        final currentRetries = (row['retry_count'] as int?) ?? 0;
         final type = PendingSyncType.values.firstWhere(
           (e) => e.name == row['type'] as String,
           orElse: () => PendingSyncType.communityPost,
@@ -128,14 +140,26 @@ class PendingSyncQueue {
             await db.delete(_table, where: 'id = ?', whereArgs: [id]);
             AppLogger.i('PendingSyncQueue: replayed and removed ${type.name}#$id');
           } else {
-            // Revert status to failed
-            await db.update(_table, {'status': 'failed'}, where: 'id = ?', whereArgs: [id]);
-            AppLogger.w('PendingSyncQueue: handler returned false for ${type.name}#$id');
+            final nextRetries = currentRetries + 1;
+            final newStatus = nextRetries >= maxRetries ? 'abandoned' : 'failed';
+            await db.update(
+              _table,
+              {'status': newStatus, 'retry_count': nextRetries},
+              where: 'id = ?',
+              whereArgs: [id],
+            );
+            AppLogger.w('PendingSyncQueue: handler returned false for ${type.name}#$id (retries: $nextRetries, status: $newStatus)');
           }
         } catch (e) {
-          // Revert status to failed
-          await db.update(_table, {'status': 'failed'}, where: 'id = ?', whereArgs: [id]);
-          AppLogger.w('PendingSyncQueue: replay failed for ${type.name}#$id: $e');
+          final nextRetries = currentRetries + 1;
+          final newStatus = nextRetries >= maxRetries ? 'abandoned' : 'failed';
+          await db.update(
+            _table,
+            {'status': newStatus, 'retry_count': nextRetries},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+          AppLogger.w('PendingSyncQueue: replay failed for ${type.name}#$id: $e (retries: $nextRetries, status: $newStatus)');
         }
       }
     } finally {

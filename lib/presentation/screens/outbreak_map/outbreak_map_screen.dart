@@ -17,11 +17,14 @@ import '../../../core/utils/locale_formatter.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../components/cropguard_card.dart';
+import '../../components/voice_dictation_button.dart';
 
 /// Seed outbreak reports across major farming regions of Ghana when Firestore is empty.
 final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   {
     'id': 'seed_ob_1',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Cocoa Black Pod Rot',
     'diseaseName': 'Cocoa Black Pod Rot',
     'cropType': 'Cocoa',
@@ -37,6 +40,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_2',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Cassava Mosaic Disease',
     'diseaseName': 'Cassava Mosaic Disease',
     'cropType': 'Cassava',
@@ -52,6 +57,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_3',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Maize Common Rust',
     'diseaseName': 'Maize Common Rust',
     'cropType': 'Maize',
@@ -67,6 +74,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_4',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Tomato Late Blight',
     'diseaseName': 'Tomato Late Blight',
     'cropType': 'Tomato',
@@ -82,6 +91,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_5',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Cocoa Swollen Shoot Virus',
     'diseaseName': 'Cocoa Swollen Shoot Virus',
     'cropType': 'Cocoa',
@@ -97,6 +108,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_6',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Rice Blast',
     'diseaseName': 'Rice Blast',
     'cropType': 'Rice',
@@ -112,6 +125,8 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
   },
   {
     'id': 'seed_ob_7',
+    'isSeed': true,
+    'source': 'seed',
     'disease': 'Banana Black Sigatoka',
     'diseaseName': 'Banana Black Sigatoka',
     'cropType': 'Banana',
@@ -232,8 +247,15 @@ class OutbreakMapScreen extends StatefulWidget {
   /// When non-null, the report sheet opens automatically on first load with
   /// these values filled in (the scan → report flow).
   final OutbreakReportPrefill? prefill;
+  final String? initialCrop;
+  final String? initialRegion;
 
-  const OutbreakMapScreen({super.key, this.prefill});
+  const OutbreakMapScreen({
+    super.key,
+    this.prefill,
+    this.initialCrop,
+    this.initialRegion,
+  });
 
   @override
   State<OutbreakMapScreen> createState() => _OutbreakMapScreenState();
@@ -246,6 +268,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   List<Map<String, dynamic>> _allReports = [];
   List<_Hotspot> _hotspots = [];
   bool _loading = true;
+  // True when we are displaying seed/demo data rather than real Firestore reports.
+  bool _isShowingSeedData = false;
   bool _submitting = false;
   String? _error;
   final MapController _mapController = MapController();
@@ -264,10 +288,15 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   Position? _userPosition;
   // Density heatmap overlay toggle.
   bool _showHeatmap = false;
+  // Outbreak Risk Overlay toggle.
+  final bool _showRiskOverlay = true;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialCrop != null && widget.initialCrop!.isNotEmpty) {
+      _cropFilter = widget.initialCrop!;
+    }
     _load();
     _getUserLocation();
     // Arriving from a scan result: open the report sheet pre-filled once the
@@ -532,6 +561,25 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
               borderColor: _severityColor(h.severity).withValues(alpha: 0.4),
               borderStrokeWidth: 1,
             ))
+        .toList();
+  }
+
+  /// Regional Outbreak Risk Overlay: rendering geographic circles (in meters)
+  /// highlighting active risk zones around outbreak hotspots.
+  List<CircleMarker> _riskOverlayCircles() {
+    return _hotspots
+        .where((h) => h.center != null)
+        .map((h) {
+          final color = _severityColor(h.severity);
+          return CircleMarker(
+            point: h.center!,
+            radius: 30000, // 30 km radius
+            useRadiusInMeter: true,
+            color: color.withValues(alpha: 0.18),
+            borderColor: color.withValues(alpha: 0.5),
+            borderStrokeWidth: 2,
+          );
+        })
         .toList();
   }
 
@@ -814,12 +862,18 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
       _error = null;
       _mapTilesFailed = false;
       _tileFailureCount = 0;
+      _isShowingSeedData = false;
     });
     try {
       final result = await _communityRepo.getOutbreakReports();
       if (mounted) {
-        final fetched = result.isSuccess ? (result.data ?? []) : <Map<String, dynamic>>[];
-        _allReports = fetched.isNotEmpty ? fetched : _kSeedOutbreakReports;
+        // Strip any seed entries that leaked into Firestore before this fix.
+        final fetched = (result.isSuccess ? (result.data ?? []) : <Map<String, dynamic>>[])
+            .where((r) => r['isSeed'] != true && r['source'] != 'seed')
+            .toList();
+        final useSeed = fetched.isEmpty;
+        _allReports = useSeed ? _kSeedOutbreakReports : fetched;
+        _isShowingSeedData = useSeed;
         setState(() {
           var aggregated = _aggregate(_filteredReports());
           if (_severityFilter != 'All') {
@@ -836,6 +890,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     } catch (e) {
       if (mounted) {
         _allReports = _kSeedOutbreakReports;
+        _isShowingSeedData = true;
         setState(() {
           var aggregated = _aggregate(_filteredReports());
           if (_severityFilter != 'All') {
@@ -851,13 +906,18 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
 
 
   /// Applies the active crop / severity / timeframe filters to the raw reports.
+  /// Returns reports that pass the active crop/timeframe filters.
+  /// Seed/demo entries are always excluded from real filter/aggregation —
+  /// they only appear in full via [_allReports] when [_isShowingSeedData] is true.
   List<Map<String, dynamic>> _filteredReports() {
     final now = DateTime.now();
     return _allReports.where((r) {
+      // Never mix seed data into real computations.
+      if (r['isSeed'] == true || r['source'] == 'seed') return _isShowingSeedData;
       if (_cropFilter != 'All' && _cropOfDisease(_diseaseOf(r)) != _cropFilter) {
         return false;
       }
-      
+
       final dt = _dateOf(r);
       if (dt != null) {
         final diffDays = now.difference(dt).inDays;
@@ -872,8 +932,10 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
 
   List<Map<String, dynamic>> _filteredIndividualReports() {
     final filtered = _filteredReports();
-    if (_severityFilter == 'All') return filtered;
-    return filtered.where((r) => _severityOf(r) == _severityFilter).toList();
+    // Seed entries are included only when we are in seed-fallback mode.
+    final real = _isShowingSeedData ? filtered : filtered.where((r) => r['isSeed'] != true).toList();
+    if (_severityFilter == 'All') return real;
+    return real.where((r) => _severityOf(r) == _severityFilter).toList();
   }
 
   /// Re-aggregates from the cached raw reports when a filter changes — no
@@ -1101,14 +1163,22 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                       setSheetState(() => selectedSeverity = v ?? 'medium'),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: notesController,
-                  maxLines: 2,
-                  maxLength: 200,
-                  decoration: InputDecoration(
-                    labelText: context.l10n.additionalNotes,
-                    border: const OutlineInputBorder(),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: notesController,
+                        maxLines: 2,
+                        maxLength: 200,
+                        decoration: InputDecoration(
+                          labelText: context.l10n.additionalNotes,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    VoiceDictationButton(controller: notesController),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -1471,7 +1541,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               }
                             },
                           ),
-                          // Density heatmap sits below the markers so pins stay tappable.
+                          // Risk overlay & density heatmap sit below the markers so pins stay tappable.
+                          if (_showRiskOverlay) CircleLayer(circles: _riskOverlayCircles()),
                           if (_showHeatmap) CircleLayer(circles: _heatCircles()),
                           MarkerClusterLayerWidget(
                             options: MarkerClusterLayerOptions(
@@ -1672,11 +1743,41 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               // Bottom inset so the last card clears the
                               // "Report Disease Here" extended FAB.
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
-                              itemCount: _hotspots.length,
+                              itemCount: _hotspots.length + (_isShowingSeedData ? 1 : 0),
                               separatorBuilder: (_, __) =>
                                   const SizedBox(height: 8),
                               itemBuilder: (_, i) {
-                                final h = _hotspots[i];
+                                // Banner for seed/example data — shown as the first list item.
+                                if (_isShowingSeedData && i == 0) {
+                                  return Semantics(
+                                    label: 'Example data banner: no real outbreak reports yet',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFFBEB),
+                                        border: Border.all(color: const Color(0xFFF59E0B)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.info_outline, color: Color(0xFFF59E0B), size: 18),
+                                          SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              'Example data — no real reports yet. '
+                                              'These are illustrative outbreaks for demonstration.',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF92400E),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final h = _hotspots[_isShowingSeedData ? i - 1 : i];
                                 final disease = h.disease;
                                 final region = h.region;
                                 final cases = h.count;

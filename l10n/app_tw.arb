@@ -707,5 +707,25 @@
         "type": "String"
       }
     }
-  }
+  },
+  "riskForecastTitle": "Yareɛ Asiane Nkɔmhyɛ",
+  "riskForecastSubtitle": "Mantam yareɛ asiane firi ewiemu ne nkɔsoɔ mu",
+  "riskForecastLoading": "Rebu mantam yareɛ asiane no...",
+  "riskLevelNone": "Asianee Biara Nni Hɔ",
+  "riskLevelLow": "Asianee Ketewa",
+  "riskLevelModerate": "Asianee Mfinimfini",
+  "riskLevelHigh": "Asianee Kɛseɛ",
+  "confidenceLabel": "Gye Die",
+  "confidenceInsufficientData": "Nkyerɛkyerɛmu Nsoɔ",
+  "confidenceLow": "Gye Die Ketewa",
+  "confidenceMedium": "Gye Die Mfinimfini",
+  "confidenceHigh": "Gye Die Kɛseɛ",
+  "riskInsufficientDataMsg": "Nkyerɛkyerɛmu dɔɔsoɔ nni hɔ wɔ nna 30 a atwam mu a wɔbɛtumi de abu asiane no.",
+  "viewRiskMap": "Hwɛ Yareɛ Mfoni",
+  "riskOverlayToggle": "Asianee Mfoni Katawɔnso",
+  "reporterTrustTitle": "Mpɔtam Nsɛm Agyedeɛ ne Ahotosoɔ",
+  "verifiedReportsLabel": "Amanneɛbɔ a Wɔasi So Dua",
+  "verificationsGivenLabel": "Nsi Sika a Wɔama",
+  "trustScoreLabel": "Ahotosoɔ Nsɔaeɛ",
+  "reporterTrustExplanation": "Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee."
 }

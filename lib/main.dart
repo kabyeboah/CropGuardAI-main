@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
+import 'core/utils/push_notification_service.dart';
 import 'app.dart';
 import 'core/di/service_locator.dart';
 import 'core/utils/notification_helper.dart';
@@ -68,6 +69,17 @@ void main() async {
         await NotificationHelper.init();
       } catch (e, s) {
         AppLogger.e('NotificationHelper initialization failed', e, s);
+      }
+      try {
+        await PushNotificationService.init(
+          onNotificationTap: (route) {
+            if (route != null && route.isNotEmpty) {
+              AppRouter.router.push(route);
+            }
+          },
+        );
+      } catch (e, s) {
+        AppLogger.e('PushNotificationService initialization failed', e, s);
       }
       try {
         await BackgroundTaskHelper.init();

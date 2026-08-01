@@ -822,13 +822,13 @@ class AppLocalizationsEe extends AppLocalizations {
       'Low disease risk this week based on the forecast. Keep up routine scouting.';
 
   @override
-  String get riskLevelHigh => 'HIGH';
+  String get riskLevelHigh => 'Afɔku kɔkɔ';
 
   @override
-  String get riskLevelModerate => 'MODERATE';
+  String get riskLevelModerate => 'Afɔku domedome';
 
   @override
-  String get riskLevelLow => 'LOW';
+  String get riskLevelLow => 'Afɔku bɔbɔɔ';
 
   @override
   String get cropTomato => 'Tomato';
@@ -1492,4 +1492,57 @@ class AppLocalizationsEe extends AppLocalizations {
   String ttsResultSummary(String disease, String severity, String treatments) {
     return '$disease. Severity is $severity. Treatment steps: $treatments';
   }
+
+  @override
+  String get riskForecastTitle => 'Dɔléle Afɔku Nɔnɔme';
+
+  @override
+  String get riskForecastSubtitle => 'Nutoa me dɔléle afɔku nɔnɔme fiafia';
+
+  @override
+  String get riskForecastLoading => 'Nutoa me dɔléle afɔku buam...';
+
+  @override
+  String get riskLevelNone => 'Afɔku aɖeke meli o';
+
+  @override
+  String get confidenceLabel => 'Kakaɖedzi';
+
+  @override
+  String get confidenceInsufficientData => 'Nyatakaka mesɔ gbɔ o';
+
+  @override
+  String get confidenceLow => 'Kakaɖedzi bɔbɔɔ';
+
+  @override
+  String get confidenceMedium => 'Kakaɖedzi domedome';
+
+  @override
+  String get confidenceHigh => 'Kakaɖedzi kɔkɔ';
+
+  @override
+  String get riskInsufficientDataMsg =>
+      'Nutoa me nyatakaka mesɔ gbɔ gbe 30 vɔwo me o. Nyatakaka mesɔ gbɔ fiafia afɔku o.';
+
+  @override
+  String get viewRiskMap => 'Kpɔ Dɔléle Kart';
+
+  @override
+  String get riskOverlayToggle => 'Afɔku Karta';
+
+  @override
+  String get reporterTrustTitle => 'Kɔmiuniti Kakaɖedzi & Bubudede';
+
+  @override
+  String get verifiedReportsLabel => 'Nyatakaka siwo dzi woɖo kpe';
+
+  @override
+  String get verificationsGivenLabel => 'Kakaɖedzido megbe';
+
+  @override
+  String get trustScoreLabel => 'Kakaɖedzi Xɔxɔ';
+
+  @override
+  String get reporterTrustExplanation =>
+      'Wò nutoa me dɔléle nyatakakawo kple kakaɖedzi kpenɔ nutoa me afɔku mɔ̃a ŋu pɛpɛpɛ.';
 }
