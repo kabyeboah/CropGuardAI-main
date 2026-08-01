@@ -49,11 +49,11 @@ class _AnalisingScreenState extends State<AnalisingScreen>
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.amber),
-                SizedBox(width: 8),
-                Expanded(child: Text('Scan Engine Unavailable')),
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                const SizedBox(width: 8),
+                Expanded(child: Text(context.l10n.scanEngineUnavailable)),
               ],
             ),
             content: const Text(
@@ -73,7 +73,7 @@ class _AnalisingScreenState extends State<AnalisingScreen>
                   Navigator.pop(ctx);
                   context.replace('/community');
                 },
-                child: const Text('Ask Community'),
+                child: Text(context.l10n.askCommunity),
               ),
             ],
           ),

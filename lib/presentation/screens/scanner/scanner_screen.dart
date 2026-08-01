@@ -475,6 +475,9 @@ class _ScannerScreenState extends State<ScannerScreen>
                     s.torchOn ? Icons.flashlight_on : Icons.flashlight_off,
                     color: s.torchOn ? Colors.yellow : Colors.white,
                   ),
+                  tooltip: s.torchOn
+                      ? context.l10n.torchOffTooltip
+                      : context.l10n.torchOnTooltip,
                   onPressed: () => provider.toggleTorch(),
                 ),
                 IconButton(
@@ -484,6 +487,9 @@ class _ScannerScreenState extends State<ScannerScreen>
                         : Icons.auto_awesome_motion_outlined,
                     color: s.batchMode ? colors.primary : Colors.white,
                   ),
+                  tooltip: s.batchMode
+                      ? context.l10n.batchModeOffTooltip
+                      : context.l10n.batchModeOnTooltip,
                   onPressed: () {
                     if (!s.batchMode) {
                       _showBatchExplanation(provider);

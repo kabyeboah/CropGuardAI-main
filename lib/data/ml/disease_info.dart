@@ -1,5 +1,6 @@
 /// Dart equivalent of DiseaseInfo.kt + DiseaseDatabase object.
-/// Contains metadata for every disease class the ML model can output.
+/// Contains metadata for disease classes output by ML models.
+/// Note: Crops not yet present in trained models (labels.txt / labels_v2.txt) are retained as documented future expansion targets — see MODEL_EXPANSION_GUIDE.md
 library;
 
 class DiseaseInfoEntry {

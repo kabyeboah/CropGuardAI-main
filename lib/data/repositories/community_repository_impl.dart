@@ -116,15 +116,16 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.error(AuthFailure('You must be signed in to submit an outbreak report.'));
     }
     try {
-      await _firestoreService.submitOutbreakReport(data);
+      await _firestoreService.submitOutbreakReport(data).timeout(const Duration(seconds: 4));
       return Result.success(null);
     } catch (e) {
-      // Queue for retry when connectivity is restored.
+      // Queue for retry when connectivity is restored or if network call times out.
       await _enqueue(PendingSyncType.outbreakReport, data);
-      AppLogger.w('CommunityRepo.submitOutbreakReport offline — queued: $e');
+      AppLogger.w('CommunityRepo.submitOutbreakReport timeout/offline — queued: $e');
       return Result.success(null); // Optimistic: the user sees "reported".
     }
   }
+
 
   @override
   Future<Result<void>> verifyOutbreakReport({

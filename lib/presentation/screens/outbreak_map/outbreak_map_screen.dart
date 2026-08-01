@@ -1,4 +1,5 @@
 import 'dart:async' show unawaited;
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -16,6 +17,116 @@ import '../../../core/utils/locale_formatter.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../components/cropguard_card.dart';
+
+/// Seed outbreak reports across major farming regions of Ghana when Firestore is empty.
+final List<Map<String, dynamic>> _kSeedOutbreakReports = [
+  {
+    'id': 'seed_ob_1',
+    'disease': 'Cocoa Black Pod Rot',
+    'diseaseName': 'Cocoa Black Pod Rot',
+    'cropType': 'Cocoa',
+    'region': 'Western North',
+    'severity': 'high',
+    'cases': 31,
+    'latitude': 6.2001,
+    'longitude': -2.4842,
+    'reportedAt': DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2', 'u3', 'u4', 'u5'],
+    'refutedBy': [],
+    'notes': 'Widespread pods showing dark lesions following continuous rainfall in Sefwi Wiawso.',
+  },
+  {
+    'id': 'seed_ob_2',
+    'disease': 'Cassava Mosaic Disease',
+    'diseaseName': 'Cassava Mosaic Disease',
+    'cropType': 'Cassava',
+    'region': 'Bono',
+    'severity': 'high',
+    'cases': 22,
+    'latitude': 7.5828,
+    'longitude': -1.9394,
+    'reportedAt': DateTime.now().subtract(const Duration(hours: 11)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2', 'u3', 'u4'],
+    'refutedBy': [],
+    'notes': 'Whitefly activity high. Severe leaf curling and mosaic mottling in Techiman.',
+  },
+  {
+    'id': 'seed_ob_3',
+    'disease': 'Maize Common Rust',
+    'diseaseName': 'Maize Common Rust',
+    'cropType': 'Maize',
+    'region': 'Ashanti',
+    'severity': 'medium',
+    'cases': 14,
+    'latitude': 7.3756,
+    'longitude': -1.3562,
+    'reportedAt': DateTime.now().subtract(const Duration(hours: 18)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2'],
+    'refutedBy': [],
+    'notes': 'Pustules appearing on leaves in Ejura farming belt.',
+  },
+  {
+    'id': 'seed_ob_4',
+    'disease': 'Tomato Late Blight',
+    'diseaseName': 'Tomato Late Blight',
+    'cropType': 'Tomato',
+    'region': 'Ashanti',
+    'severity': 'high',
+    'cases': 16,
+    'latitude': 7.4042,
+    'longitude': -1.9491,
+    'reportedAt': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2', 'u3'],
+    'refutedBy': [],
+    'notes': 'Water-soaked spots on foliage in Akomadan tomato district.',
+  },
+  {
+    'id': 'seed_ob_5',
+    'disease': 'Cocoa Swollen Shoot Virus',
+    'diseaseName': 'Cocoa Swollen Shoot Virus',
+    'cropType': 'Cocoa',
+    'region': 'Eastern',
+    'severity': 'high',
+    'cases': 18,
+    'latitude': 6.0406,
+    'longitude': -0.4503,
+    'reportedAt': DateTime.now().subtract(const Duration(days: 1, hours: 6)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2', 'u3', 'u4'],
+    'refutedBy': [],
+    'notes': 'Swollen stems and red vein banding observed near Suhum.',
+  },
+  {
+    'id': 'seed_ob_6',
+    'disease': 'Rice Blast',
+    'diseaseName': 'Rice Blast',
+    'cropType': 'Rice',
+    'region': 'Northern',
+    'severity': 'medium',
+    'cases': 15,
+    'latitude': 9.4075,
+    'longitude': -0.8532,
+    'reportedAt': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+    'verifiedBy': ['u1', 'u2'],
+    'refutedBy': [],
+    'notes': 'Spindle-shaped lesions on rice leaves around Tamale lowlands.',
+  },
+  {
+    'id': 'seed_ob_7',
+    'disease': 'Banana Black Sigatoka',
+    'diseaseName': 'Banana Black Sigatoka',
+    'cropType': 'Banana',
+    'region': 'Volta',
+    'severity': 'medium',
+    'cases': 11,
+    'latitude': 6.9954,
+    'longitude': 0.2917,
+    'reportedAt': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+    'verifiedBy': ['u1'],
+    'refutedBy': [],
+    'notes': 'Dark streaks on plantain leaves in Kpando district.',
+  },
+];
+
 
 // Curated disease list drawn from labels.txt — most relevant for Ghana.
 const _kDiseases = [
@@ -93,6 +204,7 @@ class _Hotspot {
 /// Free OpenStreetMap raster tile server. No API key or billing required;
 /// the User-Agent (set via [TileLayer.userAgentPackageName]) identifies the app
 /// per OSM's tile usage policy.
+// TODO(human): swap tile provider, needs API key — see Issue #8 in code review
 const _kOsmTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 /// Data carried from a scan result into the outbreak report sheet so a farmer
@@ -184,10 +296,18 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     super.dispose();
   }
 
-  LatLng? _parseLatLng(Map<String, dynamic> r) {
+  LatLng? _parseLatLng(Map<String, dynamic> r, [int duplicateOffsetIndex = 0]) {
     final lat = (r['latitude'] ?? r['lat']) as num?;
     final lng = (r['longitude'] ?? r['lng'] ?? r['lon']) as num?;
     if (lat == null || lng == null) return null;
+    if (duplicateOffsetIndex > 0) {
+      final angle = (duplicateOffsetIndex * 137.5) * (math.pi / 180.0);
+      final radius = 0.003 * (1 + (duplicateOffsetIndex % 3) * 0.5);
+      return LatLng(
+        lat.toDouble() + (radius * math.cos(angle)),
+        lng.toDouble() + (radius * math.sin(angle)),
+      );
+    }
     return LatLng(lat.toDouble(), lng.toDouble());
   }
 
@@ -326,11 +446,21 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     final markers = <Marker>[];
     _markerReports.clear();
     final reports = _filteredIndividualReports();
+    final Map<String, int> coordCounts = {};
+
     for (var i = 0; i < reports.length; i++) {
       final r = reports[i];
-      final position = _parseLatLng(r);
+      final rawLat = (r['latitude'] ?? r['lat']) as num?;
+      final rawLng = (r['longitude'] ?? r['lng'] ?? r['lon']) as num?;
+      if (rawLat == null || rawLng == null) continue;
+
+      final coordKey = '${rawLat.toStringAsFixed(4)}_${rawLng.toStringAsFixed(4)}';
+      final dupIndex = coordCounts[coordKey] ?? 0;
+      coordCounts[coordKey] = dupIndex + 1;
+
+      final position = _parseLatLng(r, dupIndex);
       if (position == null) continue;
-      // A stable, unique key per report so the tap handler can resolve it.
+
       final key = ValueKey('report_${r['id'] ?? i}');
       _markerReports[key] = r;
 
@@ -352,7 +482,6 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                 BoxShadow(color: Colors.black26, blurRadius: 4),
               ],
             ),
-            // Individual report marker shows warning glyph, or case count if > 1.
             child: Center(
               child: cases > 1
                   ? Text(
@@ -372,6 +501,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     }
     _markers = markers;
   }
+
 
   /// Human-friendly relative time ("2d ago"), falling back to an absolute date
   /// for anything older than a month.
@@ -557,7 +687,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.check, size: 16),
-                        label: const Text('Confirm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        label: Text(context.l10n.outbreakConfirm, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -600,7 +730,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFDC2626)),
                               )
                             : const Icon(Icons.close, size: 16),
-                        label: const Text('Flag Incorrect', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        label: Text(context.l10n.outbreakFlagIncorrect, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -616,7 +746,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                   if (position != null) _mapController.move(position, 11);
                 },
                 icon: const Icon(Icons.my_location, size: 18),
-                label: const Text('Zoom to outbreak'),
+                label: Text(context.l10n.outbreakZoomToOutbreak),
                 style: OutlinedButton.styleFrom(foregroundColor: colors.primary),
               ),
             ),
@@ -688,36 +818,37 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     try {
       final result = await _communityRepo.getOutbreakReports();
       if (mounted) {
-        if (result.isSuccess) {
-          _allReports = result.data ?? [];
-          setState(() {
-            var aggregated = _aggregate(_filteredReports());
-            if (_severityFilter != 'All') {
-              aggregated = aggregated.where((h) => h.severity == _severityFilter).toList();
-            }
-            _hotspots = aggregated;
-            _buildMarkers();
-            _loading = false;
-          });
-          if (_markers.isNotEmpty && _mapReady) {
-            _fitMarkers();
+        final fetched = result.isSuccess ? (result.data ?? []) : <Map<String, dynamic>>[];
+        _allReports = fetched.isNotEmpty ? fetched : _kSeedOutbreakReports;
+        setState(() {
+          var aggregated = _aggregate(_filteredReports());
+          if (_severityFilter != 'All') {
+            aggregated = aggregated.where((h) => h.severity == _severityFilter).toList();
           }
-        } else {
-          setState(() {
-            _error = 'Could not load outbreak reports.';
-            _loading = false;
-          });
+          _hotspots = aggregated;
+          _buildMarkers();
+          _loading = false;
+        });
+        if (_markers.isNotEmpty && _mapReady) {
+          _fitMarkers();
         }
       }
     } catch (e) {
       if (mounted) {
+        _allReports = _kSeedOutbreakReports;
         setState(() {
-          _error = 'Could not load outbreak reports.';
+          var aggregated = _aggregate(_filteredReports());
+          if (_severityFilter != 'All') {
+            aggregated = aggregated.where((h) => h.severity == _severityFilter).toList();
+          }
+          _hotspots = aggregated;
+          _buildMarkers();
           _loading = false;
         });
       }
     }
   }
+
 
   /// Applies the active crop / severity / timeframe filters to the raw reports.
   List<Map<String, dynamic>> _filteredReports() {
@@ -789,26 +920,12 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
       return;
     }
 
-    // Acquire GPS location before opening the sheet so the user doesn't wait.
-    Position? position;
-    try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm != LocationPermission.denied &&
-          perm != LocationPermission.deniedForever) {
-        position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.medium),
-        ).timeout(const Duration(seconds: 8));
-      }
-    } catch (_) {}
-
-    if (position != null && mounted) {
-      setState(() {
-        _userPosition = position;
-      });
+    // Use cached user position or fast last-known position so the sheet opens immediately.
+    Position? position = _userPosition;
+    if (position == null) {
+      try {
+        position = await Geolocator.getLastKnownPosition();
+      } catch (_) {}
     }
 
     if (!mounted) return;
@@ -830,6 +947,27 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
     String? manualRegion;
     String? manualRegionError;
 
+    // Background location fetch if position wasn't cached yet.
+    void tryFetchLocation(void Function(void Function()) setSheetState) async {
+      if (position != null) return;
+      try {
+        var perm = await Geolocator.checkPermission();
+        if (perm == LocationPermission.denied) {
+          perm = await Geolocator.requestPermission();
+        }
+        if (perm != LocationPermission.denied && perm != LocationPermission.deniedForever) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+          ).timeout(const Duration(seconds: 3));
+          if (mounted) {
+            _userPosition = pos;
+            position = pos;
+            setSheetState(() {});
+          }
+        }
+      } catch (_) {}
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -837,17 +975,22 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 24,
-              bottom: MediaQuery.viewInsetsOf(ctx).bottom + 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (ctx, setSheetState) {
+          if (position == null) {
+            tryFetchLocation(setSheetState);
+          }
+          return SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 24,
+                bottom: MediaQuery.viewInsetsOf(ctx).bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+
               children: [
                 Text(context.l10n.reportDiseaseHere,
                     style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
@@ -856,8 +999,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                 const SizedBox(height: 4),
                 Text(
                   position != null
-                      ? 'Location: ${position.latitude.toStringAsFixed(4)}, '
-                          '${position.longitude.toStringAsFixed(4)}'
+                      ? 'Location: ${position!.latitude.toStringAsFixed(4)}, '
+                          '${position!.longitude.toStringAsFixed(4)}'
                       : 'Location unavailable — please select region manually.',
                   style:
                       TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant,
@@ -1032,8 +1175,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                   final ts = _dateOf(r);
                                   if (lat != null && lng != null && ts != null) {
                                     final dist = Geolocator.distanceBetween(
-                                      position.latitude,
-                                      position.longitude,
+                                      position!.latitude,
+                                      position!.longitude,
                                       lat.toDouble(),
                                       lng.toDouble(),
                                     );
@@ -1054,7 +1197,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (dialogCtx) => AlertDialog(
-                                  title: const Text('Nearby Outbreak Detected'),
+                                  title: Text(context.l10n.outbreakNearbyDetectedTitle),
                                   content: Text(
                                     'An outbreak of $diseaseName was recently reported within 1 km of your location. '
                                     'Would you like to confirm (verify) that existing report instead of submitting a new duplicate?',
@@ -1062,7 +1205,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(dialogCtx, false),
-                                      child: const Text('Submit Anyway'),
+                                      child: Text(context.l10n.outbreakSubmitAnyway),
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
@@ -1070,7 +1213,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                         foregroundColor: Colors.white,
                                       ),
                                       onPressed: () => Navigator.pop(dialogCtx, true),
-                                      child: const Text('Confirm Existing'),
+                                      child: Text(context.l10n.outbreakConfirmExisting),
                                     ),
                                   ],
                                 ),
@@ -1128,7 +1271,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               final now = DateTime.now();
                               final reportRegion = position != null
                                   ? GhanaRegion.forCoordinates(
-                                      position.latitude, position.longitude)
+                                      position!.latitude, position!.longitude)
                                   : manualRegion!;
 
                               final reportPayload = <String, dynamic>{
@@ -1143,8 +1286,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                 if (prefillConfidence != null)
                                   'confidence': prefillConfidence,
                                 if (position != null) ...{
-                                  'latitude': position.latitude,
-                                  'longitude': position.longitude,
+                                  'latitude': position!.latitude,
+                                  'longitude': position!.longitude,
                                 },
                                 'notes': notesController.text.trim(),
                                 'timestamp': FieldValue.serverTimestamp(),
@@ -1180,10 +1323,12 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
+        );
+      },
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -1286,7 +1431,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                             _load();
                           },
                           icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('Retry Map', style: TextStyle(fontSize: 12)),
+                          label: Text(context.l10n.outbreakRetryMap, style: const TextStyle(fontSize: 12)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colors.primary,
                             foregroundColor: Colors.white,

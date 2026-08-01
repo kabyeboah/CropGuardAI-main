@@ -108,6 +108,126 @@ abstract class AppLocalizations {
   /// **'CropGuard AI'**
   String get appTitle;
 
+  /// Confirm outbreak report
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get outbreakConfirm;
+
+  /// Flag outbreak report as incorrect
+  ///
+  /// In en, this message translates to:
+  /// **'Flag Incorrect'**
+  String get outbreakFlagIncorrect;
+
+  /// Zoom to outbreak location
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom to outbreak'**
+  String get outbreakZoomToOutbreak;
+
+  /// Title when nearby outbreak is detected
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby Outbreak Detected'**
+  String get outbreakNearbyDetectedTitle;
+
+  /// Submit report anyway
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Anyway'**
+  String get outbreakSubmitAnyway;
+
+  /// Confirm existing outbreak report
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Existing'**
+  String get outbreakConfirmExisting;
+
+  /// Retry loading outbreak map
+  ///
+  /// In en, this message translates to:
+  /// **'Retry Map'**
+  String get outbreakRetryMap;
+
+  /// Report disease to outbreak map
+  ///
+  /// In en, this message translates to:
+  /// **'Report to Outbreak Map'**
+  String get reportToOutbreakMap;
+
+  /// Post disease to community
+  ///
+  /// In en, this message translates to:
+  /// **'Post to Community'**
+  String get postToCommunity;
+
+  /// Scan engine unavailable message
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Engine Unavailable'**
+  String get scanEngineUnavailable;
+
+  /// Ask community button
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Community'**
+  String get askCommunity;
+
+  /// Add photo button
+  ///
+  /// In en, this message translates to:
+  /// **'Add Photo'**
+  String get outbreakAddPhoto;
+
+  /// Security warning dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Security Warning'**
+  String get securityWarningTitle;
+
+  /// Proceed anyway button
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed Anyway'**
+  String get proceedAnyway;
+
+  /// Show password tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPasswordTooltip;
+
+  /// Hide password tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePasswordTooltip;
+
+  /// Turn flashlight on tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Turn flashlight on'**
+  String get torchOnTooltip;
+
+  /// Turn flashlight off tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Turn flashlight off'**
+  String get torchOffTooltip;
+
+  /// Turn on batch scanning tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on batch scanning'**
+  String get batchModeOnTooltip;
+
+  /// Turn off batch scanning tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off batch scanning'**
+  String get batchModeOffTooltip;
+
   /// No description provided for @home.
   ///
   /// In en, this message translates to:
@@ -221,6 +341,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
 
   /// No description provided for @save.
   ///

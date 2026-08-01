@@ -12,6 +12,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'CropGuard AI';
 
   @override
+  String get outbreakConfirm => 'Confirm';
+
+  @override
+  String get outbreakFlagIncorrect => 'Flag Incorrect';
+
+  @override
+  String get outbreakZoomToOutbreak => 'Zoom to outbreak';
+
+  @override
+  String get outbreakNearbyDetectedTitle => 'Nearby Outbreak Detected';
+
+  @override
+  String get outbreakSubmitAnyway => 'Submit Anyway';
+
+  @override
+  String get outbreakConfirmExisting => 'Confirm Existing';
+
+  @override
+  String get outbreakRetryMap => 'Retry Map';
+
+  @override
+  String get reportToOutbreakMap => 'Report to Outbreak Map';
+
+  @override
+  String get postToCommunity => 'Post to Community';
+
+  @override
+  String get scanEngineUnavailable => 'Scan Engine Unavailable';
+
+  @override
+  String get askCommunity => 'Ask Community';
+
+  @override
+  String get outbreakAddPhoto => 'Add Photo';
+
+  @override
+  String get securityWarningTitle => 'Security Warning';
+
+  @override
+  String get proceedAnyway => 'Proceed Anyway';
+
+  @override
+  String get showPasswordTooltip => 'Show password';
+
+  @override
+  String get hidePasswordTooltip => 'Hide password';
+
+  @override
+  String get torchOnTooltip => 'Turn flashlight on';
+
+  @override
+  String get torchOffTooltip => 'Turn flashlight off';
+
+  @override
+  String get batchModeOnTooltip => 'Turn on batch scanning';
+
+  @override
+  String get batchModeOffTooltip => 'Turn off batch scanning';
+
+  @override
   String get home => 'Home';
 
   @override
@@ -68,6 +128,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
 
   @override
   String get save => 'Save';

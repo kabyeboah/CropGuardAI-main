@@ -104,13 +104,58 @@ class CommunityProvider extends ChangeNotifier {
     }
   }
 
+  static final List<CommunityPost> _seedPosts = [
+    CommunityPost(
+      id: 'seed_1',
+      userId: 'expert_01',
+      author: 'Kofi Mensah',
+      tag: 'Cocoa',
+      body:
+          'Noticed early signs of Black Pod on my cocoa trees in Ashanti after the recent heavy rains. Applied copper hydroxide fungicide this morning. What fungicides are working best for you this season?',
+      timestamp: DateTime.now().subtract(const Duration(hours: 3)).millisecondsSinceEpoch,
+      expertResponse:
+          'Good job acting early Kofi! Ensure proper shade management, prune affected pods immediately, and maintain 2.5m spacing to reduce humidity.',
+    ),
+    CommunityPost(
+      id: 'seed_2',
+      userId: 'farmer_02',
+      author: 'Ama Serwaa',
+      tag: 'Cassava',
+      body:
+          'Yellow mosaic patterns appearing on young cassava leaves in Techiman. Is this Cassava Mosaic Disease? Should I rogue out the affected plants?',
+      timestamp: DateTime.now().subtract(const Duration(hours: 7)).millisecondsSinceEpoch,
+      expertResponse:
+          'Yes Ama, rogue out and safely destroy infected plants immediately to prevent whiteflies from spreading CMD to your remaining healthy cassava crop.',
+    ),
+    CommunityPost(
+      id: 'seed_3',
+      userId: 'farmer_03',
+      author: 'Kwesi Appiah',
+      tag: 'Maize',
+      body:
+          'Maize crop in Ejura is growing strong after top dressing with Urea. Scouting weekly for Fall Armyworm egg masses on leaf undersides.',
+      timestamp: DateTime.now().subtract(const Duration(hours: 14)).millisecondsSinceEpoch,
+    ),
+    CommunityPost(
+      id: 'seed_4',
+      userId: 'farmer_04',
+      author: 'Akosua Boateng',
+      tag: 'Tomato',
+      body:
+          'Pro tip for tomato farmers in Akomadan: Stake your tomatoes early before fruiting starts to prevent ground contact rot during rainy weeks.',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch,
+    ),
+  ];
+
   void _combineAndNotify() {
-    // Combine pending posts and cloud posts, sorted by timestamp descending
-    final combined = <CommunityPost>[..._pendingPosts, ..._cloudPosts];
+    // If no cloud posts exist yet, display curated seed community discussions
+    final cloudOrSeed = _cloudPosts.isNotEmpty ? _cloudPosts : _seedPosts;
+    final combined = <CommunityPost>[..._pendingPosts, ...cloudOrSeed];
     combined.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     posts = combined;
     _safeNotify();
   }
+
 
   Future<void> onImageSelected(String? uri) async {
     if (uri == null) {

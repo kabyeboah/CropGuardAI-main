@@ -72,6 +72,7 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
       confidence: result.confidence,
       isHealthy: result.isHealthy,
       diseaseInfo: result.diseaseInfo,
+      isDegraded: result.isDegraded,
     );
   }
 }

@@ -281,7 +281,9 @@ class CropDiseaseClassifier {
     Uint8List? bytes;
     try {
       bytes = await File(imagePath).readAsBytes();
-    } catch (_) {}
+    } catch (e, stack) {
+      AppLogger.e('CropDiseaseClassifier: failed to read image file at $imagePath', e, stack);
+    }
 
     if (!_isLoaded && _engineAvailable) await loadModel();
 
@@ -410,152 +412,44 @@ class CropDiseaseClassifier {
     _isLoaded = false;
   }
 
+  /// The label used whenever the app cannot actually identify a crop or
+  /// disease from the image pixels. [DiseaseDatabase.getInfo] has no entry
+  /// for this key, so it falls through to its own honest default (cropType
+  /// 'Unknown', a generic "consult an extension officer" treatment) — see
+  /// disease_info.dart.
+  static const String _unidentifiedLabel = 'Unidentified';
+
+  /// Fallback path used when either (a) the TFLite engine could not be
+  /// initialised on this device, or (b) the real model's top prediction
+  /// fell below [confidenceThreshold].
+  ///
+  /// This used to guess a *specific* disease by matching keywords in the
+  /// image filename (e.g. a file named "tomato_blight.jpg" would return
+  /// "Tomato Early Blight" at 55% confidence). That was misleading: real
+  /// camera captures are never named that way, so in practice this path
+  /// always produced the same fabricated "Cassava Mosaic Disease" result —
+  /// and because `isDegraded` was never read outside this file, that
+  /// specific-but-fake label was saved to scan history next to a real
+  /// confidence percentage, indistinguishable from a genuine diagnosis.
+  ///
+  /// This version never invents a crop or disease it hasn't detected. It
+  /// always returns the same honest "Unidentified" result and leaves the
+  /// confidence value + [isDegraded]/[engineUnavailable] flags to drive the
+  /// UI's abstain / low-confidence flow.
   static Future<ClassificationResult> _fallbackVisualClassification(
     String imagePath,
     Uint8List? bytes, {
     bool engineUnavailable = false,
   }) async {
-    final fileName = imagePath.split('/').last.toLowerCase();
-
-    // Helper closure to forward engineUnavailable flag
-    ClassificationResult res(String label, double confidence) =>
-        _makeDegradedResult(label, confidence, engineUnavailable: engineUnavailable);
-
-    // Keyword check from filename / path (only reliable when user names the file)
-    if (fileName.contains('apple')) {
-      if (fileName.contains('scab')) return res('Apple___Apple_scab', 0.55);
-      if (fileName.contains('rust')) return res('Apple___Cedar_apple_rust', 0.54);
-      if (fileName.contains('healthy')) return res('Apple___healthy', 0.58);
-      return res('Apple___Black_rot', 0.52);
-    }
-    if (fileName.contains('mango')) {
-      if (fileName.contains('anthracnose')) return res('Mango___Anthracnose', 0.56);
-      if (fileName.contains('canker')) return res('Mango___Bacterial_Canker', 0.55);
-      if (fileName.contains('die') || fileName.contains('back')) return res('Mango___Die_Back', 0.54);
-      if (fileName.contains('mildew')) return res('Mango___Powdery_Mildew', 0.54);
-      if (fileName.contains('healthy')) return res('Mango___healthy', 0.58);
-      return res('Mango___Anthracnose', 0.52);
-    }
-    if (fileName.contains('garden') || fileName.contains('egg')) {
-      if (fileName.contains('spot')) return res('Garden_Egg___Leaf_Spot', 0.55);
-      if (fileName.contains('mosaic')) return res('Garden_Egg___Mosaic_Virus', 0.54);
-      if (fileName.contains('wilt')) return res('Garden_Egg___Wilt', 0.53);
-      if (fileName.contains('healthy')) return res('Garden_Egg___healthy', 0.58);
-      return res('Garden_Egg___Leaf_Spot', 0.51);
-    }
-    if (fileName.contains('sugarcane') || fileName.contains('cane')) {
-      return res('Sugarcane___Red_Rot', 0.53);
-    }
-    if (fileName.contains('cocoa')) {
-      if (fileName.contains('pod') || fileName.contains('black')) return res('Cocoa___Black_Pod_Rot', 0.56);
-      if (fileName.contains('swollen') || fileName.contains('shoot')) return res('Cocoa___Swollen_Shoot_Virus', 0.55);
-      if (fileName.contains('healthy')) return res('Cocoa___healthy', 0.58);
-      return res('Cocoa___Black_Pod_Rot', 0.52);
-    }
-    if (fileName.contains('yam')) {
-      if (fileName.contains('rot')) return res('Yam___Tuber_Rot', 0.55);
-      if (fileName.contains('anthracnose')) return res('Yam___Anthracnose', 0.54);
-      if (fileName.contains('healthy')) return res('Yam___healthy', 0.58);
-      return res('Yam___Anthracnose', 0.51);
-    }
-    if (fileName.contains('plantain')) {
-      if (fileName.contains('sigatoka')) return res('Plantain___Black_Sigatoka', 0.55);
-      if (fileName.contains('wilt')) return res('Plantain___Fusarium_Wilt', 0.54);
-      if (fileName.contains('bunchy') || fileName.contains('top')) return res('Plantain___Bunchy_Top', 0.54);
-      if (fileName.contains('healthy')) return res('Plantain___healthy', 0.58);
-      return res('Plantain___Black_Sigatoka', 0.52);
-    }
-    if (fileName.contains('chilli') || fileName.contains('chili') || fileName.contains('pepper')) {
-      if (fileName.contains('curl')) return res('Pepper_Chilli___Leaf_Curl', 0.55);
-      if (fileName.contains('anthracnose')) return res('Pepper_Chilli___Anthracnose', 0.54);
-      if (fileName.contains('spot') || fileName.contains('cercospora')) return res('Pepper_Chilli___Cercospora_Leaf_Spot', 0.53);
-      if (fileName.contains('healthy')) return res('Pepper_Chilli___healthy', 0.58);
-      return res('Pepper_Chilli___Leaf_Curl', 0.51);
-    }
-    if (fileName.contains('tomato')) {
-      if (fileName.contains('blight') && fileName.contains('late')) return res('Tomato___Late_blight', 0.56);
-      if (fileName.contains('blight')) return res('Tomato___Early_blight', 0.55);
-      if (fileName.contains('spot')) return res('Tomato___Bacterial_spot', 0.54);
-      if (fileName.contains('yellow') || fileName.contains('curl')) return res('Tomato___Tomato_Yellow_Leaf_Curl_Virus', 0.55);
-      if (fileName.contains('mosaic')) return res('Tomato___Tomato_mosaic_virus', 0.54);
-      if (fileName.contains('wilt')) return res('Tomato___Ralstonia_Wilt', 0.54);
-      if (fileName.contains('healthy')) return res('Tomato___healthy', 0.58);
-      return res('Tomato___Bacterial_spot', 0.51);
-    }
-    if (fileName.contains('corn') || fileName.contains('maize')) {
-      if (fileName.contains('rust')) return res('Corn_(maize)___Common_rust_', 0.55);
-      if (fileName.contains('blight')) return res('Corn_(maize)___Northern_Leaf_Blight', 0.54);
-      if (fileName.contains('spot') || fileName.contains('gray')) return res('Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot', 0.53);
-      if (fileName.contains('borer') || fileName.contains('grain')) return res('Corn_(maize)___Larger_Grain_Borer', 0.54);
-      if (fileName.contains('healthy')) return res('Corn_(maize)___healthy', 0.58);
-      return res('Corn_(maize)___Common_rust_', 0.51);
-    }
-    if (fileName.contains('cassava')) {
-      if (fileName.contains('mosaic')) return res('Cassava_Mosaic_Disease', 0.56);
-      if (fileName.contains('blight')) return res('Cassava_Bacterial_Blight', 0.54);
-      if (fileName.contains('brown') || fileName.contains('streak')) return res('Cassava_Brown_Streak_Disease', 0.54);
-      if (fileName.contains('healthy')) return res('Cassava_Healthy', 0.58);
-      return res('Cassava_Mosaic_Disease', 0.52);
-    }
-    if (fileName.contains('rice')) {
-      if (fileName.contains('blast')) return res('Rice_Blast', 0.55);
-      if (fileName.contains('blight')) return res('Rice_Leaf_Blight', 0.54);
-      if (fileName.contains('spot') || fileName.contains('brown')) return res('Rice_Brown_Spot', 0.53);
-      if (fileName.contains('healthy')) return res('Rice_Healthy', 0.58);
-      return res('Rice_Blast', 0.51);
-    }
-    if (fileName.contains('banana')) {
-      if (fileName.contains('sigatoka') || fileName.contains('black')) return res('Banana_Black_Sigatoka', 0.55);
-      if (fileName.contains('fusarium') || fileName.contains('wilt')) return res('Banana_Fusarium_Wilt', 0.54);
-      if (fileName.contains('moko')) return res('Banana_Moko_Disease', 0.54);
-      if (fileName.contains('pest') || fileName.contains('insect')) return res('Banana_Insect_Pest', 0.53);
-      if (fileName.contains('healthy')) return res('Banana_Healthy', 0.58);
-      return res('Banana_Black_Sigatoka', 0.51);
-    }
-    if (fileName.contains('groundnut') || fileName.contains('peanut')) {
-      if (fileName.contains('early') || fileName.contains('spot')) return res('Groundnut_Early_Leaf_Spot', 0.55);
-      if (fileName.contains('late')) return res('Groundnut_Late_Leaf_Spot', 0.54);
-      if (fileName.contains('healthy')) return res('Groundnut_Healthy', 0.58);
-      return res('Groundnut_Early_Leaf_Spot', 0.51);
-    }
-    if (fileName.contains('cashew')) {
-      if (fileName.contains('anthracnose')) return res('Cashew___Anthracnose', 0.55);
-      if (fileName.contains('rust') || fileName.contains('red')) return res('Cashew___Red_Rust', 0.54);
-      if (fileName.contains('gummosis')) return res('Cashew___Gummosis', 0.54);
-      if (fileName.contains('miner')) return res('Cashew___Leaf_Miner', 0.53);
-      if (fileName.contains('healthy')) return res('Cashew___healthy', 0.58);
-      return res('Cashew___Anthracnose', 0.51);
-    }
-    if (fileName.contains('cowpea')) {
-      if (fileName.contains('mosaic')) return res('Cowpea___Mosaic_Virus', 0.55);
-      if (fileName.contains('aphid')) return res('Cowpea___Aphids', 0.54);
-      if (fileName.contains('blight')) return res('Cowpea___Bacterial_Blight', 0.54);
-      if (fileName.contains('healthy')) return res('Cowpea___healthy', 0.58);
-      return res('Cowpea___Mosaic_Virus', 0.51);
-    }
-    if (fileName.contains('sorghum')) {
-      if (fileName.contains('ergot')) return res('Sorghum___Ergot', 0.55);
-      if (fileName.contains('smut')) return res('Sorghum___Smut', 0.54);
-      if (fileName.contains('downy') || fileName.contains('mildew')) return res('Sorghum___Downy_Mildew', 0.54);
-      if (fileName.contains('healthy')) return res('Sorghum___healthy', 0.58);
-      return res('Sorghum___Ergot', 0.51);
-    }
-    if (fileName.contains('oil') || fileName.contains('palm')) {
-      if (fileName.contains('ganoderma') || fileName.contains('rot')) return res('Oil_Palm___Ganoderma_Rot', 0.55);
-      if (fileName.contains('anthracnose')) return res('Oil_Palm___Anthracnose', 0.54);
-      if (fileName.contains('healthy')) return res('Oil_Palm___healthy', 0.58);
-      return res('Oil_Palm___Ganoderma_Rot', 0.51);
-    }
-    if (fileName.contains('millet')) {
-      if (fileName.contains('smut')) return res('Millet___Smut', 0.55);
-      if (fileName.contains('downy') || fileName.contains('mildew')) return res('Millet___Downy_Mildew', 0.54);
-      if (fileName.contains('healthy')) return res('Millet___healthy', 0.58);
-      return res('Millet___Downy_Mildew', 0.51);
-    }
-
-    // No keyword matched — return a truly low-confidence unknown result
-    // so the UI can ask the user to retake the photo with a clear leaf visible.
-    return res('Cassava_Mosaic_Disease', 0.42);
+    return _makeDegradedResult(
+      _unidentifiedLabel,
+      // Engine failures get 0.0 (never even attempted); a real inference
+      // that just missed the confidence bar keeps a value in the
+      // 0.40–0.60 "uncertain" band so the existing UI-level abstain gate
+      // still routes it correctly.
+      engineUnavailable ? 0.0 : 0.42,
+      engineUnavailable: engineUnavailable,
+    );
   }
 
   /// Creates a [ClassificationResult] for the fallback heuristic classifier.

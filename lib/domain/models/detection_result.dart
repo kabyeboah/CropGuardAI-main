@@ -14,6 +14,11 @@ class DetectionResult {
   final String cause;
   final List<String> treatments;
   final int timestamp; // milliseconds since epoch
+  // True when this result came from the low-confidence / engine-unavailable
+  // fallback rather than a genuine model prediction. History and any other
+  // display surface must badge these clearly instead of showing them as a
+  // confident diagnosis.
+  final bool isDegraded;
 
   const DetectionResult({
     this.id = 0,
@@ -28,6 +33,7 @@ class DetectionResult {
     required this.cause,
     required this.treatments,
     required this.timestamp,
+    this.isDegraded = false,
   });
 
   DetectionResult copyWith({
@@ -43,6 +49,7 @@ class DetectionResult {
     String? cause,
     List<String>? treatments,
     int? timestamp,
+    bool? isDegraded,
   }) {
     return DetectionResult(
       id: id ?? this.id,
@@ -57,6 +64,7 @@ class DetectionResult {
       cause: cause ?? this.cause,
       treatments: treatments ?? this.treatments,
       timestamp: timestamp ?? this.timestamp,
+      isDegraded: isDegraded ?? this.isDegraded,
     );
   }
 
@@ -74,6 +82,7 @@ class DetectionResult {
       'cause': cause,
       'treatments': treatments.join('||'),
       'timestamp': timestamp,
+      'isDegraded': isDegraded ? 1 : 0,
     };
   }
 
@@ -91,6 +100,7 @@ class DetectionResult {
       cause: map['cause'] as String? ?? '',
       treatments: (map['treatments'] as String? ?? '').split('||').where((s) => s.isNotEmpty).toList(),
       timestamp: map['timestamp'] as int? ?? 0,
+      isDegraded: (map['isDegraded'] as int? ?? 0) == 1,
     );
   }
 }

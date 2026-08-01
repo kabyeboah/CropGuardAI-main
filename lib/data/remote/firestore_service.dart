@@ -156,14 +156,15 @@ class FirestoreService {
       };
       await RetryUtils.retry(
         () => _db.collection('outbreak_reports').add(reportData),
-        maxAttempts: 3,
-        timeout: const Duration(seconds: 15),
+        maxAttempts: 2,
+        timeout: const Duration(seconds: 4),
         retryIf: _isFirestoreTransientError,
       );
     } catch (e) {
       throw ServerFailure('Failed to submit outbreak report: $e');
     }
   }
+
 
   Future<void> verifyOutbreak({
     required String reportId,
@@ -251,6 +252,18 @@ class FirestoreService {
       throw ServerFailure('Failed to update treatment: $e');
     }
   }
+
+  Future<void> deleteTreatment(String id) async {
+    try {
+      await RetryUtils.retry(
+        () => _db.collection('treatments').doc(id).delete(),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+    } catch (_) {}
+  }
+
 
   // ─── Feedback ─────────────────────────────────────────────────────────
   Future<void> submitFeedback({

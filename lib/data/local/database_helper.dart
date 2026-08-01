@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 13;
+  static const _dbVersion = 14;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -85,7 +85,8 @@ class DatabaseHelper {
         cropType TEXT NOT NULL,
         cause TEXT NOT NULL DEFAULT '',
         treatments TEXT NOT NULL DEFAULT '',
-        timestamp INTEGER NOT NULL
+        timestamp INTEGER NOT NULL,
+        isDegraded INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -127,6 +128,12 @@ class DatabaseHelper {
     if (oldVersion < 13) {
       // Add status column to pending_sync table.
       await _addColumnIfMissing(db, 'pending_sync', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+    }
+    if (oldVersion < 14) {
+      // Distinguishes real model diagnoses from the low-confidence /
+      // engine-unavailable fallback so History can badge them honestly
+      // instead of showing a fabricated disease as a confident result.
+      await _addColumnIfMissing(db, tableDetections, 'isDegraded', 'INTEGER NOT NULL DEFAULT 0');
     }
   }
 

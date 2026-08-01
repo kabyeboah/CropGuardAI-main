@@ -458,7 +458,24 @@ class _HistoryTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SeverityBadge(severity: result.severity),
+                  if (result.isDegraded)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: colors.warning.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Unverified',
+                        style: TextStyle(
+                            color: colors.warning,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  else
+                    SeverityBadge(severity: result.severity),
                   const SizedBox(height: 4),
                   Text(
                       '${(result.confidence * 100).toInt()}%',

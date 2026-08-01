@@ -122,6 +122,9 @@ class _RegisterBodyState extends State<_RegisterBody> {
                     icon: Icon(_obscurePassword
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined),
+                    tooltip: _obscurePassword
+                        ? context.l10n.showPasswordTooltip
+                        : context.l10n.hidePasswordTooltip,
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                     color: colors.muted,

@@ -51,6 +51,7 @@ class ScanCropUseCase {
       cause: classification.diseaseInfo.cause,
       treatments: classification.diseaseInfo.treatments,
       timestamp: DateTime.now().millisecondsSinceEpoch,
+      isDegraded: classification.isDegraded,
     );
 
     final saveResult = await _detectionRepository.saveDetection(detection);

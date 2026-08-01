@@ -60,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
           barrierDismissible: false,
           builder: (dialogCtx) => AlertDialog(
             icon: const Icon(Icons.security_update_warning, color: Colors.orange, size: 40),
-            title: const Text('Security Warning'),
+            title: Text(context.l10n.securityWarningTitle),
             content: const Text(
               'CropGuard AI has detected that your device is rooted or jailbroken. '
               'Running on a compromised operating system increases the risk of exposing your '
@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Proceed Anyway'),
+                child: Text(context.l10n.proceedAnyway),
               ),
             ],
           ),

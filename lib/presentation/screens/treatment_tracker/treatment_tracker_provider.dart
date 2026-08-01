@@ -47,7 +47,7 @@ class TreatmentTrackerProvider extends ChangeNotifier {
   bool isLoading = true;
   bool isLoadingMore = false;
   bool hasMore = true;
-  final int _pageSize = 20;
+  final int _pageSize = 100;
 
   int pendingCount = 0;
   int completedCount = 0;
@@ -222,6 +222,61 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     );
   }
 
+  /// Computes compiled treatment plan groups from the loaded steps list.
+  List<TreatmentPlanGroup> get planGroups {
+    final Map<String, TreatmentPlanGroup> groupsMap = {};
+
+    for (final step in plans) {
+      final cropClean = step.cropType.trim().toLowerCase();
+      final diseaseClean = step.diseaseName.trim().toLowerCase();
+      final String key = step.detectionId > 0
+          ? 'det_${step.detectionId}'
+          : '${cropClean}_$diseaseClean';
+
+      if (!groupsMap.containsKey(key)) {
+        groupsMap[key] = TreatmentPlanGroup(
+          groupId: key,
+          cropType: step.cropType,
+          diseaseName: step.diseaseName,
+          detectionId: step.detectionId,
+          createdAt: step.createdAt,
+          steps: [],
+        );
+      }
+      groupsMap[key]!.steps.add(step);
+    }
+
+    // Sort steps within each group by due date
+    for (final group in groupsMap.values) {
+      group.steps.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    }
+
+    final groups = groupsMap.values.toList();
+    // Sort groups: active groups first (by most recent), then completed groups
+    groups.sort((a, b) {
+      if (a.isCompleted != b.isCompleted) {
+        return a.isCompleted ? 1 : -1;
+      }
+      return b.createdAt.compareTo(a.createdAt);
+    });
+
+    return groups;
+  }
+
+
+  List<TreatmentPlanGroup> get activeGroups =>
+      planGroups.where((g) => !g.isCompleted).toList();
+
+  List<TreatmentPlanGroup> get completedGroups =>
+      planGroups.where((g) => g.isCompleted).toList();
+
+  Future<void> toggleStepById(String stepId) async {
+    final index = plans.indexWhere((p) => p.id == stepId);
+    if (index != -1) {
+      await toggleComplete(index);
+    }
+  }
+
   Future<void> toggleComplete(int index) async {
     final plan = plans[index];
     final updated = !plan.completed;
@@ -247,6 +302,19 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
   Future<void> deletePlan(String id) async {
     await _db.deleteTreatment(id);
+    if (!_isGuest) {
+      unawaited(_firestore.deleteTreatment(id));
+    }
+    await _load(reset: true);
+  }
+
+  Future<void> deletePlanGroup(TreatmentPlanGroup group) async {
+    for (final step in group.steps) {
+      await _db.deleteTreatment(step.id);
+      if (!_isGuest) {
+        unawaited(_firestore.deleteTreatment(step.id));
+      }
+    }
     await _load(reset: true);
   }
 
@@ -254,3 +322,4 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
   Future<void> loadMore() => _load(reset: false);
 }
+

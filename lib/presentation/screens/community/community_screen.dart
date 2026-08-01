@@ -160,7 +160,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
                             ),
                           ),
                           icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                          label: const Text('Add Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                          label: Text(context.l10n.outbreakAddPhoto, style: const TextStyle(fontWeight: FontWeight.w600)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

@@ -32,6 +32,7 @@ class SettingsScreen extends StatelessWidget {
               ? BackButton(onPressed: () => Navigator.of(context).pop())
               : IconButton(
                   icon: const Icon(Icons.arrow_back),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                   onPressed: () => context.go('/home'),
                 ),
           backgroundColor: colors.surface,

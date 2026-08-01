@@ -71,3 +71,36 @@ class TreatmentPlan {
     );
   }
 }
+
+/// Represents a compiled set of treatment steps for a single disease & crop instance.
+class TreatmentPlanGroup {
+  final String groupId;
+  final String cropType;
+  final String diseaseName;
+  final int detectionId;
+  final DateTime createdAt;
+  final List<TreatmentPlan> steps;
+
+  const TreatmentPlanGroup({
+    required this.groupId,
+    required this.cropType,
+    required this.diseaseName,
+    required this.detectionId,
+    required this.createdAt,
+    required this.steps,
+  });
+
+  bool get isCompleted => steps.isNotEmpty && steps.every((s) => s.completed);
+  int get completedStepsCount => steps.where((s) => s.completed).length;
+  int get totalStepsCount => steps.length;
+  double get progress =>
+      totalStepsCount == 0 ? 0.0 : completedStepsCount / totalStepsCount;
+
+  DateTime? get nextDueDate {
+    final pending = steps.where((s) => !s.completed).toList();
+    if (pending.isEmpty) return null;
+    pending.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return pending.first.dueDate;
+  }
+}
+

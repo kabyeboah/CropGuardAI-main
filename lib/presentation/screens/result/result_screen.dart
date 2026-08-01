@@ -363,8 +363,8 @@ class _ResultScreenState extends State<ResultScreen> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.add_location_alt, size: 18),
-                      label: const Text('Report to Outbreak Map',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(context.l10n.reportToOutbreakMap,
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => context.push(
                         '/outbreak_map',
                         extra: OutbreakReportPrefill(
@@ -394,8 +394,8 @@ class _ResultScreenState extends State<ResultScreen> {
                           borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: const Icon(Icons.forum_outlined, size: 18),
-                    label: const Text('Post to Community',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: Text(context.l10n.postToCommunity,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                     onPressed: () => context.push('/community'),
                   ),
                   const SizedBox(height: 10),
