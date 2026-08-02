@@ -220,19 +220,39 @@ class CropDiseaseClassifier {
   }
 
   Future<void> _loadModelImpl() async {
-    try {
-      final v1Data = await rootBundle.load('assets/cropguard_plant_disease.tflite');
-      _labels = _parseLabels(await rootBundle.loadString('assets/labels.txt'));
+    ByteData? v1Data;
+    Uint8List? v1Bytes;
 
-      // Use explicit buffer offset and length to avoid offset-0 buffer-view
-      // corruption that can occur when the ByteData is backed by a shared
-      // buffer with a non-zero offset.
-      final v1Bytes = v1Data.buffer.asUint8List(v1Data.offsetInBytes, v1Data.lengthInBytes);
+    // Stage 1: Load V1 asset files
+    try {
+      v1Data = await rootBundle.load('assets/cropguard_plant_disease.tflite');
+      _labels = _parseLabels(await rootBundle.loadString('assets/labels.txt'));
+      v1Bytes = v1Data.buffer.asUint8List(v1Data.offsetInBytes, v1Data.lengthInBytes);
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      AppLogger.e('CropDiseaseClassifier: V1 asset load failed', e, stack);
+      return;
+    }
+
+    // Stage 2: Create V1 interpreter
+    try {
       _interpreterV1 = _createInterpreter(v1Bytes);
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      AppLogger.e('CropDiseaseClassifier: V1 interpreter creation failed', e, stack);
+      return;
+    }
+
+    // Stage 3: Allocate V1 tensors & align labels
+    try {
       _interpreterV1!.allocateTensors();
       final numClassesV1 = _interpreterV1!.getOutputTensor(0).shape.last;
       if (_labels.length != numClassesV1) {
-        AppLogger.w('CropDiseaseClassifier: V1 label count (${_labels.length}) does not match model output classes ($numClassesV1). Truncating/adjusting.');
+        AppLogger.w(
+          'CropDiseaseClassifier: V1 label count (${_labels.length}) does not match model output classes ($numClassesV1). Truncating/adjusting.',
+        );
         if (_labels.length > numClassesV1) {
           _labels = _labels.sublist(0, numClassesV1);
         } else {
@@ -241,36 +261,37 @@ class CropDiseaseClassifier {
           }
         }
       }
-
-      // V2 Model is optional (extended dataset)
-      try {
-        final v2Data = await rootBundle.load('assets/cropguard_plant_disease_v2.tflite');
-        _labelsV2 = _parseLabels(await rootBundle.loadString('assets/labels_v2.txt'));
-        final v2Bytes = v2Data.buffer.asUint8List(v2Data.offsetInBytes, v2Data.lengthInBytes);
-        _interpreterV2 = _createInterpreter(v2Bytes);
-        _interpreterV2!.allocateTensors();
-        final numClassesV2 = _interpreterV2!.getOutputTensor(0).shape.last;
-        if (_labelsV2.length != numClassesV2) {
-          if (_labelsV2.length > numClassesV2) {
-            _labelsV2 = _labelsV2.sublist(0, numClassesV2);
-          } else {
-            while (_labelsV2.length < numClassesV2) {
-              _labelsV2.add('Unknown_V2_Class_${_labelsV2.length}');
-            }
-          }
-        }
-      } catch (e) {
-        AppLogger.w('CropDiseaseClassifier: V2 model optional load skipped ($e)');
-        _interpreterV2 = null;
-      }
-
-      _isLoaded = true;
-      _engineAvailable = true;
     } catch (e, stack) {
       _isLoaded = false;
       _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: failed to load ML engine / model', e, stack);
+      AppLogger.e('CropDiseaseClassifier: V1 tensor allocation failed', e, stack);
+      return;
     }
+
+    // V2 Model is optional (extended dataset)
+    try {
+      final v2Data = await rootBundle.load('assets/cropguard_plant_disease_v2.tflite');
+      _labelsV2 = _parseLabels(await rootBundle.loadString('assets/labels_v2.txt'));
+      final v2Bytes = v2Data.buffer.asUint8List(v2Data.offsetInBytes, v2Data.lengthInBytes);
+      _interpreterV2 = _createInterpreter(v2Bytes);
+      _interpreterV2!.allocateTensors();
+      final numClassesV2 = _interpreterV2!.getOutputTensor(0).shape.last;
+      if (_labelsV2.length != numClassesV2) {
+        if (_labelsV2.length > numClassesV2) {
+          _labelsV2 = _labelsV2.sublist(0, numClassesV2);
+        } else {
+          while (_labelsV2.length < numClassesV2) {
+            _labelsV2.add('Unknown_V2_Class_${_labelsV2.length}');
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.w('CropDiseaseClassifier: V2 model optional load skipped ($e)');
+      _interpreterV2 = null;
+    }
+
+    _isLoaded = true;
+    _engineAvailable = true;
   }
 
   bool get isLoaded => _isLoaded;

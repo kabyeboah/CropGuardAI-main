@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cropguard_flutter/data/ml/crop_disease_classifier.dart';
 import 'package:cropguard_flutter/data/ml/disease_info.dart';
 
 void main() {
@@ -48,5 +49,22 @@ void main() {
         reason: 'Label "$label" in assets/labels_v2.txt is missing from DiseaseDatabase or has Unknown cropType.',
       );
     }
+  });
+
+  test('CropDiseaseClassifier initial state and engineUnavailable fallback behavior', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final classifier = CropDiseaseClassifier();
+
+    expect(classifier.isLoaded, isFalse);
+    expect(classifier.isEngineAvailable, isTrue);
+
+    // Running classification in plain unit test environment triggers stage failure, setting engineUnavailable
+    final result = await classifier.classifyFromPath('non_existent_image.jpg');
+    expect(result, isNotNull);
+    expect(classifier.isLoaded, isFalse);
+    expect(classifier.isEngineAvailable, isFalse);
+    expect(result!.engineUnavailable, isTrue);
+    expect(result.isDegraded, isTrue);
+    expect(result.confidence, equals(0.0));
   });
 }
