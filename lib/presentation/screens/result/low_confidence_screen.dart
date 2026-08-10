@@ -39,6 +39,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
   // Multi-angle retry state
   late List<double> _allConfidences;
+  late List<List<TopCandidate>> _allPhotosCandidates;
   late List<TopCandidate> _mergedCandidates;
   int _anglesCaptured = 1; // starts at 1 (the initial scan already happened)
   bool _isCapturing = false;
@@ -47,7 +48,27 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
   void initState() {
     super.initState();
     _allConfidences = [widget.confidence];
-    _mergedCandidates = List<TopCandidate>.from(widget.topCandidates);
+    _allPhotosCandidates = [List<TopCandidate>.from(widget.topCandidates)];
+    _recomputeSoftVotingCandidates();
+  }
+
+  void _recomputeSoftVotingCandidates() {
+    final Map<String, double> labelSumMap = {};
+    for (final photoCandidates in _allPhotosCandidates) {
+      for (final c in photoCandidates) {
+        labelSumMap[c.label] = (labelSumMap[c.label] ?? 0.0) + c.confidence;
+      }
+    }
+    final int n = _allPhotosCandidates.length;
+    if (n == 0 || labelSumMap.isEmpty) {
+      _mergedCandidates = List<TopCandidate>.from(widget.topCandidates);
+      return;
+    }
+    final List<TopCandidate> averaged = labelSumMap.entries.map((e) {
+      return (label: e.key, confidence: e.value / n);
+    }).toList();
+    averaged.sort((a, b) => b.confidence.compareTo(a.confidence));
+    _mergedCandidates = averaged.take(3).toList();
   }
 
   double get _averageConfidence =>
@@ -93,17 +114,11 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
       setState(() {
         _allConfidences.add(result.confidence);
+        _allPhotosCandidates.add(List<TopCandidate>.from(result.topCandidates));
         _anglesCaptured++;
         _isCapturing = false;
 
-        // Merge candidates: union, deduplicate by label, sort descending.
-        final seen = <String>{};
-        final merged = <TopCandidate>[];
-        for (final c in [..._mergedCandidates, ...result.topCandidates]) {
-          if (seen.add(c.label)) merged.add(c);
-        }
-        merged.sort((a, b) => b.confidence.compareTo(a.confidence));
-        _mergedCandidates = merged.take(3).toList();
+        _recomputeSoftVotingCandidates();
       });
 
       // If averaged confidence now clears the threshold, graduate to full result.
