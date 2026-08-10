@@ -38,6 +38,13 @@ class MoreScreen extends StatelessWidget {
             subtitle: context.l10n.settingsSubtitleShort,
             onTap: () => context.push('/settings'),
           ),
+          const SizedBox(height: 12),
+          _MoreTile(
+            icon: Icons.assignment_turned_in_outlined,
+            title: context.l10n.mySubmissions,
+            subtitle: context.l10n.mySubmissionsSubtitle,
+            onTap: () => context.push('/submissions'),
+          ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 24),

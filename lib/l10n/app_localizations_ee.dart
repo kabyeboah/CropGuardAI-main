@@ -1545,4 +1545,29 @@ class AppLocalizationsEe extends AppLocalizations {
   @override
   String get reporterTrustExplanation =>
       'Wò nutoa me dɔléle nyatakakawo kple kakaɖedzi kpenɔ nutoa me afɔku mɔ̃a ŋu pɛpɛpɛ.';
+
+  @override
+  String get addAnotherAngle => 'Tsɔ Afɔ Aɖe Vɔ';
+
+  @override
+  String addAngle(int current, int total) {
+    return 'Tsɔ Afɔ $current si le $total Me';
+  }
+
+  @override
+  String anglesCapturePill(int captured, int total) {
+    return '$captured le $total afɔ wòtsɔ';
+  }
+
+  @override
+  String get topGuesses => 'Nusẽwo Si Xɔ Go';
+
+  @override
+  String get viewMySubmissions => 'Kpɔ nye nyatakakawo';
+
+  @override
+  String get mySubmissions => 'Nye Nyatakaka';
+
+  @override
+  String get mySubmissionsSubtitle => 'Kpɔ nyatakakawo si wòŋlɔ';
 }

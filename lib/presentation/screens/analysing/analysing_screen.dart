@@ -9,6 +9,7 @@ import '../../../core/utils/scan_feedback_helper.dart';
 import '../../../core/utils/tts_manager.dart';
 import '../scanner/scanner_provider.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
+import '../../../domain/models/low_confidence_extra.dart';
 
 /// Intermediate screen that runs TFLite inference on the captured image
 /// Equivalent of the "analyzing" state in ScannerViewModel / ScannerScreen
@@ -164,13 +165,14 @@ class _AnalisingScreenState extends State<AnalisingScreen>
         context.go('/home');
       }
     } else if (result.confidence < kLowConfidenceThreshold) {
-      context.replace(Uri(
-        path: '/low_confidence',
-        queryParameters: {
-          'confidence': result.confidence.toString(),
-          'imagePath': result.imagePath,
-        },
-      ).toString());
+      context.replace(
+        '/low_confidence',
+        extra: LowConfidenceExtra(
+          confidence: result.confidence,
+          imagePath: result.imagePath,
+          topCandidates: result.topCandidates,
+        ),
+      );
     } else {
       context.replace('/result/${result.id}');
     }

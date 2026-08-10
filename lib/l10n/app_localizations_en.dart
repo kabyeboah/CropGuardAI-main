@@ -1546,4 +1546,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reporterTrustExplanation =>
       'Your community outbreak reports and verifications directly weight the regional risk engine.';
+
+  @override
+  String get addAnotherAngle => 'Add Another Angle';
+
+  @override
+  String addAngle(int current, int total) {
+    return 'Add Angle $current of $total';
+  }
+
+  @override
+  String anglesCapturePill(int captured, int total) {
+    return '$captured of $total angles captured';
+  }
+
+  @override
+  String get topGuesses => 'Top Guesses';
+
+  @override
+  String get viewMySubmissions => 'View my submissions';
+
+  @override
+  String get mySubmissions => 'My Submissions';
+
+  @override
+  String get mySubmissionsSubtitle =>
+      'Track your expert & missing-crop reports';
 }

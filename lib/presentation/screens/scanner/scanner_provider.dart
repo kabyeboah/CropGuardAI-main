@@ -14,6 +14,7 @@ import '../../../core/utils/image_quality_analyzer.dart';
 import '../../../core/utils/analytics_service.dart';
 import '../../../core/error/failures.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
+import '../../../core/di/service_locator.dart';
 
 
 
@@ -278,6 +279,17 @@ class ScannerProvider extends ChangeNotifier {
     cameraInitialized = false;
     torchOn = false;
     notifyListeners();
+  }
+
+  /// Runs inference on [imagePath] and returns the raw [ClassificationResult]
+  /// without saving to the database or logging analytics events.
+  ///
+  /// Used by the multi-angle retry flow in [LowConfidenceScreen] so the farmer
+  /// can capture extra photos of the same leaf; results are averaged before any
+  /// database write happens.
+  Future<ClassificationResult?> classifyOnly(String imagePath) async {
+    final classifier = sl<CropDiseaseClassifier>();
+    return classifier.classifyFromPath(imagePath);
   }
 
   Future<DetectionResult?> analyseAndSave(String imagePath) async {

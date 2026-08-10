@@ -727,5 +727,31 @@
   "verifiedReportsLabel": "Nyatakaka siwo dzi woɖo kpe",
   "verificationsGivenLabel": "Kakaɖedzido megbe",
   "trustScoreLabel": "Kakaɖedzi Xɔxɔ",
-  "reporterTrustExplanation": "Wò nutoa me dɔléle nyatakakawo kple kakaɖedzi kpenɔ nutoa me afɔku mɔ̃a ŋu pɛpɛpɛ."
+  "reporterTrustExplanation": "Wò nutoa me dɔléle nyatakakawo kple kakaɖedzi kpenɔ nutoa me afɔku mɔ̃a ŋu pɛpɛpɛ.",
+
+  "addAnotherAngle": "Tsɔ Afɔ Aɖe Vɔ",
+  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "addAngle": "Tsɔ Afɔ {current} si le {total} Me",
+  "@addAngle": {
+    "description": "Button label showing which angle is being captured",
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "anglesCapturePill": "{captured} le {total} afɔ wòtsɔ",
+  "@anglesCapturePill": {
+    "description": "Small pill inside the confidence card showing multi-angle progress",
+    "placeholders": {
+      "captured": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "topGuesses": "Nusẽwo Si Xɔ Go",
+  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "viewMySubmissions": "Kpɔ nye nyatakakawo",
+  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "mySubmissions": "Nye Nyatakaka",
+  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "mySubmissionsSubtitle": "Kpɔ nyatakakawo si wòŋlɔ"
 }

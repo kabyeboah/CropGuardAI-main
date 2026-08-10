@@ -679,5 +679,32 @@
   "verifiedReportsLabel": "Verified Reports",
   "verificationsGivenLabel": "Verifications Given",
   "trustScoreLabel": "Trust Score",
-  "reporterTrustExplanation": "Your community outbreak reports and verifications directly weight the regional risk engine."
+  "reporterTrustExplanation": "Your community outbreak reports and verifications directly weight the regional risk engine.",
+
+  "addAnotherAngle": "Add Another Angle",
+  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "addAngle": "Add Angle {current} of {total}",
+  "@addAngle": {
+    "description": "Button label showing which angle is being captured",
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "anglesCapturePill": "{captured} of {total} angles captured",
+  "@anglesCapturePill": {
+    "description": "Small pill inside the confidence card showing multi-angle progress",
+    "placeholders": {
+      "captured": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "topGuesses": "Top Guesses",
+  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "viewMySubmissions": "View my submissions",
+  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "mySubmissions": "My Submissions",
+  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "mySubmissionsSubtitle": "Track your expert & missing-crop reports"
 }
+

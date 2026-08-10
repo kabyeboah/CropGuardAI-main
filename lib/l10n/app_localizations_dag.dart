@@ -1545,4 +1545,29 @@ class AppLocalizationsDag extends AppLocalizations {
   @override
   String get reporterTrustExplanation =>
       'A tiŋgbani doro lahabali ni yɛlmaŋli diisibu tiri maŋmaŋ sarati mashin pɛpɛpɛ.';
+
+  @override
+  String get addAnotherAngle => 'Tɔɣi Pam Dabari';
+
+  @override
+  String addAngle(int current, int total) {
+    return 'Tɔɣi Dabari $current ka $total';
+  }
+
+  @override
+  String anglesCapturePill(int captured, int total) {
+    return '$captured ka $total dabari nyihi';
+  }
+
+  @override
+  String get topGuesses => 'Guɣusiŋ Mali';
+
+  @override
+  String get viewMySubmissions => 'Nyihi n lahabali';
+
+  @override
+  String get mySubmissions => 'N Lahabali';
+
+  @override
+  String get mySubmissionsSubtitle => 'Hali ni lahabali n zɔɣim';
 }

@@ -1,4 +1,5 @@
 import '../../../core/utils/scan_severity.dart';
+import '../../data/ml/crop_disease_classifier.dart';
 
 /// Equivalent of DetectionResult.kt domain data class
 class DetectionResult {
@@ -19,6 +20,7 @@ class DetectionResult {
   // display surface must badge these clearly instead of showing them as a
   // confident diagnosis.
   final bool isDegraded;
+  final List<TopCandidate> topCandidates;
 
   const DetectionResult({
     this.id = 0,
@@ -34,6 +36,7 @@ class DetectionResult {
     required this.treatments,
     required this.timestamp,
     this.isDegraded = false,
+    this.topCandidates = const [],
   });
 
   DetectionResult copyWith({
@@ -50,6 +53,7 @@ class DetectionResult {
     List<String>? treatments,
     int? timestamp,
     bool? isDegraded,
+    List<TopCandidate>? topCandidates,
   }) {
     return DetectionResult(
       id: id ?? this.id,
@@ -65,6 +69,7 @@ class DetectionResult {
       treatments: treatments ?? this.treatments,
       timestamp: timestamp ?? this.timestamp,
       isDegraded: isDegraded ?? this.isDegraded,
+      topCandidates: topCandidates ?? this.topCandidates,
     );
   }
 

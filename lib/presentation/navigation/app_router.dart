@@ -45,6 +45,7 @@ import '../screens/forgot_password/forgot_password_provider.dart';
 import '../screens/forgot_password/forgot_password_screen.dart';
 import '../screens/reset_password/reset_password_screen.dart';
 import '../screens/error/unknown_route_screen.dart';
+import '../../domain/models/low_confidence_extra.dart';
 
 /// Equivalent of CropGuardNavGraph.kt
 class AppRouter {
@@ -209,6 +210,16 @@ class AppRouter {
         path: '/low_confidence',
         parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
+          // Prefer the typed extra object; fall back to query params for
+          // backward-compat with any deep-links or tests that use them.
+          if (state.extra is LowConfidenceExtra) {
+            final extra = state.extra as LowConfidenceExtra;
+            return LowConfidenceScreen(
+              confidence: extra.confidence,
+              imagePath: extra.imagePath,
+              topCandidates: extra.topCandidates,
+            );
+          }
           final confidence = double.tryParse(
                   state.uri.queryParameters['confidence'] ?? '0') ??
               0.0;

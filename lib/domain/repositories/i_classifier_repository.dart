@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import '../../core/utils/result.dart';
+import '../../data/ml/crop_disease_classifier.dart';
 import '../../data/ml/disease_info.dart';
 
 class Classification {
@@ -13,6 +14,7 @@ class Classification {
   // anything that persists or displays this result — see
   // ScanCropUseCase and the history screen.
   final bool isDegraded;
+  final List<TopCandidate> topCandidates;
 
   const Classification({
     required this.label,
@@ -20,6 +22,7 @@ class Classification {
     required this.isHealthy,
     required this.diseaseInfo,
     this.isDegraded = false,
+    this.topCandidates = const [],
   });
 }
 

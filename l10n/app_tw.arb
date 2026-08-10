@@ -727,5 +727,31 @@
   "verifiedReportsLabel": "Amanneɛbɔ a Wɔasi So Dua",
   "verificationsGivenLabel": "Nsi Sika a Wɔama",
   "trustScoreLabel": "Ahotosoɔ Nsɔaeɛ",
-  "reporterTrustExplanation": "Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee."
+  "reporterTrustExplanation": "Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee.",
+
+  "addAnotherAngle": "Fa Dawere Bio",
+  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "addAngle": "Fa Dawere {current} wɔ {total} Mu",
+  "@addAngle": {
+    "description": "Button label showing which angle is being captured",
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "anglesCapturePill": "Woatwe {captured} wɔ {total} dawere no",
+  "@anglesCapturePill": {
+    "description": "Small pill inside the confidence card showing multi-angle progress",
+    "placeholders": {
+      "captured": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "topGuesses": "Atwerɛ a Edi Wɔso",
+  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "viewMySubmissions": "Hwɛ me nsɛntwerɛ no",
+  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "mySubmissions": "Me Nsɛntwerɛ",
+  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "mySubmissionsSubtitle": "Hwɛ w'adwumayɛ ne asɛm a woɔman no mu"
 }

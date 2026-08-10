@@ -2951,6 +2951,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your community outbreak reports and verifications directly weight the regional risk engine.'**
   String get reporterTrustExplanation;
+
+  /// Button to add a second photo from a different angle on the low-confidence screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add Another Angle'**
+  String get addAnotherAngle;
+
+  /// Button label showing which angle is being captured
+  ///
+  /// In en, this message translates to:
+  /// **'Add Angle {current} of {total}'**
+  String addAngle(int current, int total);
+
+  /// Small pill inside the confidence card showing multi-angle progress
+  ///
+  /// In en, this message translates to:
+  /// **'{captured} of {total} angles captured'**
+  String anglesCapturePill(int captured, int total);
+
+  /// Section header for the top-3 model predictions card
+  ///
+  /// In en, this message translates to:
+  /// **'Top Guesses'**
+  String get topGuesses;
+
+  /// Link shown after a crop-not-found report is submitted
+  ///
+  /// In en, this message translates to:
+  /// **'View my submissions'**
+  String get viewMySubmissions;
+
+  /// Title for the My Submissions tile in the More screen
+  ///
+  /// In en, this message translates to:
+  /// **'My Submissions'**
+  String get mySubmissions;
+
+  /// No description provided for @mySubmissionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track your expert & missing-crop reports'**
+  String get mySubmissionsSubtitle;
 }
 
 class _AppLocalizationsDelegate

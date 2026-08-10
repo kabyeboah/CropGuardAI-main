@@ -1546,4 +1546,29 @@ class AppLocalizationsTw extends AppLocalizations {
   @override
   String get reporterTrustExplanation =>
       'Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee.';
+
+  @override
+  String get addAnotherAngle => 'Fa Dawere Bio';
+
+  @override
+  String addAngle(int current, int total) {
+    return 'Fa Dawere $current wɔ $total Mu';
+  }
+
+  @override
+  String anglesCapturePill(int captured, int total) {
+    return 'Woatwe $captured wɔ $total dawere no';
+  }
+
+  @override
+  String get topGuesses => 'Atwerɛ a Edi Wɔso';
+
+  @override
+  String get viewMySubmissions => 'Hwɛ me nsɛntwerɛ no';
+
+  @override
+  String get mySubmissions => 'Me Nsɛntwerɛ';
+
+  @override
+  String get mySubmissionsSubtitle => 'Hwɛ w\'adwumayɛ ne asɛm a woɔman no mu';
 }

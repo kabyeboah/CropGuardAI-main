@@ -77,9 +77,11 @@ post_install do |installer|
       config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
 
       # Preserve symbols specifically for tflite_flutter dynamic native libraries
-      # to prevent Xcode release build symbol stripping from removing TensorFlowLite C symbols
-      if target.name.include?('tflite_flutter') || target.name.include?('TensorFlowLite')
+      # to prevent Xcode release/profile build symbol stripping from removing TensorFlowLite C symbols
+      if target.name.downcase.include?('tflite') || target.name.downcase.include?('tensorflow')
         config.build_settings['STRIP_STYLE'] = 'non-global'
+        config.build_settings['DEAD_CODE_STRIPPING'] = 'NO'
+        config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
       end
 
       # Enable permissions for permission_handler

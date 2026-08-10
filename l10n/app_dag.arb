@@ -727,5 +727,31 @@
   "verifiedReportsLabel": "Lahabali Din Di Yɛlmaŋli",
   "verificationsGivenLabel": "Yɛlmaŋli Diisibu",
   "trustScoreLabel": "Naani Kalinli",
-  "reporterTrustExplanation": "A tiŋgbani doro lahabali ni yɛlmaŋli diisibu tiri maŋmaŋ sarati mashin pɛpɛpɛ."
+  "reporterTrustExplanation": "A tiŋgbani doro lahabali ni yɛlmaŋli diisibu tiri maŋmaŋ sarati mashin pɛpɛpɛ.",
+
+  "addAnotherAngle": "Tɔɣi Pam Dabari",
+  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "addAngle": "Tɔɣi Dabari {current} ka {total}",
+  "@addAngle": {
+    "description": "Button label showing which angle is being captured",
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "anglesCapturePill": "{captured} ka {total} dabari nyihi",
+  "@anglesCapturePill": {
+    "description": "Small pill inside the confidence card showing multi-angle progress",
+    "placeholders": {
+      "captured": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "topGuesses": "Guɣusiŋ Mali",
+  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "viewMySubmissions": "Nyihi n lahabali",
+  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "mySubmissions": "N Lahabali",
+  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "mySubmissionsSubtitle": "Hali ni lahabali n zɔɣim"
 }
