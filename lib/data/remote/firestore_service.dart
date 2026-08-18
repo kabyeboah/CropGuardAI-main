@@ -333,7 +333,9 @@ class FirestoreService {
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
       );
-    } catch (_) {}
+    } catch (e) {
+      throw ServerFailure('Failed to delete treatment: $e');
+    }
   }
 
 
@@ -343,6 +345,9 @@ class FirestoreService {
     required int detectionId,
     required String originalLabel,
     required String correctedLabel,
+    String? imagePath,
+    double? confidence,
+    String? modelVersion,
   }) async {
     try {
       await RetryUtils.retry(
@@ -351,6 +356,9 @@ class FirestoreService {
           'detectionId': detectionId,
           'originalLabel': originalLabel,
           'correctedLabel': correctedLabel,
+          'imagePath': imagePath,
+          'confidence': confidence,
+          'modelVersion': modelVersion,
           'timestamp': FieldValue.serverTimestamp(),
         }),
         maxAttempts: 3,
@@ -384,6 +392,22 @@ class FirestoreService {
       );
     } catch (e) {
       throw ServerFailure('Failed to submit missing crop report: $e');
+    }
+  }
+
+  Future<void> submitTrainingCandidate(Map<String, dynamic> candidateData) async {
+    try {
+      await RetryUtils.retry(
+        () => _db.collection('training_candidates').add({
+          ...candidateData,
+          'timestamp': FieldValue.serverTimestamp(),
+        }),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+    } catch (e) {
+      throw ServerFailure('Failed to submit training candidate: $e');
     }
   }
 

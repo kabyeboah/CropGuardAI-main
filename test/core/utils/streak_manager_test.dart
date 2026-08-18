@@ -6,6 +6,15 @@ import 'package:cropguard_flutter/core/utils/streak_manager.dart';
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    // Use server-time override so tests run without a live Firestore instance.
+    // Each test group sets its own date; tearDown resets to null.
+    StreakManager.serverTimeOverride = null;
+    StreakManager.clockOverride = null;
+  });
+
+  tearDown(() {
+    StreakManager.serverTimeOverride = null;
+    StreakManager.clockOverride = null;
   });
 
   group('StreakManager', () {
@@ -16,6 +25,9 @@ void main() {
     });
 
     test('first scan sets streak to 1', () async {
+      final now = DateTime(2024, 6, 1);
+      StreakManager.serverTimeOverride = () async => now;
+
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
       await manager.recordScan();
@@ -23,6 +35,9 @@ void main() {
     });
 
     test('scan on same day does not increment streak', () async {
+      final now = DateTime(2024, 6, 1);
+      StreakManager.serverTimeOverride = () async => now;
+
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
       await manager.recordScan(); // streak = 1
@@ -34,13 +49,14 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
 
-      // Simulate yesterday's scan by manually writing lastScanDate
-      final now = DateTime.now();
-      final yesterday = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 1))
-          .millisecondsSinceEpoch;
+      // Seed yesterday via prefs directly (simulates a prior recorded scan).
+      final yesterday = DateTime(2024, 6, 1).millisecondsSinceEpoch;
       await prefs.setInt('streak_count', 3);
       await prefs.setInt('last_scan_date', yesterday);
+
+      // Server time is tomorrow.
+      StreakManager.serverTimeOverride =
+          () async => DateTime(2024, 6, 2, 10); // 10:00 on June 2
 
       await manager.recordScan(); // today → streak should be 4
       expect(manager.getStreak(), 4);
@@ -50,28 +66,48 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
 
-      final now = DateTime.now();
-      final twoDaysAgo = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 3))
-          .millisecondsSinceEpoch;
+      final threeDaysAgo = DateTime(2024, 5, 29).millisecondsSinceEpoch;
       await prefs.setInt('streak_count', 10);
-      await prefs.setInt('last_scan_date', twoDaysAgo);
+      await prefs.setInt('last_scan_date', threeDaysAgo);
+
+      StreakManager.serverTimeOverride = () async => DateTime(2024, 6, 1);
 
       await manager.recordScan();
       expect(manager.getStreak(), 1);
     });
 
     test('getDaysSinceLastScan returns 99 when never scanned', () async {
+      StreakManager.serverTimeOverride = () async => DateTime(2024, 6, 1);
+
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
-      expect(manager.getDaysSinceLastScan(), 99);
+      expect(await manager.getDaysSinceLastScan(), 99);
     });
 
     test('getDaysSinceLastScan returns 0 for scan recorded today', () async {
+      final today = DateTime(2024, 6, 1);
+      StreakManager.serverTimeOverride = () async => today;
+
       final prefs = await SharedPreferences.getInstance();
       final manager = StreakManager(prefs);
       await manager.recordScan();
-      expect(manager.getDaysSinceLastScan(), 0);
+      expect(await manager.getDaysSinceLastScan(), 0);
+    });
+
+    test('falls back to device clock when serverTimeOverride returns future error',
+        () async {
+      // Simulate offline: serverTimeOverride throws, clockOverride is set.
+      StreakManager.serverTimeOverride = () async => throw Exception('offline');
+      StreakManager.clockOverride = () => DateTime(2024, 6, 1);
+
+      final prefs = await SharedPreferences.getInstance();
+      final manager = StreakManager(prefs);
+      // _serverNow catches the exception and falls through to clockOverride.
+      // Since clockOverride is checked before the Firestore call, recordScan
+      // still succeeds.
+      await manager.recordScan();
+      expect(manager.getStreak(), 1);
     });
   });
 }
+

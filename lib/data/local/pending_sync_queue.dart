@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/di/service_locator.dart';
+import '../../core/utils/analytics_service.dart';
 import '../../core/utils/app_logger.dart';
 import 'database_helper.dart';
 
@@ -22,6 +25,8 @@ enum PendingSyncType {
   treatmentUpdate,
   /// Delete treatment plan from Cloud Firestore.
   treatmentDelete,
+  /// Low confidence scan captured as training candidate for active learning.
+  trainingCandidate,
 }
 
 /// A lightweight SQLite-backed queue that stores failed cloud writes so they
@@ -37,6 +42,13 @@ class PendingSyncQueue {
   static const _table = 'pending_sync';
   static const maxRetries = 5;
   static bool _isDraining = false;
+  static final _countController = StreamController<int>.broadcast();
+
+  /// Stream of changes to pending items count.
+  static Stream<int> get countStream => _countController.stream;
+
+  @visibleForTesting
+  static void resetDraining() => _isDraining = false;
 
   // ---------------------------------------------------------------------------
   // Schema — called from DatabaseHelper.onCreate / onUpgrade
@@ -95,6 +107,16 @@ class PendingSyncQueue {
       'created': DateTime.now().millisecondsSinceEpoch,
     });
     AppLogger.i('PendingSyncQueue: queued ${type.name}');
+    notifyCount(db);
+  }
+
+  static Future<void> notifyCount(Database db) async {
+    try {
+      final count = await pendingCount(db);
+      if (!_countController.isClosed) {
+        _countController.add(count);
+      }
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
@@ -121,6 +143,11 @@ class PendingSyncQueue {
       if (rows.isEmpty) return;
 
       AppLogger.i('PendingSyncQueue: draining ${rows.length} pending operation(s)');
+      try {
+        if (sl.isRegistered<AnalyticsService>()) {
+          unawaited(sl<AnalyticsService>().logOfflineQueueDrain(count: rows.length));
+        }
+      } catch (_) {}
 
       for (final row in rows) {
         final id = row['id'] as int;
@@ -164,6 +191,7 @@ class PendingSyncQueue {
       }
     } finally {
       _isDraining = false;
+      notifyCount(db);
     }
   }
 
@@ -203,9 +231,14 @@ class PendingSyncQueue {
   // Introspection
   // ---------------------------------------------------------------------------
 
-  /// Returns the count of pending items (useful for a UI badge or debug view).
+  /// Returns the count of actionable pending items (useful for a UI badge or
+  /// debug view). Excludes [status] = 'abandoned' rows because those have
+  /// exceeded [maxRetries] and will never be drained — counting them would
+  /// permanently inflate the badge with items the app cannot resolve.
   static Future<int> pendingCount(Database db) async {
-    final result = await db.rawQuery('SELECT COUNT(*) AS c FROM $_table');
+    final result = await db.rawQuery(
+      "SELECT COUNT(*) AS c FROM $_table WHERE status != 'abandoned'",
+    );
     return (result.first['c'] as int?) ?? 0;
   }
 

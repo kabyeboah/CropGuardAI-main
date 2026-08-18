@@ -74,22 +74,12 @@ class RiskRepositoryImpl implements IRiskRepository {
         return false;
       }).toList();
 
-      // ─── GUARDRAIL 2: MINIMUM REPORT THRESHOLD (INSUFFICIENT DATA) ───────────
-      // If density near location < 3 non-seed reports in last 30 days,
-      // return confidence: insufficientData and riskLevel: none.
-      if (localReports.length < 3) {
-        return Result.success(RiskAssessment(
-          region: region,
-          latitude: lat,
-          longitude: lon,
-          cropType: cropType,
-          riskLevel: RiskLevel.none,
-          confidence: RiskConfidence.insufficientData,
-          contributingFactors: [
-            'Insufficient local outbreak report data (fewer than 3 reports in region in last 30 days) to assess risk',
-          ],
-          computedAt: now,
-        ));
+      // Fetch Weather Forecast (used for both low-density fallback and full crowd-density multiplier)
+      WeatherForecast? forecast;
+      try {
+        forecast = await _weatherRepository.getWeatherForecast(latitude: lat, longitude: lon);
+      } catch (_) {
+        // Weather fetch failed; proceed with density alone
       }
 
       // Compute trust-weighted density score
@@ -102,12 +92,85 @@ class RiskRepositoryImpl implements IRiskRepository {
         totalTrustWeight += w;
       }
 
-      // Fetch Weather Forecast to compute pathogen category risk multipliers
-      WeatherForecast? forecast;
-      try {
-        forecast = await _weatherRepository.getWeatherForecast(latitude: lat, longitude: lon);
-      } catch (_) {
-        // Weather fetch failed; proceed with density alone
+      // ─── HYBRID WEATHER-FIRST FALLBACK MODEL FOR LOW REPORT DENSITY (< 3) ───
+      if (localReports.length < 3) {
+        // If weather forecast data is unavailable AND 0 community reports exist, return insufficient data
+        if (forecast == null || forecast.daily.isEmpty) {
+          return Result.success(RiskAssessment(
+            region: region,
+            latitude: lat,
+            longitude: lon,
+            cropType: cropType,
+            riskLevel: RiskLevel.none,
+            confidence: RiskConfidence.insufficientData,
+            contributingFactors: [
+              'Insufficient local outbreak report data (fewer than 3 reports in region in last 30 days) and weather forecast unavailable to synthesize risk score',
+            ],
+            computedAt: now,
+          ));
+        }
+
+        final factors = <String>[];
+        final window = forecast.daily.take(3).toList();
+        final n = window.length;
+
+        final avgMaxTemp = window.map((d) => d.maxTemp).reduce((a, b) => a + b) / n;
+        final avgHumidity = window.map((d) => d.humidity).reduce((a, b) => a + b) / n;
+        final avgRain = window.map((d) => d.precipitationProbability).reduce((a, b) => a + b) / n;
+        final hum = avgHumidity > 0 ? avgHumidity : avgRain;
+
+        double weatherRiskScore = 0.1; // Baseline minimal risk score
+
+        // Fungal pathogens: High humidity (>75%) & mild/warm temp (20-30°C)
+        if (hum >= 75 && avgMaxTemp >= 20 && avgMaxTemp <= 30) {
+          weatherRiskScore += 0.35;
+          factors.add('Sustained high humidity (${hum.round()}%) and moderate temp (${avgMaxTemp.round()}°C) favor fungal pathogen spread');
+        }
+
+        // Bacterial pathogens: High temp (>25°C) & high humidity or rain
+        if (hum >= 70 && avgMaxTemp >= 26) {
+          weatherRiskScore += 0.25;
+          factors.add('Warm and humid weather conditions favor bacterial leaf spot/blight development');
+        }
+
+        // Viral/vector pathogens: Warm temperatures favoring vector activity
+        if (avgMaxTemp >= 28) {
+          weatherRiskScore += 0.15;
+          factors.add('Elevated temperatures (${avgMaxTemp.round()}°C) favor vector activity (whiteflies & aphids)');
+        }
+
+        if (localReports.isNotEmpty) {
+          weatherRiskScore += localReports.length * 0.10;
+          factors.add('${localReports.length} local outbreak report(s) recorded in region in last 30 days');
+        }
+
+        if (cropType != null && cropType.isNotEmpty) {
+          factors.add('Forecast evaluated specifically for $cropType vulnerability under current microclimate');
+        }
+
+        factors.add('Preliminary forecast synthesized primarily from microclimate weather data due to sparse community report density (${localReports.length} reports in area)');
+
+        final RiskLevel level;
+        if (weatherRiskScore >= 0.65) {
+          level = RiskLevel.high;
+        } else if (weatherRiskScore >= 0.35) {
+          level = RiskLevel.moderate;
+        } else if (weatherRiskScore >= 0.20) {
+          level = RiskLevel.low;
+        } else {
+          level = RiskLevel.none;
+        }
+
+        return Result.success(RiskAssessment(
+          region: region,
+          latitude: lat,
+          longitude: lon,
+          cropType: cropType,
+          riskLevel: level,
+          confidence: RiskConfidence.low,
+          contributingFactors: factors,
+          computedAt: now,
+        ));
       }
 
       final factors = <String>[];

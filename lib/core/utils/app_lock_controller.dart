@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'analytics_service.dart';
 
 /// Drives the biometric app-lock. Used as the GoRouter `refreshListenable` so
 /// the router re-evaluates its redirect whenever the lock state changes.
@@ -8,8 +11,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// re-locks when resuming from background after [_grace]. Firebase keeps the
 /// user signed in; this only gates UI access.
 class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
-  AppLockController(this._prefs, {Duration grace = const Duration(seconds: 15)})
-      : _grace = grace {
+  final AnalyticsService? _analytics;
+
+  AppLockController(
+    this._prefs, {
+    Duration grace = const Duration(seconds: 15),
+    AnalyticsService? analytics,
+  })  : _grace = grace,
+        _analytics = analytics {
     _enabled = _prefs.getBool(kEnabledPref) ?? false;
     _isLocked = _enabled; // require an unlock on cold start when enabled
   }
@@ -72,6 +81,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
           pausedAt != null &&
           DateTime.now().difference(pausedAt) > _grace) {
         _isLocked = true;
+        unawaited(_analytics?.logAppLockTriggered());
         notifyListeners();
       }
     }

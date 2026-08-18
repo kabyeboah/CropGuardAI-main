@@ -22,9 +22,8 @@ void main() {
     riskRepository = RiskRepositoryImpl(mockCommunityRepo, mockWeatherRepo);
   });
 
-  group('RiskRepositoryImpl Guardrails & Scoring Tests', () {
-    test('insufficient-data guardrail: returns confidence insufficientData and riskLevel none when non-seed reports < 3', () async {
-      // Mock community repo returning only 2 real non-seed reports
+  group('RiskRepositoryImpl Guardrails & Weather Fallback Tests', () {
+    test('weather microclimate fallback: returns confidence low and weather risk score when non-seed reports < 3 but weather is available', () async {
       final twoReports = [
         {
           'id': 'real_1',
@@ -38,22 +37,47 @@ void main() {
           'verifiedBy': ['u1', 'u2'],
           'refutedBy': [],
         },
-        {
-          'id': 'real_2',
-          'isSeed': false,
-          'source': 'community',
-          'disease': 'Maize Common Rust',
-          'region': 'Ashanti',
-          'latitude': 6.6700,
-          'longitude': -1.6200,
-          'reportedAt': DateTime.now().toIso8601String(),
-          'verifiedBy': ['u1'],
-          'refutedBy': [],
-        },
       ];
+
+      final dummyForecast = WeatherForecast(
+        latitude: 6.6666,
+        longitude: -1.6163,
+        daily: [
+          DailyForecast(
+            date: DateTime.now(),
+            maxTemp: 26.0,
+            minTemp: 20.0,
+            precipitationProbability: 80.0,
+            humidity: 82.0,
+            weatherCode: 61,
+          ),
+        ],
+      );
 
       when(() => mockCommunityRepo.getOutbreakReports())
           .thenAnswer((_) async => Result.success(twoReports));
+      when(() => mockWeatherRepo.getWeatherForecast(latitude: 6.6666, longitude: -1.6163))
+          .thenAnswer((_) async => dummyForecast);
+
+      final result = await riskRepository.getRiskForLocation(
+        lat: 6.6666,
+        lon: -1.6163,
+        cropType: 'Maize',
+      );
+
+      expect(result.isSuccess, isTrue);
+      final assessment = result.data!;
+      expect(assessment.confidence, equals(RiskConfidence.low));
+      expect(assessment.riskLevel, equals(RiskLevel.high));
+      expect(assessment.contributingFactors.any((f) => f.contains('microclimate weather data')), isTrue);
+      expect(assessment.contributingFactors.any((f) => f.contains('fungal pathogen spread')), isTrue);
+    });
+
+    test('insufficient-data fallback: returns confidence insufficientData when reports < 3 AND weather forecast fails', () async {
+      when(() => mockCommunityRepo.getOutbreakReports())
+          .thenAnswer((_) async => Result.success([]));
+      when(() => mockWeatherRepo.getWeatherForecast(latitude: 6.6666, longitude: -1.6163))
+          .thenThrow(Exception('Weather service offline'));
 
       final result = await riskRepository.getRiskForLocation(
         lat: 6.6666,
@@ -66,17 +90,9 @@ void main() {
       expect(assessment.confidence, equals(RiskConfidence.insufficientData));
       expect(assessment.riskLevel, equals(RiskLevel.none));
       expect(assessment.isInsufficientData, isTrue);
-      expect(assessment.contributingFactors.first, contains('Insufficient local outbreak report data'));
-
-      // Verify weather repo was NOT queried because guardrail short-circuited early
-      verifyNever(() => mockWeatherRepo.getWeatherForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-          ));
     });
 
-    test('seed-data-exclusion guardrail: excludes seed-sourced entries completely from computation', () async {
-      // 5 seed reports + 1 real report. Total reports = 6, but non-seed count = 1.
+    test('seed-data-exclusion: excludes seed-sourced entries from crowd density calculation', () async {
       final mixedReports = [
         {
           'id': 'seed_ob_1',
@@ -88,27 +104,6 @@ void main() {
           'longitude': -1.6163,
           'reportedAt': DateTime.now().toIso8601String(),
           'verifiedBy': ['u1', 'u2', 'u3', 'u4', 'u5'],
-        },
-        {
-          'id': 'seed_ob_2',
-          'isSeed': true,
-          'source': 'seed',
-          'disease': 'Cassava Mosaic Disease',
-          'region': 'Ashanti',
-          'latitude': 6.6666,
-          'longitude': -1.6163,
-          'reportedAt': DateTime.now().toIso8601String(),
-          'verifiedBy': ['u1', 'u2'],
-        },
-        {
-          'id': 'seed_ob_3',
-          'isSeed': true,
-          'source': 'seed',
-          'disease': 'Maize Common Rust',
-          'region': 'Ashanti',
-          'latitude': 6.6666,
-          'longitude': -1.6163,
-          'reportedAt': DateTime.now().toIso8601String(),
         },
         {
           'id': 'real_report_1',
@@ -125,6 +120,8 @@ void main() {
 
       when(() => mockCommunityRepo.getOutbreakReports())
           .thenAnswer((_) async => Result.success(mixedReports));
+      when(() => mockWeatherRepo.getWeatherForecast(latitude: 6.6666, longitude: -1.6163))
+          .thenThrow(Exception('No weather'));
 
       final result = await riskRepository.getRiskForLocation(
         lat: 6.6666,
@@ -134,7 +131,7 @@ void main() {
 
       expect(result.isSuccess, isTrue);
       final assessment = result.data!;
-      // Should hit insufficient-data guardrail because valid non-seed count is 1 (< 3)
+      // Should exclude seed report, leaving 1 report, and with weather failing, returns insufficientData
       expect(assessment.confidence, equals(RiskConfidence.insufficientData));
       expect(assessment.riskLevel, equals(RiskLevel.none));
     });

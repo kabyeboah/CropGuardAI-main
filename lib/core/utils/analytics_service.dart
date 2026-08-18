@@ -56,15 +56,28 @@ class AnalyticsService {
     required String disease,
     required double confidence,
     required bool isHealthy,
+    String? modelVersion,
+    List<({String label, double confidence})> topCandidates = const [],
   }) =>
       _log('scan_completed', {
         'disease': disease,
         'confidence': (confidence * 100).round(),
         'is_healthy': isHealthy.toString(),
+        if (modelVersion != null) 'model_version': modelVersion,
+        if (topCandidates.isNotEmpty)
+          'top_candidates': topCandidates.map((c) => '${c.label}:${(c.confidence * 100).round()}').join(','),
       });
 
-  Future<void> logLowConfidence({required double confidence}) =>
-      _log('scan_low_confidence', {'confidence': (confidence * 100).round()});
+  Future<void> logLowConfidence({
+    required double confidence,
+    String? disease,
+    String? modelVersion,
+  }) =>
+      _log('scan_low_confidence', {
+        'confidence': (confidence * 100).round(),
+        if (disease != null) 'disease': disease,
+        if (modelVersion != null) 'model_version': modelVersion,
+      });
 
   Future<void> logScanFailed({required String reason}) =>
       _log('scan_failed', {'reason': reason});
@@ -82,4 +95,21 @@ class AnalyticsService {
 
   Future<void> logColdStart(int durationMs) =>
       _log('cold_start_time', {'duration_ms': durationMs});
+
+  Future<void> logCommunityPostSubmitted() => _log('community_post_submitted');
+
+  Future<void> logOutbreakReported() => _log('outbreak_reported');
+
+  Future<void> logTreatmentPlanCreated() => _log('treatment_plan_created');
+
+  Future<void> logFeedbackCorrectionSubmitted() =>
+      _log('feedback_correction_submitted');
+
+  Future<void> logAppLockTriggered() => _log('app_lock_triggered');
+
+  Future<void> logOfflineQueueDrain({required int count}) =>
+      _log('offline_queue_drain', {'count': count});
+
+  Future<void> logModelFallbackUsed({required String reason}) =>
+      _log('model_fallback_used', {'reason': reason});
 }

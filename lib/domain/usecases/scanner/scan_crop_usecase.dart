@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../../core/error/failures.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/utils/streak_manager.dart';
+import '../../../data/ml/crop_disease_classifier.dart';
 import '../../models/detection_result.dart';
 import '../../repositories/i_classifier_repository.dart';
 import '../../repositories/i_community_repository.dart';
@@ -56,6 +57,7 @@ class ScanCropUseCase {
       timestamp: DateTime.now().millisecondsSinceEpoch,
       isDegraded: classification.isDegraded,
       topCandidates: classification.topCandidates,
+      modelVersion: CropDiseaseClassifier.modelVersion,
     );
 
     final saveResult = await _detectionRepository.saveDetection(detection);

@@ -39,12 +39,14 @@ import '../screens/legal/privacy_policy_screen.dart';
 import '../screens/analysing/analysing_screen.dart';
 import '../screens/result/batch_result_screen.dart';
 import '../screens/more/more_screen.dart';
+import '../screens/more/chemical_dosage_calculator_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/submissions/my_submissions_screen.dart';
 import '../screens/forgot_password/forgot_password_provider.dart';
 import '../screens/forgot_password/forgot_password_screen.dart';
 import '../screens/reset_password/reset_password_screen.dart';
 import '../screens/error/unknown_route_screen.dart';
+import '../../core/utils/auth_state_notifier.dart';
 import '../../domain/models/low_confidence_extra.dart';
 
 /// Equivalent of CropGuardNavGraph.kt
@@ -60,8 +62,11 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     observers: [sl<AnalyticsService>().observer],
-    // Re-run redirect when the biometric lock state flips.
-    refreshListenable: sl<AppLockController>(),
+    // Re-run redirect when the biometric lock or auth state flips.
+    refreshListenable: Listenable.merge([
+      sl<AppLockController>(),
+      sl<AuthStateNotifier>(),
+    ]),
     errorBuilder: (context, state) => const UnknownRouteScreen(),
     redirect: (context, state) {
       final path = state.matchedLocation;
@@ -256,6 +261,11 @@ class AppRouter {
         path: '/disease_library',
         parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) => const DiseaseLibraryScreen(),
+      ),
+      GoRoute(
+        path: '/dosage_calculator',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (ctx, state) => const ChemicalDosageCalculatorScreen(),
       ),
       GoRoute(
         path: '/outbreak_map',

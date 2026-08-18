@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/di/service_locator.dart';
+import '../../../core/utils/analytics_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/cached_tile_provider.dart';
 import '../../../core/utils/ghana_region.dart';
@@ -1364,6 +1365,13 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                               };
 
                               final res = await _communityRepo.submitOutbreakReport(reportPayload);
+                              if (res.isSuccess) {
+                                try {
+                                  if (sl.isRegistered<AnalyticsService>()) {
+                                    unawaited(sl<AnalyticsService>().logOutbreakReported());
+                                  }
+                                } catch (_) {}
+                              }
                               if (mounted) {
                                 if (res.isSuccess) {
                                   messenger.showSnackBar(

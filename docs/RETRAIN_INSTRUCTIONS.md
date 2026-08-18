@@ -148,3 +148,18 @@ To add them:
 2. Add to the Colab `LABEL_MAP` dict in Cell 4 using `Crop___Disease` naming
 3. Re-run the notebook
 4. Add `DiseaseInfoEntry` blocks to `disease_info.dart`
+
+---
+
+## TODO — Confidence Calibration
+
+The 0.60 / 0.40 thresholds are currently uncalibrated. Softmax confidence ≠ empirical accuracy-conditioned-on-confidence. Before these thresholds can be fully trusted:
+
+1. After retraining, hold out a validation set (not used in training)
+2. Run inference on the held-out set, collect (predicted_label, confidence, true_label) triples
+3. Plot a reliability diagram (calibration curve) and compute Expected Calibration Error (ECE)
+4. If miscalibrated, apply temperature scaling: optimize parameter T on the held-out set such that `softmax(logits / T)` produces well-calibrated probabilities
+5. Re-evaluate the 0.60/0.40 thresholds against the calibrated probabilities
+
+Until this is done, global thresholds remain empirical estimates.
+

@@ -44,20 +44,25 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
     }
 
-    flavorDimensions.add("default")
-    productFlavors {
-        create("dev") {
-            dimension = "default"
-            applicationIdSuffix = ".dev"
-            resValue("string", "app_name", "CropGuard Dev")
-        }
-        create("prod") {
-            dimension = "default"
-            resValue("string", "app_name", "CropGuard")
+    // Ensure TFLite/LiteRT native .so files don't conflict when both
+    // tflite_flutter (bundles libtensorflowlite_jni.so via litert) and
+    // tensorflow-lite-select-tf-ops are on the classpath.
+    packagingOptions {
+        jniLibs {
+            pickFirsts += setOf(
+                "**/libtensorflowlite_flex.so",
+                "**/libtensorflowlite.so",
+                "**/libtensorflowlite_jni.so",
+            )
         }
     }
+
+
 
     buildTypes {
         release {
@@ -87,6 +92,18 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Flex / select-TF-ops delegate — needed for any custom TF ops the model uses.
+    // We DO NOT also add org.tensorflow:tensorflow-lite here because tflite_flutter
+    // already pulls in com.google.ai.edge.litert:litert (Google's rebrand of
+    // tensorflow-lite). Adding both causes a duplicate-class build error.
+    // Instead we exclude the redundant tensorflow-lite core from select-tf-ops'
+    // own transitive graph so only litert's copy of those classes is on the
+    // runtime classpath.
+    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.16.1") {
+        exclude(group = "org.tensorflow", module = "tensorflow-lite")
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-api")
+    }
 }
 
 // Crashlytics mapping-file upload requires a network call to

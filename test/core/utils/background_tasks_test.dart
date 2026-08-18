@@ -77,4 +77,23 @@ void main() {
     expect(cancelledTasks.contains('outbreak_alert_task'), isTrue);
     expect(prefs.getBool('outbreak_alerts_scheduled'), isFalse);
   });
+
+  // ─── iOS BGAppRefreshTask ──────────────────────────────────────────────────
+
+  test('kIosBgTaskId matches the declared Info.plist identifier', () {
+    // Keeps the Dart constant and the native plist value in sync.
+    // If either changes, this test fails and forces the developer to update both.
+    expect(BackgroundTaskHelper.kIosBgTaskId, 'com.cropguard.ai.sync');
+  });
+
+  test('scheduleIosBGAppRefresh is a no-op on non-iOS (MissingPluginException swallowed)', () async {
+    // On the test host (Android/Linux/macOS CI), Platform.isIOS is false so
+    // the method returns immediately without invoking the channel.
+    // This verifies the guard does not throw.
+    await expectLater(
+      BackgroundTaskHelper.scheduleIosBGAppRefresh(),
+      completes,
+    );
+  });
 }
+

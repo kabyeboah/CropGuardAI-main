@@ -1,5 +1,7 @@
 import 'package:in_app_update/in_app_update.dart';
 
+import 'app_logger.dart';
+
 class InAppUpdateHelper {
   static Future<void> checkForUpdate() async {
     try {
@@ -11,7 +13,7 @@ class InAppUpdateHelper {
         await InAppUpdate.startFlexibleUpdate();
       }
     } catch (e) {
-      // Logic for error handling
+      AppLogger.w('InAppUpdateHelper: update check failed (Play Store API): $e');
     }
   }
 }

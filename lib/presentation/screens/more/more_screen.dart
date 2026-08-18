@@ -45,6 +45,13 @@ class MoreScreen extends StatelessWidget {
             subtitle: context.l10n.mySubmissionsSubtitle,
             onTap: () => context.push('/submissions'),
           ),
+          const SizedBox(height: 12),
+          _MoreTile(
+            icon: Icons.calculate_outlined,
+            title: 'Spray & Chemical Calculator',
+            subtitle: 'Knapsack tank capacity & chemical mixing ratios',
+            onTap: () => context.push('/dosage_calculator'),
+          ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 24),

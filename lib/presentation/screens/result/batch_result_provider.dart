@@ -51,18 +51,17 @@ class BatchResultProvider extends ChangeNotifier {
 
       String overallSeverity = ScanSeverity.healthy;
       if (diseasedLeaves > 0) {
-        if (avgConfidence >= 0.90) {
-          overallSeverity = ScanSeverity.severe;
-        } else if (avgConfidence >= 0.75) {
-          overallSeverity = ScanSeverity.moderate;
-        } else if (avgConfidence >= CropDiseaseClassifier.confidenceThreshold) {
-          overallSeverity = ScanSeverity.early;
-        } else {
-          // Diseased but below the confidence threshold — mark as unclear
-          // rather than implying a confident "early" diagnosis. Mirrors the
-          // single-scan low-confidence flow.
-          overallSeverity = ScanSeverity.unclear;
-        }
+        const severityRank = {
+          ScanSeverity.severe: 4,
+          ScanSeverity.moderate: 3,
+          ScanSeverity.early: 2,
+          ScanSeverity.unclear: 1,
+          ScanSeverity.healthy: 0,
+        };
+
+        overallSeverity = diseasedResults
+            .map((r) => r.severity)
+            .reduce((a, b) => (severityRank[a] ?? 1) >= (severityRank[b] ?? 1) ? a : b);
       }
 
       String aggregatedSummary;

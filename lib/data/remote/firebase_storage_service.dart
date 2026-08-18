@@ -13,7 +13,7 @@ class FirebaseStorageService {
     required String userId,
   }) async {
     final file = File(localPath);
-    if (!file.existsSync()) {
+    if (!await file.exists()) {
       throw ServerFailure('Image file not found at $localPath');
     }
     final ext = localPath.contains('.') ? localPath.split('.').last : 'jpg';

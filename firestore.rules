@@ -51,6 +51,11 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
     }
 
+    match /training_candidates/{candidate} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+    }
+
     // Outbreak reports: authenticated users can read; authors create their own.
     // Cap free-text notes to bound abuse / storage. Validate field types/ranges
     // so the crowd-sourced dataset stays clean, and keep reports immutable once

@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 
 import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
-import '../../core/utils/image_compressor.dart';
 import '../../core/utils/retry_utils.dart';
 
 /// Uploads community images to Cloudinary (unsigned preset).
@@ -29,15 +28,16 @@ class CloudinaryService {
 
   /// Uploads [localPath] and returns the HTTPS [secure_url], or throws with
   /// Cloudinary's error message when the API rejects the request.
+  ///
+  /// Expects [localPath] to already be compressed — [ImageUploadService] is the
+  /// single compression point for all backends and always pre-compresses before
+  /// calling this method.
   Future<String> uploadImage(String localPath) async {
     ensureConfigured();
-    final rawFile = File(localPath);
-    if (!await rawFile.exists()) {
+    final file = File(localPath);
+    if (!await file.exists()) {
       throw ServerFailure('Image file not found at $localPath.');
     }
-
-    final compressed = await ImageCompressor.compressImage(rawFile);
-    final uploadPath = compressed.path;
 
     final uri = Uri.parse(
       'https://api.cloudinary.com/v1_1/$_cloudName/image/upload',
@@ -47,7 +47,7 @@ class CloudinaryService {
       final secureUrl = await RetryUtils.retry(() async {
         final request = http.MultipartRequest('POST', uri)
           ..fields['upload_preset'] = _uploadPreset
-          ..files.add(await http.MultipartFile.fromPath('file', uploadPath));
+          ..files.add(await http.MultipartFile.fromPath('file', localPath));
 
         final streamed = await request.send().timeout(_timeout);
         final body = await streamed.stream.bytesToString().timeout(_timeout);

@@ -11,9 +11,12 @@ import 'package:cropguard_flutter/domain/usecases/scanner/scan_crop_usecase.dart
 import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/presentation/screens/scanner/scanner_provider.dart';
 
+import 'package:cropguard_flutter/domain/repositories/i_classifier_repository.dart';
+
 class _MockScanCropUseCase extends Mock implements ScanCropUseCase {}
 class _MockAuthRepo extends Mock implements IAuthRepository {}
 class _MockAnalyticsService extends Mock implements AnalyticsService {}
+class _MockClassifierRepo extends Mock implements IClassifierRepository {}
 
 const _kDetection = DetectionResult(
   id: 123,
@@ -33,12 +36,14 @@ void main() {
   late _MockScanCropUseCase mockScanCropUseCase;
   late _MockAuthRepo mockAuthRepo;
   late _MockAnalyticsService mockAnalytics;
+  late _MockClassifierRepo mockClassifierRepo;
   late ScannerProvider provider;
 
   setUp(() {
     mockScanCropUseCase = _MockScanCropUseCase();
     mockAuthRepo = _MockAuthRepo();
     mockAnalytics = _MockAnalyticsService();
+    mockClassifierRepo = _MockClassifierRepo();
 
     when(() => mockAuthRepo.currentUser).thenReturn(
       AppUser(id: 'user_1', email: 'test@e.com', displayName: 'Farmer', isAnonymous: false),
@@ -51,7 +56,7 @@ void main() {
     )).thenAnswer((_) async {});
     when(() => mockAnalytics.logScanFailed(reason: any(named: 'reason'))).thenAnswer((_) async {});
 
-    provider = ScannerProvider(mockScanCropUseCase, mockAuthRepo, mockAnalytics);
+    provider = ScannerProvider(mockScanCropUseCase, mockAuthRepo, mockAnalytics, mockClassifierRepo);
   });
 
   group('ScannerProvider - Batch Mode', () {

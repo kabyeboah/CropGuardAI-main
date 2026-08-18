@@ -38,8 +38,9 @@ dependencies:
   # Camera
   camera: ^0.10.5+9
 
-  # ML / TFLite
+  # ML / TFLite / Cloud AI
   tflite_flutter: ^0.12.1
+  google_generative_ai: ^0.4.6
   image: ^4.2.0
 
   # Image handling

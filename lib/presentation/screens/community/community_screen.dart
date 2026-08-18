@@ -442,6 +442,13 @@ class _SyncStatusBadge extends StatelessWidget {
         icon = Icons.error_outline;
         label = 'Failed';
         break;
+      case 'abandoned':
+        // Exceeded max retries — permanent delivery failure.
+        bgColor = Colors.red.shade100;
+        textColor = Colors.red.shade900;
+        icon = Icons.cancel_outlined;
+        label = 'Delivery Failed';
+        break;
       case 'synced':
       default:
         bgColor = Colors.green.shade50;

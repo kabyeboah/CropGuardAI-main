@@ -7,10 +7,10 @@ import 'package:image/image.dart' as img;
 
 class ImageQualityAnalyzer {
   static const int _analysisMaxSide = 320;
-  static const int _minShortSidePx = 160;
-  static double minLaplacianVariance = 18.0; // lowered from 28 to reduce false rejections on gallery photos
-  static const double _minMeanLuminance = 0.08; // lowered from 0.11 for better low-light tolerance
-  static const double _maxMeanLuminance = 0.95; // raised from 0.90
+  static const int _minShortSidePx = 120; // lowered from 160 to support smaller document-extracted images (146px+)
+  static double minLaplacianVariance = 10.0; // lowered from 18 to reduce false rejections on compressed gallery & document photos
+  static const double _minMeanLuminance = 0.05; // lowered from 0.08 for better low-light tolerance
+  static const double _maxMeanLuminance = 0.98; // raised from 0.95
 
   static Future<ImageQualityResult?> analyzeFile(String imagePath, {double? minBlurThreshold}) async {
     return compute((args) {

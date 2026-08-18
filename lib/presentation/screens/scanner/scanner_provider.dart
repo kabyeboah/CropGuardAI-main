@@ -9,14 +9,15 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../domain/models/detection_result.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
+import '../../../domain/repositories/i_classifier_repository.dart';
 import '../../../domain/usecases/scanner/scan_crop_usecase.dart';
+import '../../../domain/usecases/scanner/scan_batch_usecase.dart';
 import '../../../core/utils/image_quality_analyzer.dart';
 import '../../../core/utils/analytics_service.dart';
 import '../../../core/error/failures.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
+import '../../../data/repositories/classifier_repository_impl.dart';
 import '../../../core/di/service_locator.dart';
-
-
 
 enum ScanMode { camera, gallery }
 
@@ -34,10 +35,28 @@ class ImageQuality {
 
 class ScannerProvider extends ChangeNotifier {
   final ScanCropUseCase _scanCropUseCase;
+  final ScanBatchUseCase _scanBatchUseCase;
   final IAuthRepository _authRepository;
   final AnalyticsService _analytics;
+  final IClassifierRepository _classifierRepository;
 
-  ScannerProvider(this._scanCropUseCase, this._authRepository, this._analytics);
+  ScannerProvider(
+    this._scanCropUseCase,
+    this._authRepository,
+    this._analytics, [
+    IClassifierRepository? classifierRepository,
+    ScanBatchUseCase? scanBatchUseCase,
+  ])  : _classifierRepository = classifierRepository ?? _safeGetClassifier(),
+        _scanBatchUseCase = scanBatchUseCase ?? ScanBatchUseCase(_scanCropUseCase);
+
+  static IClassifierRepository _safeGetClassifier() {
+    try {
+      if (sl.isRegistered<IClassifierRepository>()) {
+        return sl<IClassifierRepository>();
+      }
+    } catch (_) {}
+    return ClassifierRepositoryImpl(CropDiseaseClassifier());
+  }
 
   CameraController? cameraController;
   List<CameraDescription> cameras = [];
@@ -245,17 +264,9 @@ class ScannerProvider extends ChangeNotifier {
     notifyListeners();
 
     final userId = _authRepository.currentUser?.id ?? 'guest';
-    final results = <DetectionResult>[];
-    var failures = 0;
-
-    for (final path in List<String>.from(batchImagePaths)) {
-      final result = await _scanCropUseCase(path, userId);
-      if (result.isSuccess && result.data != null) {
-        results.add(result.data!);
-      } else {
-        failures++;
-      }
-    }
+    final batchResult = await _scanBatchUseCase(List<String>.from(batchImagePaths), userId);
+    final results = batchResult.data ?? <DetectionResult>[];
+    final failures = batchImagePaths.length - results.length;
 
     isAnalysing = false;
     if (results.isEmpty) {
@@ -274,22 +285,35 @@ class ScannerProvider extends ChangeNotifier {
 
   Future<void> releaseCamera() async {
     await _stopFrameAnalysis();
-    await cameraController?.dispose();
+    final controllerToDispose = cameraController;
     cameraController = null;
     cameraInitialized = false;
     torchOn = false;
     notifyListeners();
+    await controllerToDispose?.dispose();
   }
 
-  /// Runs inference on [imagePath] and returns the raw [ClassificationResult]
+  /// Runs inference on [imagePath] and returns the [ClassificationResult]
+  /// via the repository layer (enforcing OODGate and image quality checks)
   /// without saving to the database or logging analytics events.
   ///
   /// Used by the multi-angle retry flow in [LowConfidenceScreen] so the farmer
   /// can capture extra photos of the same leaf; results are averaged before any
   /// database write happens.
   Future<ClassificationResult?> classifyOnly(String imagePath) async {
-    final classifier = sl<CropDiseaseClassifier>();
-    return classifier.classifyFromPath(imagePath);
+    final result = await _classifierRepository.classifyFromPath(imagePath);
+    if (result.isError || result.data == null) {
+      return null;
+    }
+    final c = result.data!;
+    return ClassificationResult(
+      label: c.label,
+      confidence: c.confidence,
+      isHealthy: c.isHealthy,
+      diseaseInfo: c.diseaseInfo,
+      isDegraded: c.isDegraded,
+      topCandidates: c.topCandidates,
+    );
   }
 
   Future<DetectionResult?> analyseAndSave(String imagePath) async {
@@ -321,12 +345,18 @@ class ScannerProvider extends ChangeNotifier {
       final detection = result.data;
       if (detection != null) {
         if (detection.confidence < CropDiseaseClassifier.confidenceThreshold) {
-          unawaited(_analytics.logLowConfidence(confidence: detection.confidence));
+          unawaited(_analytics.logLowConfidence(
+            confidence: detection.confidence,
+            disease: detection.diseaseLabel,
+            modelVersion: detection.modelVersion,
+          ));
         }
         unawaited(_analytics.logScanCompleted(
           disease: detection.diseaseLabel,
           confidence: detection.confidence,
           isHealthy: detection.isHealthy,
+          modelVersion: detection.modelVersion,
+          topCandidates: detection.topCandidates,
         ));
       }
       return detection;

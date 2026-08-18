@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/di/service_locator.dart';
+import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/agri_weather_utils.dart';
 import '../../../core/utils/location_helper.dart';
 import '../../../domain/models/detection_result.dart';
@@ -95,10 +98,18 @@ class ResultProvider extends ChangeNotifier {
       detectionId: result!.id,
       originalLabel: result!.diseaseLabel,
       correctedLabel: correctedLabel,
+      imagePath: result!.imagePath,
+      confidence: result!.confidence,
+      modelVersion: result!.modelVersion,
     );
     res.fold(
       (_) {
         feedbackSent = true;
+        try {
+          if (sl.isRegistered<AnalyticsService>()) {
+            unawaited(sl<AnalyticsService>().logFeedbackCorrectionSubmitted());
+          }
+        } catch (_) {}
         _safeNotify();
       },
       (_) {

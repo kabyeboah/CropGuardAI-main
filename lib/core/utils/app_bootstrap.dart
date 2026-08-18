@@ -26,6 +26,15 @@ class AppBootstrap {
       fetchTimeout: const Duration(seconds: 10),
       minimumFetchInterval: const Duration(hours: 1),
     ));
+    await remoteConfig.setDefaults({
+      'ghana_nlp_subscription_key': '',
+      'cloudinary_cloud_name': '',
+      'cloudinary_upload_preset': '',
+      'gemini_api_key': '',
+      'password_reset_continue_url': AppSecrets.passwordResetContinueUrl,
+      'android_package_name': AppSecrets.androidPackageName,
+      'ios_bundle_id': AppSecrets.iosBundleId,
+    });
     await remoteConfig.fetchAndActivate();
 
     final ghanaNlpKey = remoteConfig.getString('ghana_nlp_subscription_key');

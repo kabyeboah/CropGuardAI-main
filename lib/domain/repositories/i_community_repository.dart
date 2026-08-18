@@ -26,6 +26,9 @@ abstract class ICommunityRepository {
     required int detectionId,
     required String originalLabel,
     required String correctedLabel,
+    String? imagePath,
+    double? confidence,
+    String? modelVersion,
   });
 
   Future<Result<void>> submitCropNotFound({
@@ -34,6 +37,8 @@ abstract class ICommunityRepository {
     required String observedSymptoms,
     required String imagePath,
   });
+
+  Future<Result<void>> submitTrainingCandidate(Map<String, dynamic> candidateData);
 
   Future<List<Map<String, dynamic>>> getPendingSyncItems(PendingSyncType type);
 }

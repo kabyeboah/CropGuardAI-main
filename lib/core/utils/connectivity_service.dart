@@ -59,6 +59,11 @@ class ConnectivityService with WidgetsBindingObserver {
     _refresh();
   }
 
+  Duration _currentPollInterval = _pollInterval;
+
+  /// Immediate current connection status without awaiting a probe.
+  ConnectionStatus get currentStatus => _last;
+
   /// Full connection status, emitted whenever it changes.
   Stream<ConnectionStatus> get statusStream => _controller.stream;
 
@@ -68,8 +73,20 @@ class ConnectivityService with WidgetsBindingObserver {
     if (status != _last) {
       _last = status;
       if (!_controller.isClosed) _controller.add(status);
+      _adjustPollInterval(status);
     }
     return status;
+  }
+
+  void _adjustPollInterval(ConnectionStatus status) {
+    if (status == ConnectionStatus.offline) {
+      // Exponential backoff: 30s -> 60s -> 120s -> 300s
+      final newSeconds = (_currentPollInterval.inSeconds * 2).clamp(30, 300);
+      _currentPollInterval = Duration(seconds: newSeconds);
+    } else {
+      _currentPollInterval = _pollInterval;
+    }
+    _startPolling();
   }
 
   // ── Backwards-compatible boolean API ──────────────────────────────────────
@@ -89,6 +106,7 @@ class ConnectivityService with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _currentPollInterval = _pollInterval;
       _startPolling();
       _refresh();
     } else if (state == AppLifecycleState.paused ||
@@ -99,7 +117,7 @@ class ConnectivityService with WidgetsBindingObserver {
 
   void _startPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(_pollInterval, (_) => _refresh());
+    _pollTimer = Timer.periodic(_currentPollInterval, (_) => _refresh());
   }
 
   void _stopPolling() {

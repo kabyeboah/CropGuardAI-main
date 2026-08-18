@@ -53,12 +53,15 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
       final pendingRows = await PendingSyncQueue.getPendingItems(db);
       for (final row in pendingRows) {
         final type = row['type'] as String;
+        final status = row['status'] as String? ?? 'pending';
+        // Skip types that have their own Firestore surface (community posts are
+        // shown in the feed; outbreak/feedback have no submissions screen).
         if (type == PendingSyncType.expertRequest.name) {
           items.add({
             'type': 'expert_request',
             'diseaseName': 'Expert Consultation (Queued)',
             'message': 'Queued offline submission',
-            'status': 'pending_sync',
+            'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
             'timestamp': DateTime.now(),
           });
         } else if (type == PendingSyncType.cropNotFound.name) {
@@ -66,7 +69,7 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
             'type': 'missing_crop',
             'suggestedCrop': 'Missing Crop Report (Queued)',
             'observedSymptoms': 'Queued offline submission',
-            'status': 'pending_sync',
+            'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
             'timestamp': DateTime.now(),
           });
         }
@@ -249,6 +252,12 @@ class _StatusBadge extends StatelessWidget {
         bg = Colors.amber.shade50;
         fg = Colors.amber.shade800;
         label = 'Pending Sync';
+        break;
+      case 'delivery_failed':
+        // Exceeded max retries — this submission will not sync automatically.
+        bg = Colors.red.shade100;
+        fg = Colors.red.shade900;
+        label = 'Delivery Failed';
         break;
       case 'review_pending':
       default:

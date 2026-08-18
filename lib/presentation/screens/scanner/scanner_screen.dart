@@ -503,7 +503,9 @@ class _ScannerScreenState extends State<ScannerScreen>
             body: Stack(
               fit: StackFit.expand,
               children: [
-                if (s.cameraInitialized && s.cameraController != null)
+                if (s.cameraInitialized &&
+                    s.cameraController != null &&
+                    s.cameraController!.value.isInitialized)
                   CameraPreview(s.cameraController!)
                 else
                   Container(

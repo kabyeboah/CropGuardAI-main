@@ -11,6 +11,7 @@ import '../../data/remote/firestore_service.dart';
 import '../../data/remote/cloudinary_service.dart';
 import '../../data/remote/firebase_storage_service.dart';
 import '../../data/remote/image_upload_service.dart';
+import '../../data/remote/gemini_cloud_ai_service.dart';
 
 // Repositories
 import '../../data/repositories/auth_repository_impl.dart';
@@ -58,6 +59,9 @@ import '../utils/analytics_service.dart';
 import '../utils/deep_link_service.dart';
 import '../utils/biometric_service.dart';
 import '../utils/app_lock_controller.dart';
+import '../utils/auth_state_notifier.dart';
+import '../utils/classifier_health_service.dart';
+import '../../domain/usecases/scanner/scan_batch_usecase.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -76,14 +80,17 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
   sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(sl<CloudinaryService>(), sl<FirebaseStorageService>()));
   sl.registerLazySingleton<CropDiseaseClassifier>(() => CropDiseaseClassifier());
+  sl.registerLazySingleton<GeminiCloudAiService>(() => GeminiCloudAiService());
   sl.registerSingleton<StreakManager>(StreakManager(prefs));
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   sl.registerLazySingleton<AnalyticsService>(() => AnalyticsService());
   sl.registerLazySingleton<DeepLinkService>(() => DeepLinkService());
   sl.registerLazySingleton<BiometricService>(() => BiometricService());
+  sl.registerSingleton<ClassifierHealthService>(ClassifierHealthService());
+  sl.registerSingleton<AuthStateNotifier>(AuthStateNotifier());
   // Singleton (not lazy): the router uses it as refreshListenable and reads
   // isLocked synchronously in redirect, so it must exist before the router.
-  sl.registerSingleton<AppLockController>(AppLockController(prefs));
+  sl.registerSingleton<AppLockController>(AppLockController(prefs, analytics: sl<AnalyticsService>()));
 
   // 2. Repositories (Implementation details)
   sl.registerLazySingleton<IAuthRepository>(() => AuthRepositoryImpl(sl<FirebaseAuthService>()));
@@ -123,6 +130,7 @@ Future<void> setupServiceLocator() async {
     sl<StreakManager>(),
     sl<ICommunityRepository>(),
   ));
+  sl.registerLazySingleton<ScanBatchUseCase>(() => ScanBatchUseCase(sl<ScanCropUseCase>()));
   sl.registerLazySingleton<GetWeatherUseCase>(() => GetWeatherUseCase(sl<IWeatherRepository>()));
   sl.registerLazySingleton<GetRiskAssessmentUseCase>(() => GetRiskAssessmentUseCase(sl<IRiskRepository>()));
 

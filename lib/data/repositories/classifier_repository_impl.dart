@@ -3,11 +3,14 @@ import '../../core/error/failures.dart';
 import '../../core/utils/result.dart';
 import '../../domain/repositories/i_classifier_repository.dart';
 import '../ml/crop_disease_classifier.dart';
+import '../ml/ood_gate.dart';
 
 class ClassifierRepositoryImpl implements IClassifierRepository {
   final CropDiseaseClassifier _classifier;
+  final OODGate _oodGate;
 
-  ClassifierRepositoryImpl(this._classifier);
+  ClassifierRepositoryImpl(this._classifier, [OODGate? oodGate])
+      : _oodGate = oodGate ?? AlwaysAcceptOODGate();
 
   @override
   Future<Result<void>> loadModel() async {
@@ -25,6 +28,11 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
   @override
   Future<Result<Classification?>> classifyFromPath(String imagePath) async {
     try {
+      final isPlant = await _oodGate.isPlantImage(imagePath);
+      if (!isPlant) {
+        return Result.error(OODFailure());
+      }
+
       final result = await _classifier.classifyFromPath(imagePath);
       if (result == null) {
         return Result.error(MLFailure('Classification failed to return a result'));
@@ -44,6 +52,11 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
   @override
   Future<Result<Classification?>> classifyFromBytes(Uint8List rgbaBytes, int width, int height) async {
     try {
+      final isPlant = await _oodGate.isPlantBytes(rgbaBytes, width, height);
+      if (!isPlant) {
+        return Result.error(OODFailure());
+      }
+
       final result = await _classifier.classifyFromBytes(rgbaBytes, width, height);
       if (result == null) {
         return Result.error(MLFailure('Classification failed to return a result'));

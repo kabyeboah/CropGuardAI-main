@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/connectivity_service.dart';
 import '../../../data/remote/image_upload_service.dart';
 import '../../../data/remote/firebase_auth_service.dart';
@@ -93,7 +95,8 @@ class CommunityProvider extends ChangeNotifier {
       for (final row in rows) {
         final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
         final status = row['status'] as String? ?? 'pending';
-        // We use the SQLite row ID (prefixed to avoid collision) as the post ID
+        // Include abandoned rows so the "Delivery Failed" badge is shown to the
+        // user instead of the post silently disappearing after max retries.
         final postId = 'pending_${row['id']}';
         list.add(CommunityPost.fromMap(payload, postId, syncStatus: status));
       }
@@ -283,6 +286,12 @@ class CommunityProvider extends ChangeNotifier {
           },
         );
       }
+
+      try {
+        if (sl.isRegistered<AnalyticsService>()) {
+          unawaited(sl<AnalyticsService>().logCommunityPostSubmitted());
+        }
+      } catch (_) {}
 
       onPosted?.call();
       selectedImageUri = null;

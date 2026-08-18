@@ -345,7 +345,7 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
         // Nominatim's usage policy requires an identifying User-Agent with a
         // contact. Use a project address, not a personal email. Update this to
         // your real support contact before release.
-        'User-Agent': 'CropGuardAI/1.0 (support@cropguardai.app)',
+        'User-Agent': 'CropGuardAI/1.0 (kwameyeboah@gmail.com)',
       }).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final data    = jsonDecode(response.body) as Map<String, dynamic>;

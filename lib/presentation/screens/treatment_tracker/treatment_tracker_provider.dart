@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/scan_severity.dart';
@@ -222,6 +224,12 @@ class TreatmentTrackerProvider extends ChangeNotifier {
         'id': id,
       }));
     }
+
+    try {
+      if (sl.isRegistered<AnalyticsService>()) {
+        unawaited(sl<AnalyticsService>().logTreatmentPlanCreated());
+      }
+    } catch (_) {}
 
     await _load();
   }

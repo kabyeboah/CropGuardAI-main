@@ -37,6 +37,13 @@ class DeepLinkService {
     );
   }
 
+  final Map<String, void Function(Uri uri, GoRouter router)> _customHandlers = {};
+
+  /// Register custom deep link handler for a given path prefix (e.g., '/outbreak').
+  void registerHandler(String pathPrefix, void Function(Uri uri, GoRouter router) handler) {
+    _customHandlers[pathPrefix] = handler;
+  }
+
   @visibleForTesting
   void handleUri(Uri uri, GoRouter router) {
     // 1. Validate scheme
@@ -45,7 +52,15 @@ class DeepLinkService {
       return;
     }
 
-    // 2. Validate host (must match password reset continue URL host)
+    // 2. Check custom handlers first
+    for (final entry in _customHandlers.entries) {
+      if (uri.path.startsWith(entry.key)) {
+        entry.value(uri, router);
+        return;
+      }
+    }
+
+    // 3. Validate host (must match password reset continue URL host)
     try {
       final expectedUri = Uri.parse(AppSecrets.passwordResetContinueUrl);
       if (uri.host != expectedUri.host) {
@@ -64,14 +79,14 @@ class DeepLinkService {
         mode == 'resetPassword' || uri.path.contains('reset-password');
 
     if (code != null && code.isNotEmpty && isReset) {
-      // 3. Validate code against safe characters (Firebase action codes are base64-like)
+      // 4. Validate code against safe characters (Firebase action codes are base64-like)
       final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
       if (!codeRegex.hasMatch(code)) {
         AppLogger.e('Rejected deep link with malformed or suspicious oobCode.');
         return;
       }
 
-      // 4. Validate mode parameter if present
+      // 5. Validate mode parameter if present
       if (mode != null && mode.isNotEmpty) {
         final modeRegex = RegExp(r'^[a-zA-Z0-9]+$');
         if (!modeRegex.hasMatch(mode)) {

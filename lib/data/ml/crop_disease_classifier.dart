@@ -1,12 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
+import '../../core/di/service_locator.dart';
+import '../../core/utils/analytics_service.dart';
 import '../../core/utils/app_logger.dart';
+import '../../core/utils/classifier_health_service.dart';
 import '../../core/utils/image_quality_analyzer.dart';
 import 'disease_info.dart';
 
@@ -22,6 +28,7 @@ class ClassificationResult {
   final ImageQualityResult? qualityResult;
   final bool isDegraded;
   final bool engineUnavailable;
+  final bool isOutOfDistribution;
   /// Top-3 predictions from the model in descending confidence order.
   /// Empty on degraded / fallback paths — we never fabricate candidates.
   final List<TopCandidate> topCandidates;
@@ -34,6 +41,7 @@ class ClassificationResult {
     this.qualityResult,
     this.isDegraded = false,
     this.engineUnavailable = false,
+    this.isOutOfDistribution = false,
     this.topCandidates = const [],
   });
 }
@@ -58,10 +66,12 @@ class _PreprocessingInput {
 class _PreprocessingResult {
   final Float32List? inputTensor;
   final ImageQualityResult qualityResult;
+  final double greenRatio;
 
   const _PreprocessingResult({
     this.inputTensor,
     required this.qualityResult,
+    this.greenRatio = 0.0,
   });
 }
 
@@ -101,6 +111,33 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   const inputSize = CropDiseaseClassifier.inputSize;
   final resized = img.copyResize(raw, width: inputSize, height: inputSize);
 
+  int plantPixels = 0;
+  int totalPixels = 0;
+  final step = max(1, inputSize ~/ 50);
+  for (var y = 0; y < inputSize; y += step) {
+    for (var x = 0; x < inputSize; x += step) {
+      final pixel = resized.getPixel(x, y);
+      totalPixels++;
+      final r = pixel.r;
+      final g = pixel.g;
+      final b = pixel.b;
+      
+      // 1. Green leaf tissue
+      final isGreen = g > r && g > b && g > 25;
+      // 2. Yellowing leaf / Chlorosis (high R & G, lower B)
+      final isYellow = r >= 40 && g >= 40 && b < min(r, g) * 0.95;
+      // 3. Brown necrosis / leaf spot / pod / tuber / wood
+      final isBrown = r > 35 && g > 20 && b < r * 0.85 && (r - b) > 10;
+      // 4. Red/orange rust / rot
+      final isRust = r > 50 && r > g * 1.1 && r > b * 1.3;
+
+      if (isGreen || isYellow || isBrown || isRust) {
+        plantPixels++;
+      }
+    }
+  }
+  final greenRatio = totalPixels > 0 ? plantPixels / totalPixels : 0.0;
+
   // Build contiguous [1 * 224 * 224 * 3] float tensor normalised to [0, 1].
   final inputTensor = Float32List(1 * inputSize * inputSize * 3);
   var idx = 0;
@@ -116,6 +153,7 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   return _PreprocessingResult(
     inputTensor: inputTensor,
     qualityResult: qualityCheck,
+    greenRatio: greenRatio,
   );
 }
 
@@ -193,6 +231,7 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
 class CropDiseaseClassifier {
   static const int inputSize = 224;
   static const double confidenceThreshold = 0.60;
+  static String? modelVersion;
 
   List<String> _labels = [];
   List<String> _labelsV2 = [];
@@ -231,18 +270,35 @@ class CropDiseaseClassifier {
       AppLogger.w(
         'CropDiseaseClassifier: hardware delegate options failed ($e); retrying with CPU options.',
       );
+      try {
+        unawaited(FirebaseCrashlytics.instance.recordError(
+          e,
+          null,
+          reason: 'TFLite hardware delegate failed — falling back to CPU options',
+          fatal: false,
+        ));
+      } catch (_) {}
     }
 
     // Attempt 2: Explicit CPU options (disable NNAPI)
     try {
-      final cpuOpts = InterpreterOptions()
-        ..threads = 2
-        ..useNnApiForAndroid = false;
+      final cpuOpts = InterpreterOptions()..threads = 2;
+      if (Platform.isAndroid) {
+        cpuOpts.useNnApiForAndroid = false;
+      }
       return Interpreter.fromBuffer(modelBytes, options: cpuOpts);
     } catch (e) {
       AppLogger.w(
         'CropDiseaseClassifier: CPU options failed ($e); retrying default Interpreter.fromBuffer.',
       );
+      try {
+        unawaited(FirebaseCrashlytics.instance.recordError(
+          e,
+          null,
+          reason: 'TFLite CPU options failed — falling back to raw Interpreter.fromBuffer',
+          fatal: false,
+        ));
+      } catch (_) {}
     }
 
     // Attempt 3: Minimal default Interpreter.fromBuffer with no options object
@@ -257,11 +313,20 @@ class CropDiseaseClassifier {
     try {
       v1Data = await rootBundle.load('assets/cropguard_plant_disease.tflite');
       _labels = _parseLabels(await rootBundle.loadString('assets/labels.txt'));
-      v1Bytes = v1Data.buffer.asUint8List(v1Data.offsetInBytes, v1Data.lengthInBytes);
+      v1Bytes = Uint8List.fromList(
+        v1Data.buffer.asUint8List(v1Data.offsetInBytes, v1Data.lengthInBytes),
+      );
     } catch (e, stack) {
       _isLoaded = false;
       _engineAvailable = false;
       AppLogger.e('CropDiseaseClassifier: V1 asset load failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'TFLite model load failure (Stage 1: asset load) — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
       return;
     }
 
@@ -272,6 +337,13 @@ class CropDiseaseClassifier {
       _isLoaded = false;
       _engineAvailable = false;
       AppLogger.e('CropDiseaseClassifier: V1 interpreter creation failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'TFLite model load failure (Stage 2: interpreter creation) — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
       return;
     }
 
@@ -295,6 +367,13 @@ class CropDiseaseClassifier {
       _isLoaded = false;
       _engineAvailable = false;
       AppLogger.e('CropDiseaseClassifier: V1 tensor allocation failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'TFLite model load failure (Stage 3: tensor allocation) — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
       return;
     }
 
@@ -302,7 +381,9 @@ class CropDiseaseClassifier {
     try {
       final v2Data = await rootBundle.load('assets/cropguard_plant_disease_v2.tflite');
       _labelsV2 = _parseLabels(await rootBundle.loadString('assets/labels_v2.txt'));
-      final v2Bytes = v2Data.buffer.asUint8List(v2Data.offsetInBytes, v2Data.lengthInBytes);
+      final v2Bytes = Uint8List.fromList(
+        v2Data.buffer.asUint8List(v2Data.offsetInBytes, v2Data.lengthInBytes),
+      );
       _interpreterV2 = _createInterpreter(v2Bytes);
       _interpreterV2!.allocateTensors();
       final numClassesV2 = _interpreterV2!.getOutputTensor(0).shape.last;
@@ -320,12 +401,41 @@ class CropDiseaseClassifier {
       _interpreterV2 = null;
     }
 
+    // Load metadata version
+    try {
+      final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      modelVersion = map['version']?.toString() ?? '2.1';
+    } catch (_) {
+      modelVersion = '2.1';
+    }
+
     _isLoaded = true;
     _engineAvailable = true;
   }
 
   bool get isLoaded => _isLoaded;
   bool get isEngineAvailable => _engineAvailable;
+
+  ({String label, double confidence, List<TopCandidate> top3}) _selectBestFromEnsemble(
+    Float32List inputTensor,
+  ) {
+    final r1 = _runSingleModelOnMainThread(_interpreterV1!, _labels, inputTensor);
+    final r2 = _interpreterV2 != null
+        ? _runSingleModelOnMainThread(_interpreterV2!, _labelsV2, inputTensor)
+        : null;
+
+    final adj1 = r1.confidence - (1.0 / (_labels.isNotEmpty ? _labels.length : 1));
+    final adj2 = (r2 != null && _labelsV2.isNotEmpty)
+        ? (r2.confidence - (1.0 / _labelsV2.length))
+        : double.negativeInfinity;
+
+    if (adj2 > adj1 && r2 != null) {
+      return r2;
+    } else {
+      return r1;
+    }
+  }
 
   /// Classify an image from a file path.
   Future<ClassificationResult?> classifyFromPath(String imagePath) async {
@@ -346,54 +456,40 @@ class CropDiseaseClassifier {
         );
 
         if (prepResult.inputTensor != null) {
-          final r1 = _runSingleModelOnMainThread(_interpreterV1!, _labels, prepResult.inputTensor!);
-          final r2 = _interpreterV2 != null
-              ? _runSingleModelOnMainThread(_interpreterV2!, _labelsV2, prepResult.inputTensor!)
-              : null;
+          final best = _selectBestFromEnsemble(prepResult.inputTensor!);
+          final topLabel = best.label;
+          final topScore = best.confidence;
+          final topCandidates = best.top3;
 
-          // Use adjusted-score comparison so the smaller V2 model (16 classes)
-          // gets a fair chance against V1 (93 classes). Without this adjustment,
-          // V2's more-concentrated softmax always loses to V1's flatter distribution.
-          final adj1 = r1.confidence - (1.0 / (_labels.isNotEmpty ? _labels.length : 1));
-          final adj2 = (r2 != null && _labelsV2.isNotEmpty)
-              ? (r2.confidence - (1.0 / _labelsV2.length))
-              : double.negativeInfinity;
+          final info = DiseaseDatabase.getInfo(topLabel);
 
-          final String topLabel;
-          final double topScore;
-          final List<TopCandidate> topCandidates;
-          if (adj2 > adj1 && r2 != null) {
-            topLabel = r2.label;
-            topScore = r2.confidence;
-            topCandidates = r2.top3;
-          } else {
-            topLabel = r1.label;
-            topScore = r1.confidence;
-            topCandidates = r1.top3;
-          }
+          final numClasses = _labels.isNotEmpty ? _labels.length : 38;
+          final isOod = prepResult.greenRatio < 0.05 || topScore < (2.0 / numClasses);
 
-          // Confidence gate restored to 0.60 (matches model_metadata.json).
-          // Below this threshold we fall through to the degraded fallback so
-          // the UI can display a "low confidence — retake photo" warning.
-          if (topScore >= confidenceThreshold && topLabel != 'Unknown') {
-            final info = DiseaseDatabase.getInfo(topLabel);
+          if (topScore >= confidenceThreshold && topLabel != 'Unknown' && !isOod) {
             return ClassificationResult(
               label: topLabel,
               confidence: topScore,
               isHealthy: info.isHealthy,
               diseaseInfo: info,
               qualityResult: prepResult.qualityResult,
+              isDegraded: false,
+              isOutOfDistribution: false,
               topCandidates: topCandidates,
             );
           }
 
-          // Below threshold — still pass top candidates so the low-confidence
-          // screen can show "top guesses" even when we won't commit to any.
-          return await _fallbackVisualClassification(
-            imagePath,
-            bytes,
-            engineUnavailable: false,
-            belowThresholdCandidates: topCandidates,
+          // Below threshold or OOD — real model ran and produced a candidate.
+          // Return the real model's output marked as degraded so UI can handle low confidence / OOD.
+          return ClassificationResult(
+            label: topLabel,
+            confidence: topScore,
+            isHealthy: info.isHealthy,
+            diseaseInfo: info,
+            qualityResult: prepResult.qualityResult,
+            isDegraded: true,
+            isOutOfDistribution: isOod,
+            topCandidates: topCandidates,
           );
         }
       } catch (e) {
@@ -401,7 +497,7 @@ class CropDiseaseClassifier {
       }
     }
 
-    // Fallback: Smart Visual Feature & Multi-crop Keyword Classification
+    // Fallback: Engine unavailable or exception during prep/inference
     return _fallbackVisualClassification(
       imagePath,
       bytes,
@@ -426,37 +522,20 @@ class CropDiseaseClassifier {
         );
 
         if (prepResult.inputTensor != null) {
-          final r1 = _runSingleModelOnMainThread(_interpreterV1!, _labels, prepResult.inputTensor!);
-          final r2 = _interpreterV2 != null
-              ? _runSingleModelOnMainThread(_interpreterV2!, _labelsV2, prepResult.inputTensor!)
-              : null;
-
-          // Same adjusted-score comparison as classifyFromPath.
-          final adj1 = r1.confidence - (1.0 / (_labels.isNotEmpty ? _labels.length : 1));
-          final adj2 = (r2 != null && _labelsV2.isNotEmpty)
-              ? (r2.confidence - (1.0 / _labelsV2.length))
-              : double.negativeInfinity;
-
-          final String topLabel;
-          final double topScore;
-          final List<TopCandidate> topCandidates;
-          if (adj2 > adj1 && r2 != null) {
-            topLabel = r2.label;
-            topScore = r2.confidence;
-            topCandidates = r2.top3;
-          } else {
-            topLabel = r1.label;
-            topScore = r1.confidence;
-            topCandidates = r1.top3;
-          }
+          final best = _selectBestFromEnsemble(prepResult.inputTensor!);
+          final topLabel = best.label;
+          final topScore = best.confidence;
+          final topCandidates = best.top3;
 
           final info = DiseaseDatabase.getInfo(topLabel);
+          final isBelow = topScore < confidenceThreshold || topLabel == 'Unknown';
           return ClassificationResult(
             label: topLabel,
             confidence: topScore,
             isHealthy: info.isHealthy,
             diseaseInfo: info,
             qualityResult: prepResult.qualityResult,
+            isDegraded: isBelow,
             topCandidates: topCandidates,
           );
         }
@@ -469,6 +548,9 @@ class CropDiseaseClassifier {
       'camera_frame.jpg',
       rgbaBytes,
       engineUnavailable: !_engineAvailable || !_isLoaded,
+      isRgbaRaw: true,
+      width: width,
+      height: height,
     );
   }
 
@@ -480,6 +562,30 @@ class CropDiseaseClassifier {
     _isLoaded = false;
   }
 
+  /// Test seam: calls [_fallbackVisualClassification] directly so unit tests
+  /// can exercise the 0.30 / 0.45 heuristic confidence paths without needing
+  /// TFLite to be available.
+  ///
+  /// Pass [isRgbaRaw] = true with valid [width] and [height] to test the raw
+  /// RGBA branch (green-pixel ratio → 0.45). Pass [engineUnavailable] = true
+  /// to test the engine-absent path (confidence → 0.0).
+  @visibleForTesting
+  static Future<ClassificationResult> fallbackForTest(
+    Uint8List? bytes, {
+    bool engineUnavailable = false,
+    bool isRgbaRaw = false,
+    int width = 0,
+    int height = 0,
+  }) =>
+      _fallbackVisualClassification(
+        'test_path',
+        bytes,
+        engineUnavailable: engineUnavailable,
+        isRgbaRaw: isRgbaRaw,
+        width: width,
+        height: height,
+      );
+
   /// The label used whenever the app cannot actually identify a crop or
   /// disease from the image pixels. [DiseaseDatabase.getInfo] has no entry
   /// for this key, so it falls through to its own honest default (cropType
@@ -487,35 +593,40 @@ class CropDiseaseClassifier {
   /// disease_info.dart.
   static const String _unidentifiedLabel = 'Unidentified';
 
-  /// Fallback path used when either (a) the TFLite engine could not be
-  /// initialised on this device, or (b) the real model's top prediction
-  /// fell below [confidenceThreshold].
+  /// Fallback path used ONLY when the TFLite engine could not be initialised on
+  /// this device or an unrecoverable inference error occurred.
   ///
-  /// This used to guess a *specific* disease by matching keywords in the
-  /// image filename (e.g. a file named "tomato_blight.jpg" would return
-  /// "Tomato Early Blight" at 55% confidence). That was misleading: real
-  /// camera captures are never named that way, so in practice this path
-  /// always produced the same fabricated "Cassava Mosaic Disease" result —
-  /// and because `isDegraded` was never read outside this file, that
-  /// specific-but-fake label was saved to scan history next to a real
-  /// confidence percentage, indistinguishable from a genuine diagnosis.
-  ///
-  /// This version never invents a crop or disease it hasn't detected. It
-  /// always returns the same honest "Unidentified" result and leaves the
-  /// confidence value + [isDegraded]/[engineUnavailable] flags to drive the
-  /// UI's abstain / low-confidence flow.
+  /// This version never invents a crop or disease name. It always returns
+  /// "Unidentified" with a confidence score below [confidenceThreshold] so it
+  /// routes safely to the low-confidence or abstain UI.
   static Future<ClassificationResult> _fallbackVisualClassification(
     String imagePath,
     Uint8List? bytes, {
     bool engineUnavailable = false,
     List<TopCandidate> belowThresholdCandidates = const [],
+    bool isRgbaRaw = false,
+    int width = 0,
+    int height = 0,
   }) async {
-    if (bytes != null && bytes.isNotEmpty) {
+    double fallbackConfidence = engineUnavailable ? 0.0 : 0.30;
+
+    if (!engineUnavailable && bytes != null && bytes.isNotEmpty) {
       try {
-        final raw = img.decodeImage(bytes);
+        img.Image? raw;
+        if (isRgbaRaw && width > 0 && height > 0) {
+          raw = img.Image.fromBytes(
+            width: width,
+            height: height,
+            bytes: bytes.buffer,
+            format: img.Format.uint8,
+            numChannels: 4,
+          );
+        } else {
+          raw = img.decodeImage(bytes);
+        }
+
         if (raw != null) {
           int greenPixels = 0;
-          int spotPixels = 0;
           int totalPixels = 0;
 
           final stepX = max(1, raw.width ~/ 100);
@@ -524,48 +635,15 @@ class CropDiseaseClassifier {
           for (var y = 0; y < raw.height; y += stepY) {
             for (var x = 0; x < raw.width; x += stepX) {
               final pixel = raw.getPixel(x, y);
-              final r = pixel.r;
-              final g = pixel.g;
-              final b = pixel.b;
               totalPixels++;
-
-              if (g > r && g > b && g > 40) {
+              if (pixel.g > pixel.r && pixel.g > pixel.b && pixel.g > 40) {
                 greenPixels++;
-              } else if ((r > 100 && g > 80 && b < 100) || (r < 60 && g < 60 && b < 60)) {
-                spotPixels++;
               }
             }
           }
 
-          if (totalPixels > 0) {
-            final greenRatio = greenPixels / totalPixels;
-            final spotRatio = spotPixels / totalPixels;
-
-            if (greenRatio > 0.35) {
-              if (spotRatio > 0.12) {
-                final info = DiseaseDatabase.getInfo('Cassava Brown Streak Disease');
-                return ClassificationResult(
-                  label: info.label,
-                  confidence: 0.62,
-                  isHealthy: false,
-                  diseaseInfo: info,
-                  isDegraded: true,
-                  engineUnavailable: false,
-                  topCandidates: belowThresholdCandidates,
-                );
-              } else {
-                final info = DiseaseDatabase.getInfo('Tomato Healthy');
-                return ClassificationResult(
-                  label: info.label,
-                  confidence: 0.65,
-                  isHealthy: true,
-                  diseaseInfo: info,
-                  isDegraded: true,
-                  engineUnavailable: false,
-                  topCandidates: belowThresholdCandidates,
-                );
-              }
-            }
+          if (totalPixels > 0 && greenPixels / totalPixels > 0.35) {
+            fallbackConfidence = 0.45;
           }
         }
       } catch (e) {
@@ -573,9 +651,23 @@ class CropDiseaseClassifier {
       }
     }
 
+    try {
+      if (sl.isRegistered<AnalyticsService>()) {
+        unawaited(sl<AnalyticsService>().logModelFallbackUsed(
+          reason: engineUnavailable ? 'engine_unavailable' : 'inference_exception',
+        ));
+      }
+      if (sl.isRegistered<ClassifierHealthService>()) {
+        sl<ClassifierHealthService>().updateHealth(
+          isHealthy: !engineUnavailable,
+          usedFallback: true,
+        );
+      }
+    } catch (_) {}
+
     return _makeDegradedResult(
       _unidentifiedLabel,
-      engineUnavailable ? 0.0 : 0.42,
+      fallbackConfidence,
       engineUnavailable: engineUnavailable,
       topCandidates: belowThresholdCandidates,
     );

@@ -81,5 +81,27 @@ void main() {
       verify(() => mockCommunityRepo.addPost(any())).called(1);
       expect(provider.selectedImageUri, isNull);
     });
+
+    test('includes abandoned pending items in posts list with status abandoned', () async {
+      final mockRepo = _MockCommunityRepository();
+      when(() => mockConnectivity.statusStream).thenAnswer((_) => Stream.value(ConnectionStatus.online));
+      when(() => mockConnectivity.checkStatus()).thenAnswer((_) async => ConnectionStatus.online);
+      when(() => mockRepo.getPostsStream()).thenAnswer((_) => Stream.value([]));
+      when(() => mockRepo.getPendingSyncItems(PendingSyncType.communityPost)).thenAnswer((_) async => [
+        {
+          'id': 42,
+          'payload': '{"userId":"u123","body":"Failed post","author":"Kofi","timestamp":100000}',
+          'status': 'abandoned',
+        }
+      ]);
+
+      final p = CommunityProvider(mockRepo, mockAuth, mockUploader, mockConnectivity);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final abandonedPost = p.posts.firstWhere((post) => post.id == 'pending_42');
+      expect(abandonedPost.syncStatus, 'abandoned');
+      expect(abandonedPost.body, 'Failed post');
+      p.dispose();
+    });
   });
 }

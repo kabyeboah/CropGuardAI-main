@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 15;
+  static const _dbVersion = 16;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -86,7 +86,8 @@ class DatabaseHelper {
         cause TEXT NOT NULL DEFAULT '',
         treatments TEXT NOT NULL DEFAULT '',
         timestamp INTEGER NOT NULL,
-        isDegraded INTEGER NOT NULL DEFAULT 0
+        isDegraded INTEGER NOT NULL DEFAULT 0,
+        modelVersion TEXT
       )
     ''');
 
@@ -143,6 +144,9 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_treatment_plans_userId ON $tableTreatmentPlans (userId)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notifications_userId ON $tableNotifications (userId)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_sync_status ON pending_sync (status)');
+    }
+    if (oldVersion < 16) {
+      await _addColumnIfMissing(db, tableDetections, 'modelVersion', 'TEXT');
     }
   }
 

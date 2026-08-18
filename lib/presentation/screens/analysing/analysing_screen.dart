@@ -130,41 +130,11 @@ class _AnalisingScreenState extends State<AnalisingScreen>
     if (!mounted) return;
 
     // Two-tier confidence gate:
-    //   < 0.40  → abstain: could not identify; pop back and prompt retake.
-    //   0.40–0.60 → low-confidence screen (uncertain result + report form).
+    //   < 0.60  → low-confidence screen (candidates, Gemini Cloud AI, report form).
     //   ≥ 0.60  → full result screen.
-    const double kAbstainThreshold    = 0.40;
     const double kLowConfidenceThreshold = CropDiseaseClassifier.confidenceThreshold;
 
-    if (result.confidence < kAbstainThreshold) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.help_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  context.l10n.couldNotIdentify,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF7C6F47),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          duration: const Duration(seconds: 5),
-        ),
-      );
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/home');
-      }
-    } else if (result.confidence < kLowConfidenceThreshold) {
+    if (result.confidence < kLowConfidenceThreshold) {
       context.replace(
         '/low_confidence',
         extra: LowConfidenceExtra(

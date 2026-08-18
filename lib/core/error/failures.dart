@@ -1,31 +1,41 @@
 import '../utils/image_quality_analyzer.dart';
 
-abstract class Failure {
+sealed class Failure {
   final String message;
-  Failure(this.message);
+  const Failure(this.message);
 
   @override
   String toString() => message;
 }
 
-class ServerFailure extends Failure {
-  ServerFailure(super.message);
+final class ServerFailure extends Failure {
+  const ServerFailure(super.message);
 }
 
-class CacheFailure extends Failure {
-  CacheFailure(super.message);
+final class NetworkFailure extends Failure {
+  const NetworkFailure([super.message = 'Network connection failed.']);
 }
 
-class AuthFailure extends Failure {
-  AuthFailure(super.message);
+final class CacheFailure extends Failure {
+  const CacheFailure(super.message);
 }
 
-class MLFailure extends Failure {
-  MLFailure(super.message);
+final class AuthFailure extends Failure {
+  const AuthFailure(super.message);
 }
 
-class QualityFailure extends Failure {
+final class MLFailure extends Failure {
+  const MLFailure(super.message);
+}
+
+final class QualityFailure extends Failure {
   final ImageQualityIssue? issue;
-  QualityFailure(this.issue, super.message);
+  const QualityFailure(this.issue, super.message);
 }
+
+final class OODFailure extends Failure {
+  const OODFailure([super.message = "This image does not appear to be a crop leaf."]);
+}
+
+
 

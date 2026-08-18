@@ -36,7 +36,7 @@ def main():
         print("[!] firebase_admin library not installed. Install with: pip install firebase-admin")
         sys.exit(1)
 
-    key_path = args.service_account-key or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    key_path = args.service_account_key or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     if not key_path or not os.path.exists(key_path):
         print(f"[!] Error: Firebase Service Account Key not found at '{key_path}'.")
         print("    Specify key path with --service-account-key or set GOOGLE_APPLICATION_CREDENTIALS.")
@@ -61,6 +61,9 @@ def main():
             "detectionId": data.get("detectionId", 0),
             "originalLabel": data.get("originalLabel", ""),
             "correctedLabel": data.get("correctedLabel", ""),
+            "imagePath": data.get("imagePath", ""),
+            "confidence": data.get("confidence", None),
+            "modelVersion": data.get("modelVersion", None),
             "timestamp": str(data.get("timestamp", ""))
         }
         exported_records.append(record)
@@ -73,13 +76,37 @@ def main():
     for pair, count in sorted(correction_counts.items(), key=lambda x: x[1], reverse=True):
         print(f"    - {pair}: {count} report(s)")
 
+    print("[+] Querying Firestore 'training_candidates' collection...")
+    candidates_ref = db.collection("training_candidates")
+    cand_docs = candidates_ref.stream()
+    exported_candidates = []
+
+    for doc in cand_docs:
+        data = doc.to_dict()
+        record = {
+            "id": doc.id,
+            "userId": data.get("userId", ""),
+            "imagePath": data.get("imagePath", ""),
+            "topCandidates": data.get("topCandidates", []),
+            "averageConfidence": data.get("averageConfidence", 0.0),
+            "anglesUsed": data.get("anglesUsed", 1),
+            "modelVersion": data.get("modelVersion", None),
+            "deviceInfo": data.get("deviceInfo", ""),
+            "timestamp": str(data.get("timestamp", ""))
+        }
+        exported_candidates.append(record)
+
+    print(f"[+] Total training candidates retrieved: {len(exported_candidates)}")
+
     output_path = args.output
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump({
             "exported_at": str(firestore.SERVER_TIMESTAMP),
-            "total_count": len(exported_records),
-            "corrections": exported_records
+            "total_feedback_count": len(exported_records),
+            "total_candidates_count": len(exported_candidates),
+            "corrections": exported_records,
+            "training_candidates": exported_candidates,
         }, f, indent=2)
 
     print(f"[+] Saved feedback export to '{output_path}'.")

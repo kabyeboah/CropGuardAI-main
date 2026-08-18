@@ -12,9 +12,9 @@ class Result<T> {
   bool get isSuccess => failure == null;
   bool get isError => failure != null;
 
-  void fold(void Function(T data) onSuccess, void Function(Failure failure) onError) {
+  void fold(void Function(T? data) onSuccess, void Function(Failure failure) onError) {
     if (isSuccess) {
-      onSuccess(data as T);
+      onSuccess(data);
     } else {
       onError(failure!);
     }

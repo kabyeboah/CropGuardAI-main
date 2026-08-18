@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -16,6 +17,8 @@ import '../../domain/models/app_notification.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../core/utils/notification_helper.dart';
 import '../../core/utils/outbreak_alert_service.dart';
+import '../../domain/repositories/i_community_repository.dart';
+import '../../data/repositories/community_repository_impl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 @pragma('vm:entry-point')
@@ -195,6 +198,13 @@ Future<bool> _outbreakAlertTask() async {
 class BackgroundTaskHelper {
   static bool isAndroidOverride = Platform.isAndroid;
 
+  /// BGTaskScheduler identifier — must match Info.plist and AppDelegate.swift.
+  static const String kIosBgTaskId = 'com.cropguard.ai.sync';
+
+  /// Method channel shared with the native iOS BGAppRefreshTask handler.
+  static const MethodChannel _iosBgChannel =
+      MethodChannel('com.cropguard.ai/bg_sync');
+
   static Future<void> Function(
     String uniqueName,
     String taskName, {
@@ -218,10 +228,66 @@ class BackgroundTaskHelper {
       Workmanager().cancelByUniqueName;
 
   static Future<void> init() async {
-    if (!isAndroidOverride) return;
-    await Workmanager().initialize(
-      callbackDispatcher,
-    );
+    if (isAndroidOverride) {
+      await Workmanager().initialize(
+        callbackDispatcher,
+      );
+    } else if (Platform.isIOS) {
+      // Register the Dart-side handler that the native BGAppRefreshTask fires
+      // via method channel, then schedule the first OS-level wake-up.
+      _registerIosTriggerSyncHandler();
+      await scheduleIosBGAppRefresh();
+      // Also drain immediately on foreground return (belt-and-suspenders).
+      scheduleIosForegroundSync();
+    }
+  }
+
+  /// Registers the method-channel handler that the Swift AppDelegate calls
+  /// when the OS fires a BGAppRefreshTask for this app.
+  ///
+  /// The handler drains PendingSyncQueue and returns `true` on success so
+  /// BGTaskScheduler can call `setTaskCompleted(success: true)`.
+  static void _registerIosTriggerSyncHandler() {
+    _iosBgChannel.setMethodCallHandler((call) async {
+      if (call.method != 'triggerSync') return null;
+      try {
+        final repo = sl<ICommunityRepository>();
+        if (repo is CommunityRepositoryImpl) {
+          await repo.drainPendingSync();
+        }
+        dev.log('iOS BGAppRefreshTask sync drain completed.');
+        return true;
+      } catch (e) {
+        dev.log('iOS BGAppRefreshTask sync drain failed: $e');
+        return false;
+      }
+    });
+  }
+
+  /// Asks native iOS to schedule the next BGAppRefreshTask wake-up.
+  /// Safe to call multiple times — the native layer deduplicates by task ID.
+  static Future<void> scheduleIosBGAppRefresh() async {
+    if (!Platform.isIOS) return;
+    try {
+      await _iosBgChannel.invokeMethod<void>('scheduleBGSync');
+    } on MissingPluginException {
+      // Unit test environment — no plugin registered. Ignored.
+    } catch (e) {
+      dev.log('scheduleIosBGAppRefresh failed: $e');
+    }
+  }
+
+  /// Triggers an immediate offline queue drain when returning to foreground on iOS.
+  static Future<void> scheduleIosForegroundSync() async {
+    if (!Platform.isIOS) return;
+    try {
+      final repo = sl<ICommunityRepository>();
+      if (repo is CommunityRepositoryImpl) {
+        await repo.drainPendingSync();
+      }
+    } catch (e) {
+      dev.log('iOS foreground sync drain skipped/failed: $e');
+    }
   }
 
   // NOTE: scan-to-cloud sync is performed by the [_syncScansTask] registered

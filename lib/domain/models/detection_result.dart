@@ -21,6 +21,7 @@ class DetectionResult {
   // confident diagnosis.
   final bool isDegraded;
   final List<TopCandidate> topCandidates;
+  final String? modelVersion;
 
   const DetectionResult({
     this.id = 0,
@@ -37,6 +38,7 @@ class DetectionResult {
     required this.timestamp,
     this.isDegraded = false,
     this.topCandidates = const [],
+    this.modelVersion,
   });
 
   DetectionResult copyWith({
@@ -54,6 +56,7 @@ class DetectionResult {
     int? timestamp,
     bool? isDegraded,
     List<TopCandidate>? topCandidates,
+    String? modelVersion,
   }) {
     return DetectionResult(
       id: id ?? this.id,
@@ -70,6 +73,7 @@ class DetectionResult {
       timestamp: timestamp ?? this.timestamp,
       isDegraded: isDegraded ?? this.isDegraded,
       topCandidates: topCandidates ?? this.topCandidates,
+      modelVersion: modelVersion ?? this.modelVersion,
     );
   }
 
@@ -88,6 +92,7 @@ class DetectionResult {
       'treatments': treatments.join('||'),
       'timestamp': timestamp,
       'isDegraded': isDegraded ? 1 : 0,
+      'modelVersion': modelVersion,
     };
   }
 
@@ -106,6 +111,7 @@ class DetectionResult {
       treatments: (map['treatments'] as String? ?? '').split('||').where((s) => s.isNotEmpty).toList(),
       timestamp: map['timestamp'] as int? ?? 0,
       isDegraded: (map['isDegraded'] as int? ?? 0) == 1,
+      modelVersion: map['modelVersion'] as String?,
     );
   }
 }
