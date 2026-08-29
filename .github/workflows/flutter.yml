@@ -8,7 +8,7 @@ on:
 
 # Pin the Flutter version to match the team's local toolchain.
 env:
-  FLUTTER_VERSION: "3.27.0"
+  FLUTTER_VERSION: "3.44.0"
 
 jobs:
   analyze-and-test:
