@@ -14,7 +14,11 @@ abstract class IDetectionRepository {
     int? dateTo,
     String? searchQuery,
     String? orderBy,
+    bool? isSynced,
   });
+  Future<Result<List<DetectionResult>>> getUnsyncedDetections({String? userId});
+  Future<Result<void>> markDetectionSynced(int id, {int? syncedAt});
+  Future<Result<void>> markDetectionsSynced(List<int> ids, {int? syncedAt});
   Future<Result<DetectionResult?>> getDetection(int id);
   Future<Result<List<DetectionResult>>> getRecentDetections({String? userId, int limit = 5});
   Future<Result<void>> deleteDetection(int id);

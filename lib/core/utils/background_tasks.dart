@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io';
 
@@ -100,21 +101,38 @@ Future<bool> _syncScansTask() async {
       return false;
     }
 
-    final pending = await db.getAllDetections(userId: userId);
-    for (final scan in pending) {
-      // Use the local SQLite id as the Firestore document ID so that
-      // re-running the task overwrites the same document rather than
-      // appending a duplicate on every background wake-up.
-      await firestore.upsertScan(
-        scan.id.toString(),
-        {
-          ...scan.toMap(),
-          'userId': userId,
-          'syncedAt': FieldValue.serverTimestamp(),
-        },
-      );
+    final pending = await db.getUnsyncedDetections(userId: userId);
+    if (pending.isEmpty) {
+      dev.log('Sync Task: No unsynced scans found.');
+      return true;
     }
-    return true;
+
+    final syncedIds = <int>[];
+    for (final scan in pending) {
+      try {
+        // Use the local SQLite id as the Firestore document ID so that
+        // re-running the task overwrites the same document rather than
+        // appending a duplicate on every background wake-up.
+        await firestore.upsertScan(
+          scan.id.toString(),
+          {
+            ...scan.toMap(),
+            'userId': userId,
+            'syncedAt': FieldValue.serverTimestamp(),
+            'isSynced': 1,
+          },
+        );
+        syncedIds.add(scan.id);
+      } catch (e) {
+        dev.log('Sync Task: failed to sync scan ${scan.id}: $e');
+      }
+    }
+
+    if (syncedIds.isNotEmpty) {
+      await db.markDetectionsSynced(syncedIds);
+    }
+
+    return syncedIds.length == pending.length;
   } catch (e) {
     dev.log('Sync Task Error: $e');
     return false;
@@ -238,7 +256,7 @@ class BackgroundTaskHelper {
       _registerIosTriggerSyncHandler();
       await scheduleIosBGAppRefresh();
       // Also drain immediately on foreground return (belt-and-suspenders).
-      scheduleIosForegroundSync();
+      unawaited(scheduleIosForegroundSync());
     }
   }
 

@@ -51,6 +51,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityWarningTitle => 'Security Warning';
 
   @override
+  String get securityWarningBody =>
+      'CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.';
+
+  @override
   String get proceedAnyway => 'Proceed Anyway';
 
   @override
@@ -1392,7 +1396,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordsDoNotMatch => 'Passwords do not match.';
 
   @override
-  String get passwordMin6 => 'Password must be at least 6 characters.';
+  String get passwordMin8 => 'Password must be at least 8 characters.';
 
   @override
   String get explore => 'Explore';
@@ -1572,4 +1576,49 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mySubmissionsSubtitle =>
       'Track your expert & missing-crop reports';
+
+  @override
+  String get deleteTreatmentPlanTitle => 'Delete Treatment Plan?';
+
+  @override
+  String deleteTreatmentPlanBody(String planName) {
+    return 'This will permanently delete the treatment plan for \"$planName\" and all its steps.';
+  }
+
+  @override
+  String get deleteTreatmentStepTitle => 'Delete Treatment Step?';
+
+  @override
+  String deleteTreatmentStepBody(String stepName) {
+    return 'This will permanently delete the step \"$stepName\".';
+  }
+
+  @override
+  String get syncPending => 'Pending';
+
+  @override
+  String get syncSyncing => 'Syncing';
+
+  @override
+  String get syncFailed => 'Failed';
+
+  @override
+  String get syncDeliveryFailed => 'Delivery Failed';
+
+  @override
+  String get syncSynced => 'Synced';
+
+  @override
+  String get updateRequiredTitle => 'Update Required';
+
+  @override
+  String get updateRequiredBody =>
+      'A newer version of CropGuard AI is available and required to continue. Please update the app from the store.';
+
+  @override
+  String get updateNow => 'Update Now';
+
+  @override
+  String get scanEngineUnavailableDesc =>
+      'The scan engine couldn\'t start on this device. You can ask the farming community for disease identification.';
 }

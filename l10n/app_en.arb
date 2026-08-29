@@ -26,6 +26,8 @@
   "@outbreakAddPhoto": {"description": "Add photo button"},
   "securityWarningTitle": "Security Warning",
   "@securityWarningTitle": {"description": "Security warning dialog title"},
+  "securityWarningBody": "CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.",
+  "@securityWarningBody": {"description": "Security warning dialog message body when device is rooted or jailbroken"},
   "proceedAnyway": "Proceed Anyway",
   "@proceedAnyway": {"description": "Proceed anyway button"},
   "showPasswordTooltip": "Show password",
@@ -591,7 +593,7 @@
   "passwordResetSuccess": "Your password has been reset. Please sign in.",
   "resetLinkInvalid": "This reset link is invalid or has expired. Please request a new one.",
   "passwordsDoNotMatch": "Passwords do not match.",
-  "passwordMin6": "Password must be at least 6 characters.",
+  "passwordMin8": "Password must be at least 8 characters.",
   "explore": "Explore",
   "allCaughtUp": "All caught up!",
   "today": "Today",
@@ -705,6 +707,42 @@
   "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
   "mySubmissions": "My Submissions",
   "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
-  "mySubmissionsSubtitle": "Track your expert & missing-crop reports"
+  "mySubmissionsSubtitle": "Track your expert & missing-crop reports",
+  "deleteTreatmentPlanTitle": "Delete Treatment Plan?",
+  "@deleteTreatmentPlanTitle": {"description": "Title for delete treatment plan confirmation dialog"},
+  "deleteTreatmentPlanBody": "This will permanently delete the treatment plan for \"{planName}\" and all its steps.",
+  "@deleteTreatmentPlanBody": {
+    "description": "Body message for delete treatment plan confirmation dialog",
+    "placeholders": {
+      "planName": {"type": "String"}
+    }
+  },
+  "deleteTreatmentStepTitle": "Delete Treatment Step?",
+  "@deleteTreatmentStepTitle": {"description": "Title for delete treatment step confirmation dialog"},
+  "deleteTreatmentStepBody": "This will permanently delete the step \"{stepName}\".",
+  "@deleteTreatmentStepBody": {
+    "description": "Body message for delete treatment step confirmation dialog",
+    "placeholders": {
+      "stepName": {"type": "String"}
+    }
+  },
+  "syncPending": "Pending",
+  "@syncPending": {"description": "Sync badge status label for pending sync"},
+  "syncSyncing": "Syncing",
+  "@syncSyncing": {"description": "Sync badge status label for ongoing sync"},
+  "syncFailed": "Failed",
+  "@syncFailed": {"description": "Sync badge status label for failed sync"},
+  "syncDeliveryFailed": "Delivery Failed",
+  "@syncDeliveryFailed": {"description": "Sync badge status label for abandoned sync after max retries"},
+  "syncSynced": "Synced",
+  "@syncSynced": {"description": "Sync badge status label for successfully synced item"},
+  "updateRequiredTitle": "Update Required",
+  "@updateRequiredTitle": {"description": "Title for force-update dialog"},
+  "updateRequiredBody": "A newer version of CropGuard AI is available and required to continue. Please update the app from the store.",
+  "@updateRequiredBody": {"description": "Body text for force-update dialog"},
+  "updateNow": "Update Now",
+  "@updateNow": {"description": "Button label to open app store for update"},
+  "scanEngineUnavailableDesc": "The scan engine couldn't start on this device. You can ask the farming community for disease identification.",
+  "@scanEngineUnavailableDesc": {"description": "Description in scan engine unavailable dialog"}
 }
 

@@ -428,33 +428,33 @@ class _SyncStatusBadge extends StatelessWidget {
         bgColor = Colors.amber.shade50;
         textColor = Colors.amber.shade800;
         icon = Icons.access_time;
-        label = 'Pending';
+        label = context.l10n.syncPending;
         break;
       case 'syncing':
         bgColor = Colors.blue.shade50;
         textColor = Colors.blue.shade800;
         icon = Icons.sync;
-        label = 'Syncing';
+        label = context.l10n.syncSyncing;
         break;
       case 'failed':
         bgColor = Colors.red.shade50;
         textColor = Colors.red.shade800;
         icon = Icons.error_outline;
-        label = 'Failed';
+        label = context.l10n.syncFailed;
         break;
       case 'abandoned':
         // Exceeded max retries — permanent delivery failure.
         bgColor = Colors.red.shade100;
         textColor = Colors.red.shade900;
         icon = Icons.cancel_outlined;
-        label = 'Delivery Failed';
+        label = context.l10n.syncDeliveryFailed;
         break;
       case 'synced':
       default:
         bgColor = Colors.green.shade50;
         textColor = Colors.green.shade800;
         icon = Icons.check_circle_outline;
-        label = 'Synced';
+        label = context.l10n.syncSynced;
         break;
     }
 

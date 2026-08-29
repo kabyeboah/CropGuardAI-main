@@ -3,13 +3,16 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/di/service_locator.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/result.dart';
 import '../../domain/models/reporter_trust_stats.dart';
+import '../../domain/repositories/i_community_repository.dart';
 import '../../domain/repositories/i_profile_repository.dart';
 import '../local/database_helper.dart';
 import '../remote/firebase_auth_service.dart';
 import '../remote/firestore_service.dart';
+import 'community_repository_impl.dart';
 
 class ProfileRepositoryImpl implements IProfileRepository {
   static const _localPhotoPathKey = 'profile_photo_local_path';
@@ -52,6 +55,16 @@ class ProfileRepositoryImpl implements IProfileRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
+      try {
+        if (sl.isRegistered<ICommunityRepository>()) {
+          final repo = sl<ICommunityRepository>();
+          if (repo is CommunityRepositoryImpl) {
+            await repo.drainPendingSync().timeout(const Duration(seconds: 4));
+          }
+        }
+      } catch (_) {
+        // Best-effort drain; do not block sign-out if offline or timed out
+      }
       await _auth.signOut();
       return Result.success(null);
     } catch (e) {

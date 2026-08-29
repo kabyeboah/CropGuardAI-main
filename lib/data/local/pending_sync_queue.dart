@@ -27,6 +27,8 @@ enum PendingSyncType {
   treatmentDelete,
   /// Low confidence scan captured as training candidate for active learning.
   trainingCandidate,
+  /// Flagged/reported community post submitted for moderation.
+  reportedPost,
 }
 
 /// A lightweight SQLite-backed queue that stores failed cloud writes so they
@@ -107,7 +109,7 @@ class PendingSyncQueue {
       'created': DateTime.now().millisecondsSinceEpoch,
     });
     AppLogger.i('PendingSyncQueue: queued ${type.name}');
-    notifyCount(db);
+    await notifyCount(db);
   }
 
   static Future<void> notifyCount(Database db) async {
@@ -152,10 +154,19 @@ class PendingSyncQueue {
       for (final row in rows) {
         final id = row['id'] as int;
         final currentRetries = (row['retry_count'] as int?) ?? 0;
-        final type = PendingSyncType.values.firstWhere(
-          (e) => e.name == row['type'] as String,
-          orElse: () => PendingSyncType.communityPost,
-        );
+        final typeString = row['type'] as String?;
+        final type = PendingSyncType.values.where((e) => e.name == typeString).firstOrNull;
+
+        if (type == null) {
+          await db.update(
+            _table,
+            {'status': 'abandoned'},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+          AppLogger.e('PendingSyncQueue: unrecognized operation type "$typeString" for row #$id, marked as abandoned');
+          continue;
+        }
         final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
 
         // Update status to syncing
@@ -191,7 +202,7 @@ class PendingSyncQueue {
       }
     } finally {
       _isDraining = false;
-      notifyCount(db);
+      await notifyCount(db);
     }
   }
 
@@ -242,9 +253,59 @@ class PendingSyncQueue {
     return (result.first['c'] as int?) ?? 0;
   }
 
-  /// Drops all pending items — use when the user signs out to avoid leaking
-  /// another user's queued operations.
-  static Future<void> clear(Database db) async {
-    await db.delete(_table);
+  /// Clears items from the pending sync queue.
+  ///
+  /// - If [abandonedOnly] is `true`, only drops rows with `status = 'abandoned'`
+  ///   (items that exceeded [maxRetries] and will not be replayed). In-flight / pending
+  ///   items are preserved so offline scans or offline edits are not discarded when signing out.
+  /// - If [userId] is specified, only items belonging to that user ID (matched in the payload) are deleted.
+  /// - If neither is specified, all items in the queue are deleted.
+  static Future<void> clear(
+    Database db, {
+    String? userId,
+    bool abandonedOnly = false,
+  }) async {
+    if (userId != null && userId.isNotEmpty) {
+      final rows = await db.query(
+        _table,
+        where: abandonedOnly ? "status = 'abandoned'" : null,
+      );
+      final idsToDelete = <int>[];
+      for (final row in rows) {
+        try {
+          final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+          if (payload['userId'] == userId || payload['authorId'] == userId) {
+            idsToDelete.add(row['id'] as int);
+          }
+        } catch (_) {}
+      }
+      if (idsToDelete.isNotEmpty) {
+        final placeholders = List.filled(idsToDelete.length, '?').join(',');
+        await db.delete(
+          _table,
+          where: 'id IN ($placeholders)',
+          whereArgs: idsToDelete,
+        );
+      }
+    } else if (abandonedOnly) {
+      await db.delete(_table, where: "status = 'abandoned'");
+    } else {
+      await db.delete(_table);
+    }
+    await notifyCount(db);
+  }
+
+  /// Best-effort attempt to drain the pending sync queue within [timeout]
+  /// (e.g. before sign-out or app teardown) before removing completed items.
+  static Future<void> drainWithTimeout(
+    Database db, {
+    required Future<bool> Function(int id, PendingSyncType type, Map<String, dynamic> payload) handler,
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
+    try {
+      await drain(db, handler: handler).timeout(timeout);
+    } catch (e) {
+      AppLogger.w('PendingSyncQueue: drainWithTimeout timed out or failed: $e');
+    }
   }
 }

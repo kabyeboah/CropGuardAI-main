@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
+import '../../core/utils/app_logger.dart';
 import '../../core/utils/retry_utils.dart';
 
 /// Wraps FirebaseAuth — equivalent of AuthRepositoryImpl + use cases
@@ -72,8 +73,9 @@ class FirebaseAuthService {
     required String password,
     required String name,
   }) async {
+    final UserCredential credential;
     try {
-      final credential = await RetryUtils.retry(
+      credential = await RetryUtils.retry(
         () => _auth.createUserWithEmailAndPassword(
           email: email.trim(),
           password: password,
@@ -82,18 +84,29 @@ class FirebaseAuthService {
         timeout: const Duration(seconds: 15),
         retryIf: _isAuthTransientError,
       );
-      await RetryUtils.retry(
-        () => credential.user?.updateDisplayName(name.trim()),
-        maxAttempts: 3,
-        timeout: const Duration(seconds: 10),
-        retryIf: _isAuthTransientError,
-      );
-      return credential;
     } on FirebaseAuthException catch (e) {
       throw AuthFailure(e.message ?? 'Registration failed (code: ${e.code})');
     } catch (e) {
       throw AuthFailure('Registration failed: ${e.toString()}');
     }
+
+    if (name.trim().isNotEmpty) {
+      try {
+        await RetryUtils.retry(
+          () => credential.user?.updateDisplayName(name.trim()),
+          maxAttempts: 3,
+          timeout: const Duration(seconds: 10),
+          retryIf: _isAuthTransientError,
+        );
+      } catch (e) {
+        // Non-fatal: the account was already created in Firebase Auth.
+        // Don't fail the whole registration if display-name update fails
+        // on intermittent / low connectivity networks.
+        AppLogger.w('Failed to update display name after registration: $e');
+      }
+    }
+
+    return credential;
   }
 
   Future<void> sendPasswordReset(String email) async {
@@ -161,7 +174,7 @@ class FirebaseAuthService {
   Future<UserCredential> signInWithGoogle() async {
     try {
       final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
-      if (googleUser == null) throw AuthFailure('Google sign-in cancelled');
+      if (googleUser == null) throw const AuthFailure('Google sign-in cancelled');
       final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -228,7 +241,7 @@ class FirebaseAuthService {
       final user = _auth.currentUser;
       final email = user?.email;
       if (user == null || email == null || email.isEmpty) {
-        throw AuthFailure('No email account to re-authenticate');
+        throw const AuthFailure('No email account to re-authenticate');
       }
       final credential = EmailAuthProvider.credential(
         email: email,
@@ -251,14 +264,14 @@ class FirebaseAuthService {
   Future<void> reauthenticateWithGoogle() async {
     try {
       final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
-      if (googleUser == null) throw AuthFailure('Google sign-in cancelled');
+      if (googleUser == null) throw const AuthFailure('Google sign-in cancelled');
       final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       final user = _auth.currentUser;
-      if (user == null) throw AuthFailure('No user signed in');
+      if (user == null) throw const AuthFailure('No user signed in');
       await RetryUtils.retry(
         () => user.reauthenticateWithCredential(credential),
         maxAttempts: 3,
@@ -277,7 +290,7 @@ class FirebaseAuthService {
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) throw AuthFailure('No user signed in');
+      if (user == null) throw const AuthFailure('No user signed in');
       await RetryUtils.retry(
         () => user.delete(),
         maxAttempts: 3,
@@ -296,7 +309,7 @@ class FirebaseAuthService {
   Future<void> updateDisplayName(String name) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) throw AuthFailure('No user signed in');
+      if (user == null) throw const AuthFailure('No user signed in');
       await RetryUtils.retry(
         () => user.updateDisplayName(name),
         maxAttempts: 3,
@@ -314,7 +327,7 @@ class FirebaseAuthService {
   Future<void> updatePhotoUrl(String url) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) throw AuthFailure('No user signed in');
+      if (user == null) throw const AuthFailure('No user signed in');
       await RetryUtils.retry(
         () => user.updatePhotoURL(url),
         maxAttempts: 3,
@@ -334,7 +347,7 @@ class FirebaseAuthService {
   String get currentUserId {
     final uid = _auth.currentUser?.uid;
     if (uid == null || uid.isEmpty) {
-      throw AuthFailure('No authenticated user found.');
+      throw const AuthFailure('No authenticated user found.');
     }
     return uid;
   }

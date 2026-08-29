@@ -23,33 +23,50 @@ class ImageUploadService {
   Future<String> uploadImage(String localPath, {String? userId}) async {
     final effectiveUserId = userId ?? 'anonymous';
 
+    File? tempCompressedFile;
     String effectivePath = localPath;
     try {
       final file = File(localPath);
       final compressed = await ImageCompressor.compressImage(file);
+      if (compressed.path != file.path) {
+        tempCompressedFile = compressed;
+      }
       effectivePath = compressed.path;
     } catch (e) {
       AppLogger.w('ImageUploadService: Compression pre-step failed, using raw file: $e');
     }
 
-    // 1. Try Cloudinary if configured
-    if (AppSecrets.hasCloudinaryConfig) {
-      try {
-        return await _cloudinaryService.uploadImage(effectivePath);
-      } catch (e) {
-        AppLogger.w('ImageUploadService: Cloudinary upload failed ($e). Falling back to Firebase Storage.');
-      }
-    }
-
-    // 2. Fallback to Firebase Storage
     try {
-      return await _firebaseStorageService.uploadCommunityImage(
-        localPath: effectivePath,
-        userId: effectiveUserId,
-      );
-    } catch (e) {
-      AppLogger.e('ImageUploadService: Firebase Storage fallback failed ($e).');
-      throw ServerFailure('Image upload failed across Cloudinary and Firebase Storage: $e');
+      // 1. Try Cloudinary if configured
+      if (AppSecrets.hasCloudinaryConfig) {
+        try {
+          return await _cloudinaryService.uploadImage(effectivePath);
+        } catch (e) {
+          AppLogger.w('ImageUploadService: Cloudinary upload failed ($e). Falling back to Firebase Storage.');
+        }
+      }
+
+      // 2. Fallback to Firebase Storage
+      try {
+        return await _firebaseStorageService.uploadCommunityImage(
+          localPath: effectivePath,
+          userId: effectiveUserId,
+        );
+      } catch (e) {
+        AppLogger.e('ImageUploadService: Firebase Storage fallback failed ($e).');
+        throw ServerFailure('Image upload failed across Cloudinary and Firebase Storage: $e');
+      }
+    } finally {
+      if (tempCompressedFile != null) {
+        try {
+          if (await tempCompressedFile.exists()) {
+            await tempCompressedFile.delete();
+            AppLogger.d('ImageUploadService: Cleaned up temporary compressed file: ${tempCompressedFile.path}');
+          }
+        } catch (e) {
+          AppLogger.w('ImageUploadService: Failed to delete temp compressed file: $e');
+        }
+      }
     }
   }
 }

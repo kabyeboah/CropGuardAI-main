@@ -54,7 +54,7 @@ class PushNotificationService {
       await _subscribeToTopic('outbreak_alerts');
 
       // Fetch and register current device FCM Token
-      await _syncFcmToken();
+      await syncFcmToken();
 
       // Listen for token refreshes
       _fcm.onTokenRefresh.listen((newToken) {
@@ -84,28 +84,30 @@ class PushNotificationService {
     }
   }
 
-  static Future<void> _syncFcmToken() async {
+  /// Public entrypoint to fetch and register current device FCM Token to Firestore.
+  /// If [userId] is omitted, falls back to FirebaseAuth.instance.currentUser?.uid.
+  static Future<void> syncFcmToken([String? userId]) async {
     try {
       final token = await _fcm.getToken();
       if (token != null) {
         AppLogger.d('FCM Token retrieved: ${token.substring(0, 8)}...');
-        await _saveTokenToFirestore(token);
+        await _saveTokenToFirestore(token, userId: userId);
       }
     } catch (e) {
       AppLogger.w('Failed to get FCM token: $e');
     }
   }
 
-  static Future<void> _saveTokenToFirestore(String token) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  static Future<void> _saveTokenToFirestore(String token, {String? userId}) async {
+    final uid = userId ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
         'platform': defaultTargetPlatform.name,
       }, SetOptions(merge: true));
-      AppLogger.d('FCM Token synced to Firestore for user ${user.uid}');
+      AppLogger.d('FCM Token synced to Firestore for user $uid');
     } catch (e) {
       AppLogger.w('Failed to save FCM token to Firestore: $e');
     }

@@ -46,7 +46,7 @@ void main() {
 
     test('returns error result when repository fails', () async {
       when(() => repo.sendPasswordReset(any()))
-          .thenAnswer((_) async => Result.error(AuthFailure('User not found')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('User not found')));
 
       final result = await sendReset('noone@example.com');
 
@@ -78,7 +78,7 @@ void main() {
 
     test('returns error when repository fails', () async {
       when(() => repo.signInAnonymously())
-          .thenAnswer((_) async => Result.error(AuthFailure('Anon sign-in disabled')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('Anon sign-in disabled')));
 
       final result = await signInAnon();
 
@@ -109,7 +109,7 @@ void main() {
 
     test('returns error when Google sign-in fails', () async {
       when(() => repo.signInWithGoogle())
-          .thenAnswer((_) async => Result.error(AuthFailure('Google sign-in cancelled')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('Google sign-in cancelled')));
 
       final result = await signInGoogle();
 

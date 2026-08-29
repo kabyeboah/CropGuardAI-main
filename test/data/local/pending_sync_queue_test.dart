@@ -126,7 +126,7 @@ void main() {
       expect(handledCount, 1);
     });
 
-    test('clear removes all items', () async {
+    test('clear removes all items when called without arguments', () async {
       for (int i = 0; i < 4; i++) {
         await PendingSyncQueue.enqueue(
           db,
@@ -135,6 +135,75 @@ void main() {
         );
       }
       await PendingSyncQueue.clear(db);
+      expect(await PendingSyncQueue.pendingCount(db), 0);
+    });
+
+    test('clear with abandonedOnly true only removes abandoned items, preserving in-flight scans', () async {
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.scanUpload,
+        payload: {'id': 'scan_1'},
+      );
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.communityPost,
+        payload: {'id': 'post_1'},
+      );
+      // Mark one item as abandoned
+      await db.update('pending_sync', {'status': 'abandoned'}, where: 'id = ?', whereArgs: [1]);
+
+      expect(await PendingSyncQueue.pendingCount(db), 1);
+      final allRowsBefore = await db.query('pending_sync');
+      expect(allRowsBefore.length, 2);
+
+      await PendingSyncQueue.clear(db, abandonedOnly: true);
+
+      final allRowsAfter = await db.query('pending_sync');
+      expect(allRowsAfter.length, 1);
+      expect(allRowsAfter.first['id'], 2);
+      expect(await PendingSyncQueue.pendingCount(db), 1);
+    });
+
+    test('clear with userId scopes removal to specific user', () async {
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.scanUpload,
+        payload: {'userId': 'user_a', 'data': 'scan_a'},
+      );
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.scanUpload,
+        payload: {'userId': 'user_b', 'data': 'scan_b'},
+      );
+
+      expect(await PendingSyncQueue.pendingCount(db), 2);
+
+      await PendingSyncQueue.clear(db, userId: 'user_a');
+
+      final remaining = await db.query('pending_sync');
+      expect(remaining.length, 1);
+      expect(remaining.first['payload'], contains('user_b'));
+      expect(await PendingSyncQueue.pendingCount(db), 1);
+    });
+
+    test('drainWithTimeout executes drain and handles timeout gracefully', () async {
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.communityPost,
+        payload: {'title': 'Offline Post'},
+      );
+
+      bool drained = false;
+      await PendingSyncQueue.drainWithTimeout(
+        db,
+        handler: (id, type, payload) async {
+          drained = true;
+          return true;
+        },
+        timeout: const Duration(seconds: 2),
+      );
+
+      expect(drained, isTrue);
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
@@ -189,6 +258,36 @@ void main() {
       expect(sanitized['date'], now.toIso8601String());
       expect(sanitized['nestedMap']['innerDate'], now.toIso8601String());
       expect(sanitized['list'], [now.toIso8601String(), 'text']);
+    });
+
+    test('drain marks unrecognized operation types as abandoned without invoking handler', () async {
+      // Insert a row with an unknown/obsolete type directly into the table
+      await db.insert('pending_sync', {
+        'type': 'legacyDeprecatedType_v1',
+        'payload': '{"someKey": "someValue"}',
+        'status': 'pending',
+        'retry_count': 0,
+        'created': DateTime.now().millisecondsSinceEpoch,
+      });
+
+      expect(await PendingSyncQueue.pendingCount(db), 1);
+
+      final handledTypes = <PendingSyncType>[];
+      await PendingSyncQueue.drain(db, handler: (id, type, payload) async {
+        handledTypes.add(type);
+        return true;
+      });
+
+      // Handler should never be invoked for unrecognized types
+      expect(handledTypes, isEmpty);
+
+      // Row status should be updated to abandoned in the database
+      final rows = await db.query('pending_sync');
+      expect(rows.length, 1);
+      expect(rows.first['status'], 'abandoned');
+
+      // pendingCount excludes abandoned items, so count should now be 0
+      expect(await PendingSyncQueue.pendingCount(db), 0);
     });
   });
 }

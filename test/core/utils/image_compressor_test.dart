@@ -65,5 +65,29 @@ void main() {
         if (await testFile.exists()) await testFile.delete();
       }
     });
+
+    test('cleanOldCompressedImages removes expired compressed files and retains newer ones', () async {
+      final tempDir = Directory.systemTemp;
+      final oldFile = File('${tempDir.path}/${ImageCompressor.tempFilePrefix}old_test.jpg');
+      await oldFile.writeAsBytes([1, 2, 3]);
+      // Set last modified date to 2 days ago
+      await oldFile.setLastModified(DateTime.now().subtract(const Duration(days: 2)));
+
+      final newFile = File('${tempDir.path}/${ImageCompressor.tempFilePrefix}new_test.jpg');
+      await newFile.writeAsBytes([1, 2, 3]);
+
+      try {
+        expect(await oldFile.exists(), isTrue);
+        expect(await newFile.exists(), isTrue);
+
+        await ImageCompressor.cleanOldCompressedImages(maxAge: const Duration(hours: 24));
+
+        expect(await oldFile.exists(), isFalse);
+        expect(await newFile.exists(), isTrue);
+      } finally {
+        if (await oldFile.exists()) await oldFile.delete();
+        if (await newFile.exists()) await newFile.delete();
+      }
+    });
   });
 }

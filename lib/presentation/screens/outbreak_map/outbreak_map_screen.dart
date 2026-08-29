@@ -144,7 +144,7 @@ final List<Map<String, dynamic>> _kSeedOutbreakReports = [
 ];
 
 
-// Curated disease list drawn from labels.txt — most relevant for Ghana.
+// Curated disease list drawn from labels_verified.txt — most relevant for Ghana.
 const _kDiseases = [
   'Cassava Mosaic Disease',
   'Cassava Brown Streak Disease',

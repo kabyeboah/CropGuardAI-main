@@ -85,7 +85,7 @@ void main() {
 
     test('queues payload in PendingSyncQueue when Firestore throws transient error', () async {
       when(() => mockFirestore.submitOutbreakReport(any()))
-          .thenThrow(ServerFailure('Network offline'));
+          .thenThrow(const ServerFailure('Network offline'));
 
       final res = await repo.submitOutbreakReport({
         'userId': 'user123',
@@ -94,6 +94,79 @@ void main() {
 
       expect(res.isSuccess, true); // Optimistic success
       expect(await PendingSyncQueue.pendingCount(db), 1);
+    });
+  });
+
+  group('CommunityRepositoryImpl.reportPost', () {
+    test('rejects unauthenticated caller when reporterId is empty', () async {
+      final res = await repo.reportPost(
+        postId: 'post_123',
+        reporterId: '',
+        reason: 'spam',
+      );
+
+      expect(res.isError, true);
+      expect(res.failure, isA<AuthFailure>());
+      verifyNever(() => mockFirestore.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          ));
+      expect(await PendingSyncQueue.pendingCount(db), 0);
+    });
+
+    test('calls FirestoreService.reportPost on valid report', () async {
+      when(() => mockFirestore.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          )).thenAnswer((_) async {});
+
+      final res = await repo.reportPost(
+        postId: 'post_123',
+        reporterId: 'user_456',
+        reason: 'harmful_content',
+      );
+
+      expect(res.isSuccess, true);
+      verify(() => mockFirestore.reportPost(
+            postId: 'post_123',
+            reporterId: 'user_456',
+            reason: 'harmful_content',
+          )).called(1);
+      expect(await PendingSyncQueue.pendingCount(db), 0);
+    });
+
+    test('queues reported post in PendingSyncQueue on transient error', () async {
+      when(() => mockFirestore.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          )).thenThrow(const ServerFailure('Network offline'));
+
+      final res = await repo.reportPost(
+        postId: 'post_123',
+        reporterId: 'user_456',
+        reason: 'spam',
+      );
+
+      expect(res.isSuccess, true); // Optimistic success for the user
+      expect(await PendingSyncQueue.pendingCount(db), 1);
+
+      // Verify drainPendingSync handles PendingSyncType.reportedPost
+      when(() => mockFirestore.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          )).thenAnswer((_) async {});
+
+      await repo.drainPendingSync();
+      expect(await PendingSyncQueue.pendingCount(db), 0);
+      verify(() => mockFirestore.reportPost(
+            postId: 'post_123',
+            reporterId: 'user_456',
+            reason: 'spam',
+          )).called(2);
     });
   });
 }

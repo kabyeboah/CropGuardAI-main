@@ -51,6 +51,10 @@ class AppLocalizationsTw extends AppLocalizations {
   String get securityWarningTitle => 'Security Warning';
 
   @override
+  String get securityWarningBody =>
+      'CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.';
+
+  @override
   String get proceedAnyway => 'Proceed Anyway';
 
   @override
@@ -1392,7 +1396,7 @@ class AppLocalizationsTw extends AppLocalizations {
   String get passwordsDoNotMatch => 'Passwords do not match.';
 
   @override
-  String get passwordMin6 => 'Password must be at least 6 characters.';
+  String get passwordMin8 => 'Password must be at least 8 characters.';
 
   @override
   String get explore => 'Explore';
@@ -1571,4 +1575,49 @@ class AppLocalizationsTw extends AppLocalizations {
 
   @override
   String get mySubmissionsSubtitle => 'Hwɛ w\'adwumayɛ ne asɛm a woɔman no mu';
+
+  @override
+  String get deleteTreatmentPlanTitle => 'Pepa Saa Ayaresa Nhyehyɛe Yi?';
+
+  @override
+  String deleteTreatmentPlanBody(String planName) {
+    return 'Eyi bɛpepa ayaresa nhyehyɛe a ɛfa \"$planName\" ne ne nnammu nyinaa korakora.';
+  }
+
+  @override
+  String get deleteTreatmentStepTitle => 'Pepa Saa Ayaresa Anammɔn Yi?';
+
+  @override
+  String deleteTreatmentStepBody(String stepName) {
+    return 'Eyi bɛpepa anammɔn \"$stepName\" no korakora.';
+  }
+
+  @override
+  String get syncPending => 'Retwɛn';
+
+  @override
+  String get syncSyncing => 'Resync';
+
+  @override
+  String get syncFailed => 'Anyɛ yie';
+
+  @override
+  String get syncDeliveryFailed => 'Anyɛ yie koraa';
+
+  @override
+  String get syncSynced => 'Async';
+
+  @override
+  String get updateRequiredTitle => 'Ehia sɛ Wohyɛ Foforo';
+
+  @override
+  String get updateRequiredBody =>
+      'CropGuard AI foforo bi aba a ɛsɛ sɛ wode yɛ adwuma na woatumi atoaso. Yɛsrɛ wo, kɔ store no mu na kɔhyɛ foforo.';
+
+  @override
+  String get updateNow => 'Hyɛ Foforo Seesei';
+
+  @override
+  String get scanEngineUnavailableDesc =>
+      'Scan mfiri no antumi anyɛ adwuma wɔ fon yi so. Wubetumi abisa mmoa afi akuafo kuw no hɔ.';
 }

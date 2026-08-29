@@ -1,6 +1,6 @@
 /// Dart equivalent of DiseaseInfo.kt + DiseaseDatabase object.
 /// Contains metadata for disease classes output by ML models.
-/// Note: Crops not yet present in trained models (labels.txt / labels_v2.txt) are retained as documented future expansion targets — see MODEL_EXPANSION_GUIDE.md
+/// Note: Crops not yet present in the trained model (labels_verified.txt) are retained as documented future expansion targets — see MODEL_EXPANSION_GUIDE.md
 library;
 
 class DiseaseInfoEntry {
@@ -1527,7 +1527,584 @@ class DiseaseDatabase {
         'Destroy infected stubble and ratoons by burning; do not use for re-planting.',
       ],
     ),
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Entries below cover all labels present in labels_verified.txt (Verified model, 51 classes)
+    // that were previously missing from DiseaseDatabase, causing those predictions
+    // to fall through to the generic Unknown path with no treatment info.
+    // Label keys match labels_verified.txt exactly (case-sensitive).
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Banana (V3 labels) ───────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Banana___Cordana',
+      displayName: 'Banana Cordana Leaf Spot',
+      cropType: 'Banana',
+      cause: 'Fungal infection by Cordana musae',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Remove and destroy heavily infected lower leaves.',
+        'Apply mancozeb or chlorothalonil fungicide at first sign of lesions.',
+        'Ensure adequate plant spacing for air circulation.',
+        'Avoid overhead irrigation; water at the base.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Banana___Healthy',
+      displayName: 'Banana — Healthy',
+      cropType: 'Banana',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain regular fertilizer schedule (N-P-K balanced).',
+        'Continue monitoring for early signs of Black Sigatoka or Cordana.',
+        'Practice good weed management around the mat.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Banana___Pestalotiopsis',
+      displayName: 'Banana Pestalotiopsis Leaf Spot',
+      cropType: 'Banana',
+      cause: 'Fungal complex including Pestalotiopsis sp.',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Remove infected leaves and dispose of them away from the plantation.',
+        'Apply copper-based or systemic fungicide (propiconazole) as needed.',
+        'Reduce plant stress through proper irrigation and fertilization.',
+        'Consult MoFA extension officer if lesions spread rapidly.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Banana___Sigatoka',
+      displayName: 'Banana Yellow Sigatoka',
+      cropType: 'Banana',
+      cause: 'Fungal infection by Mycosphaerella musicola',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Remove and destroy affected leaves, especially yellowing ones.',
+        'Apply fungicide (mancozeb or chlorothalonil) every 2–3 weeks during wet season.',
+        'Ensure proper plant spacing to reduce leaf wetness period.',
+        'Maintain plant nutrition; potassium deficiency increases susceptibility.',
+      ],
+    ),
+
+    // ─── Cashew (V3 labels — additional) ─────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Cashew___Gumosis',
+      displayName: 'Cashew Gummosis',
+      cropType: 'Cashew',
+      cause: 'Phytophthora species or stem injury / waterlogging stress',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Improve field drainage to prevent waterlogged conditions.',
+        'Scrape away gummy exudate and apply copper oxychloride paste to the wound.',
+        'Avoid mechanical injury to trunks during weeding.',
+        'Apply systemic fungicide (metalaxyl) as drench around the base if Phytophthora confirmed.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cashew___Healthy',
+      displayName: 'Cashew — Healthy',
+      cropType: 'Cashew',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain fertilizer schedule and prune for canopy management.',
+        'Monitor for Anthracnose during flushing and flowering.',
+        'Keep field clean of fallen leaves and mummified nuts.',
+      ],
+    ),
+
+    // ─── Cassava (V3 labels) ──────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Cassava___Bacterial_Blight',
+      displayName: 'Cassava Bacterial Blight',
+      cropType: 'Cassava',
+      cause: 'Bacterial infection by Xanthomonas axonopodis pv. manihotis',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Use only certified, disease-free planting material (stem cuttings).',
+        'Remove and destroy infected plant parts immediately.',
+        'Apply copper-based bactericide as a foliar spray at first appearance.',
+        'Do not replant in the same field for at least one season after outbreak.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Brown_Spot',
+      displayName: 'Cassava Brown Spot',
+      cropType: 'Cassava',
+      cause: 'Fungal infection by Cercospora henningsii',
+      severity: 'early',
+      isHealthy: false,
+      treatments: [
+        'Remove severely infected leaves and burn to reduce inoculum.',
+        'Apply mancozeb fungicide if infection is spreading rapidly.',
+        'Improve plant spacing for better air circulation.',
+        'Use tolerant cassava varieties where available.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Brown_Streak_Disease',
+      displayName: 'Cassava Brown Streak Disease (CBSD)',
+      cropType: 'Cassava',
+      cause: 'Cassava brown streak virus (CBSV) — whitefly transmitted',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Use certified CBSD-resistant or tolerant varieties (e.g., IITA-bred lines).',
+        'Remove and destroy infected plants immediately to prevent spread.',
+        'Control whitefly populations with insecticide (imidacloprid) or neem extract.',
+        'Do not use cuttings from symptomatic plants for replanting.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Green_Mite',
+      displayName: 'Cassava Green Mite',
+      cropType: 'Cassava',
+      cause: 'Mite infestation by Mononychellus tanajoa',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply acaricide (abamectin or dicofol) during severe infestation.',
+        'Introduce natural predators (Typhlodromalus aripo) where available.',
+        'Avoid broad-spectrum insecticides that kill natural enemies.',
+        'Plant resistant cassava varieties; ensure adequate soil moisture.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Green_Mottle',
+      displayName: 'Cassava Green Mottle',
+      cropType: 'Cassava',
+      cause: 'Cassava green mottle virus (CaGMV)',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Use virus-free planting material from certified nurseries.',
+        'Remove symptomatic plants and dispose of them away from the field.',
+        'Control whitefly and other insect vectors.',
+        'Consult MoFA for varietal recommendations with viral tolerance.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Healthy',
+      displayName: 'Cassava — Healthy',
+      cropType: 'Cassava',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain recommended spacing (1 m × 1 m) for good canopy management.',
+        'Apply potassium-rich fertilizer at planting and 8 weeks after.',
+        'Monitor regularly for whitefly (CMD vector) and green mite.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Cassava___Mosaic',
+      displayName: 'Cassava Mosaic Disease (CMD)',
+      cropType: 'Cassava',
+      cause: 'African cassava mosaic virus (ACMV) — whitefly transmitted',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Plant CMD-resistant varieties (e.g., Afisiafi, Bankye Fitaa) approved by MoFA.',
+        'Use clean, symptom-free stem cuttings from certified sources.',
+        'Control whitefly with neem-based insecticide or imidacloprid.',
+        'Rogue out and destroy infected plants promptly before whitefly spreads virus.',
+      ],
+    ),
+
+    // ─── Groundnut (V3 labels) ────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Groundnut___Leaf_Raw',
+      displayName: 'Groundnut Leaf (Unclassified)',
+      cropType: 'Groundnut',
+      cause: 'Leaf tissue captured without clear disease symptom',
+      severity: 'unclear',
+      isHealthy: false,
+      treatments: [
+        'Retake photo under good daylight with the full leaf in frame.',
+        'Monitor for early leaf spot (Cercospora arachidicola) and late leaf spot.',
+        'Consult an agricultural extension officer if symptoms develop.',
+      ],
+    ),
+
+    // ─── Maize (V3 labels) ────────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Maize___Blight',
+      displayName: 'Maize Northern Leaf Blight',
+      cropType: 'Maize',
+      cause: 'Fungal infection by Exserohilum turcicum',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Plant resistant or tolerant hybrid varieties.',
+        'Apply propiconazole or tebuconazole fungicide at V8–V10 growth stage.',
+        'Practice crop rotation; do not grow maize on the same field consecutively.',
+        'Remove and destroy crop debris after harvest.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Common_Rust',
+      displayName: 'Maize Common Rust',
+      cropType: 'Maize',
+      cause: 'Fungal infection by Puccinia sorghi',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply fungicide (mancozeb or propiconazole) at first sign of pustules.',
+        'Plant rust-resistant maize varieties available through MoFA/CSIR-SARI.',
+        'Scout weekly from tasseling; early intervention limits yield loss.',
+        'Ensure adequate plant nutrition — potassium reduces rust severity.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Fall_Armyworm',
+      displayName: 'Maize Fall Armyworm',
+      cropType: 'Maize',
+      cause: 'Insect pest: Spodoptera frugiperda larvae',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Apply emamectin benzoate or spinetoram insecticide into the whorl at early infestation.',
+        'Use biopesticide (Bt-based) as a safer alternative during early larval stages.',
+        'Scout fields twice weekly from V3 stage; apply sand-ash mixture into whorl as deterrent.',
+        'Report severe outbreaks to MoFA extension services for coordinated response.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Grasshopper',
+      displayName: 'Maize Grasshopper Damage',
+      cropType: 'Maize',
+      cause: 'Insect feeding: Zonocerus variegatus and related species',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply contact insecticide (cypermethrin or dimethoate) during early morning feeding.',
+        'Use bait stations (metarhizium-based) around field borders.',
+        'Clear surrounding vegetation which harbours grasshoppers.',
+        'Early planting reduces overlap with peak grasshopper season.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Gray_Leaf_Spot',
+      displayName: 'Maize Gray Leaf Spot',
+      cropType: 'Maize',
+      cause: 'Fungal infection by Cercospora zeae-maydis',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply strobilurin or triazole fungicide (azoxystrobin, propiconazole) at tasseling.',
+        'Plant GLS-resistant varieties; avoid susceptible hybrids in high-humidity areas.',
+        'Rotate with non-grass crops for at least one season.',
+        'Till in or remove crop debris to reduce overwintering inoculum.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Healthy',
+      displayName: 'Maize — Healthy',
+      cropType: 'Maize',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain planting schedule and fertilizer programme (NPK + urea top-dress).',
+        'Scout regularly for Fall Armyworm from V3 stage onward.',
+        'Maintain weed-free conditions for the first 4 weeks after planting.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Leaf_Beetle',
+      displayName: 'Maize Leaf Beetle Damage',
+      cropType: 'Maize',
+      cause: 'Insect feeding: leaf beetle species (Diabrotica, Chrysomelidae)',
+      severity: 'early',
+      isHealthy: false,
+      treatments: [
+        'Apply lambda-cyhalothrin or cypermethrin if infestation is widespread.',
+        'Hand-pick beetles in small plots; destroy egg masses found under leaves.',
+        'Encourage natural predators by minimising broad-spectrum insecticide use.',
+        'Monitor closely; leaf beetle rarely causes economic loss at low densities.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Leaf_Blight',
+      displayName: 'Maize Southern Leaf Blight',
+      cropType: 'Maize',
+      cause: 'Fungal infection by Cochliobolus heterostrophus (Helminthosporium maydis)',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply mancozeb or propiconazole fungicide beginning at tasseling stage.',
+        'Use resistant hybrid varieties; avoid planting susceptible T-cytoplasm lines.',
+        'Rotate crops; incorporate maize residues after harvest.',
+        'Improve field drainage to reduce humidity.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Leaf_Spot',
+      displayName: 'Maize Leaf Spot',
+      cropType: 'Maize',
+      cause: 'Fungal complex (Bipolaris, Curvularia, or Phaeosphaeria spp.)',
+      severity: 'early',
+      isHealthy: false,
+      treatments: [
+        'Apply mancozeb at first symptom appearance, repeat after 14 days.',
+        'Ensure good drainage and avoid waterlogging.',
+        'Plant tolerant varieties; practice crop rotation.',
+        'Remove heavily infected leaves if practical on small plots.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Maize___Streak_Virus',
+      displayName: 'Maize Streak Virus (MSV)',
+      cropType: 'Maize',
+      cause: 'Maize streak virus — leafhopper (Cicadulina spp.) transmitted',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Plant MSV-resistant varieties (check CSIR-SARI or MoFA recommended list).',
+        'Control leafhopper vectors with imidacloprid seed treatment or foliar spray at emergence.',
+        'Avoid planting near Napier grass or other grass-weed reservoirs.',
+        'Early planting before peak leafhopper season reduces infection risk.',
+      ],
+    ),
+
+    // ─── Mango (V3 labels — additional) ──────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Mango___Healthy',
+      displayName: 'Mango — Healthy',
+      cropType: 'Mango',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Continue regular pruning to maintain canopy shape and airflow.',
+        'Apply balanced fertilizer post-harvest and at flowering.',
+        'Scout for Mango Hopper and Anthracnose during flowering.',
+      ],
+    ),
+
+    // ─── Rice (V3 labels) ─────────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Rice___Bacterial_Blight',
+      displayName: 'Rice Bacterial Blight (BB)',
+      cropType: 'Rice',
+      cause: 'Bacterial infection by Xanthomonas oryzae pv. oryzae',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Use BB-resistant varieties (e.g., ARICA varieties from WARDA/AfricaRice).',
+        'Apply copper oxychloride (0.3%) as foliar spray at tillering and booting.',
+        'Avoid excessive nitrogen application which promotes lush, susceptible tissue.',
+        'Drain the field for 7–10 days at first sign of infection; bacteria need free water.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Rice___Brown_Spot',
+      displayName: 'Rice Brown Spot',
+      cropType: 'Rice',
+      cause: 'Fungal infection by Cochliobolus miyabeanus (Helminthosporium oryzae)',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply iprodione or propiconazole fungicide at panicle initiation.',
+        'Correct soil nutrient deficiencies (especially potassium and silica).',
+        'Use certified disease-free seed; treat seed with thiram before sowing.',
+        'Improve field drainage to avoid waterlogging stress.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Rice___Healthy',
+      displayName: 'Rice — Healthy',
+      cropType: 'Rice',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain water management (alternate wetting and drying to save water).',
+        'Apply balanced NPK fertilizer per soil test recommendations.',
+        'Scout weekly for blast, brown spot, and stem borer from tillering stage.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Rice___Leaf_Blast',
+      displayName: 'Rice Leaf Blast',
+      cropType: 'Rice',
+      cause: 'Fungal infection by Magnaporthe oryzae',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Apply tricyclazole or isoprothiolane fungicide at first lesion appearance.',
+        'Use blast-resistant varieties; avoid susceptible lowland rice in high-humidity zones.',
+        'Reduce nitrogen application — high N promotes blast-susceptible tissue.',
+        'Drain the field temporarily to reduce humidity around the canopy.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Rice___Leaf_Scald',
+      displayName: 'Rice Leaf Scald',
+      cropType: 'Rice',
+      cause: 'Fungal infection by Microdochium oryzae (Helminthosporium sigmoideum)',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply propiconazole or mancozeb fungicide at heading stage.',
+        'Use certified disease-free seed; hot-water seed treatment at 53 °C for 10 minutes.',
+        'Avoid dense planting which increases humidity and infection pressure.',
+        'Drain fields between irrigations to reduce moisture around leaves.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Rice___Sheath_Blight',
+      displayName: 'Rice Sheath Blight',
+      cropType: 'Rice',
+      cause: 'Fungal infection by Rhizoctonia solani',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Apply hexaconazole or validamycin fungicide at tillering when lesions appear at water line.',
+        'Reduce plant density to limit canopy humidity and sclerotia spread.',
+        'Avoid excessive nitrogen; split N application to reduce lush growth.',
+        'Drain the field and let it dry briefly when disease is active.',
+      ],
+    ),
+
+    // ─── Sugarcane (V3 labels — additional) ──────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Sugarcane___Healthy',
+      displayName: 'Sugarcane — Healthy',
+      cropType: 'Sugarcane',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain fertilizer programme (nitrogen top-dress at 4–6 weeks after planting).',
+        'Monitor for Red Rot and smut; inspect setts before planting each ratoon.',
+        'Keep field weed-free for the first 3 months.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Sugarcane___Mosaic',
+      displayName: 'Sugarcane Mosaic',
+      cropType: 'Sugarcane',
+      cause: 'Sugarcane mosaic virus (SCMV) — aphid transmitted',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Plant mosaic-tolerant or resistant varieties (consult GAEC/local extension).',
+        'Use heat-treated, certified disease-free planting setts.',
+        'Control aphid vectors with imidacloprid or neem extract spray.',
+        'Remove and destroy symptomatic stools; do not use as planting material.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Sugarcane___Rust',
+      displayName: 'Sugarcane Rust',
+      cropType: 'Sugarcane',
+      cause: 'Fungal infection by Puccinia melanocephala (brown rust) or P. kuehnii (orange rust)',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Plant rust-resistant varieties where available.',
+        'Apply propiconazole or trifloxystrobin fungicide at first pustule appearance.',
+        'Improve field drainage and plant spacing to reduce leaf wetness.',
+        'Monitor closely during rainy season when rust spreads fastest.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Sugarcane___Yellow',
+      displayName: 'Sugarcane Yellow Leaf Syndrome',
+      cropType: 'Sugarcane',
+      cause: 'Sugarcane yellow leaf virus (ScYLV) — aphid transmitted',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Use certified virus-free planting material from reputable nurseries.',
+        'Control aphid vectors; avoid planting near infected volunteer cane.',
+        'Roguing symptomatic plants may slow spread in seed beds.',
+        'Consult MoFA or GAEC extension officer for resistant variety options.',
+      ],
+    ),
+
+    // ─── Tomato (V3 labels) ───────────────────────────────────────────────
+    DiseaseInfoEntry(
+      label: 'Tomato___Healthy',
+      displayName: 'Tomato — Healthy',
+      cropType: 'Tomato',
+      cause: 'No disease detected',
+      severity: 'healthy',
+      isHealthy: true,
+      treatments: [
+        'Maintain staking, pruning, and trellising for air circulation.',
+        'Continue regular fungicide programme as a preventive measure.',
+        'Monitor weekly for early/late blight, whitefly, and leaf miner.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Tomato___Leaf_Blight',
+      displayName: 'Tomato Leaf Blight',
+      cropType: 'Tomato',
+      cause: 'Fungal infection by Alternaria solani (early blight) or Phytophthora infestans (late blight)',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Apply chlorothalonil or mancozeb preventively every 7–10 days during wet season.',
+        'For late blight, use metalaxyl + mancozeb (Ridomil Gold) or cymoxanil.',
+        'Remove infected leaves immediately; do not compost diseased material.',
+        'Stake plants and avoid overhead irrigation to keep foliage dry.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Tomato___Leaf_Curl',
+      displayName: 'Tomato Leaf Curl',
+      cropType: 'Tomato',
+      cause: 'Tomato Yellow Leaf Curl Virus (TYLCV) — whitefly (Bemisia tabaci) transmitted',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Plant TYLCV-resistant or tolerant varieties (e.g., F1 hybrids with Ty genes).',
+        'Apply imidacloprid or thiamethoxam at transplanting to control whitefly vector.',
+        'Use silver/reflective mulch to deter whiteflies in young transplants.',
+        'Remove and destroy infected plants early; do not leave them as virus reservoirs.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Tomato___Septoria_Leaf_Spot',
+      displayName: 'Tomato Septoria Leaf Spot',
+      cropType: 'Tomato',
+      cause: 'Fungal infection by Septoria lycopersici',
+      severity: 'moderate',
+      isHealthy: false,
+      treatments: [
+        'Apply chlorothalonil or copper-based fungicide at first sign of spots.',
+        'Remove infected lower leaves; avoid working in wet fields to limit spread.',
+        'Rotate tomatoes with non-Solanaceous crops for at least 2 seasons.',
+        'Stake plants and water at the base to keep leaves dry.',
+      ],
+    ),
+    DiseaseInfoEntry(
+      label: 'Tomato___Verticillium_Wilt',
+      displayName: 'Tomato Verticillium Wilt',
+      cropType: 'Tomato',
+      cause: 'Soilborne fungal infection by Verticillium dahliae or V. albo-atrum',
+      severity: 'severe',
+      isHealthy: false,
+      treatments: [
+        'Plant Verticillium-resistant tomato varieties (V-rated hybrids).',
+        'Solarize soil in the dry season (black plastic mulch, 4–6 weeks) to kill soilborne inoculum.',
+        'Rotate with non-host crops (maize, sorghum) for 3+ years.',
+        'Avoid over-watering; maintain good drainage to reduce soilborne spread.',
+      ],
+    ),
   ];
+
 
   static DiseaseInfoEntry getInfo(String label) {
     return _entries[label] ?? DiseaseInfoEntry(

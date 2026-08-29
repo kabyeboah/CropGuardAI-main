@@ -53,7 +53,7 @@ void main() {
             password: any(named: 'password'),
             name: any(named: 'name'),
           )).thenAnswer(
-              (_) async => Result.error(AuthFailure('email-already-in-use')));
+              (_) async => Result.error(const AuthFailure('email-already-in-use')));
 
       final result = await useCase(
         email: 'taken@example.com',
@@ -73,13 +73,29 @@ void main() {
           )).thenAnswer((_) async => Result.success(tUser));
 
       await useCase(
-          email: 'a@b.com', password: 'secret', name: 'Ama');
+          email: 'a@b.com', password: 'secret123', name: 'Ama');
 
       verify(() => mockRepository.register(
             email: 'a@b.com',
-            password: 'secret',
+            password: 'secret123',
             name: 'Ama',
           )).called(1);
+    });
+
+    test('returns failure when password is less than 8 characters', () async {
+      final result = await useCase(
+        email: 'test@example.com',
+        password: 'short',
+        name: 'Kofi',
+      );
+
+      expect(result.isError, true);
+      expect(result.failure!.message, 'Password must be at least 8 characters long.');
+      verifyNever(() => mockRepository.register(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            name: any(named: 'name'),
+          ));
     });
   });
 }

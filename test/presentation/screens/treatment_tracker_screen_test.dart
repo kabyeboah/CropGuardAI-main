@@ -7,15 +7,15 @@ import 'package:provider/provider.dart';
 
 import 'package:cropguard_flutter/core/theme/app_theme.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
 import 'package:cropguard_flutter/data/remote/firestore_service.dart';
 import 'package:cropguard_flutter/domain/models/treatment_plan.dart';
+import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
 import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_provider.dart';
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_screen.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockIAuthRepository extends Mock implements IAuthRepository {}
 class MockFirestoreService extends Mock implements FirestoreService {}
 
 Widget _wrapScreen({
@@ -54,15 +54,15 @@ Widget _wrapScreen({
 
 void main() {
   late MockDatabaseHelper mockDb;
-  late MockFirebaseAuthService mockAuth;
+  late MockIAuthRepository mockAuthRepo;
   late MockFirestoreService mockFirestore;
 
   setUp(() {
     mockDb = MockDatabaseHelper();
-    mockAuth = MockFirebaseAuthService();
+    mockAuthRepo = MockIAuthRepository();
     mockFirestore = MockFirestoreService();
 
-    when(() => mockAuth.currentUserId).thenReturn('guest');
+    when(() => mockAuthRepo.currentUser).thenReturn(null);
   });
 
   testWidgets('Renders empty state when no treatment plans exist', (tester) async {
@@ -76,7 +76,7 @@ void main() {
     when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
         .thenAnswer((_) async => 0);
 
-    final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -108,7 +108,7 @@ void main() {
     when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
         .thenAnswer((_) async => 0);
 
-    final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -154,7 +154,7 @@ void main() {
     when(() => mockDb.updateTreatmentCompleted('step_1', true))
         .thenAnswer((_) async => 1);
 
-    final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -189,7 +189,7 @@ void main() {
         .thenAnswer((_) async => 0);
     when(() => mockDb.deleteTreatment('step_del')).thenAnswer((_) async => 1);
 
-    final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -218,4 +218,104 @@ void main() {
     verify(() => mockDb.deleteTreatment('step_del')).called(1);
     expect(find.text('No treatment plans yet'), findsOneWidget);
   });
+
+  testWidgets('Swiping a step shows confirmation dialog, cancelling retains step', (tester) async {
+    final now = DateTime.now();
+    final step1 = TreatmentPlan(
+      id: 'step_swipe_1',
+      userId: 'guest',
+      detectionId: 303,
+      cropType: 'Tomato',
+      diseaseName: 'Early Blight',
+      step: 'Mulch around the base',
+      completed: false,
+      dueDate: now,
+      createdAt: now,
+    );
+
+    when(() => mockDb.getAllTreatments(
+          userId: 'guest',
+          limit: any(named: 'limit'),
+          offset: any(named: 'offset'),
+        )).thenAnswer((_) async => [step1]);
+    when(() => mockDb.getPendingTreatmentsCount(userId: 'guest'))
+        .thenAnswer((_) async => 1);
+    when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
+        .thenAnswer((_) async => 0);
+
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+    await tester.pumpWidget(_wrapScreen(provider: provider));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mulch around the base'), findsOneWidget);
+
+    // Swipe the step
+    await tester.drag(find.text('Mulch around the base'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog is shown
+    expect(find.text('Delete Treatment Step?'), findsOneWidget);
+    expect(find.text('This will permanently delete the step "Mulch around the base".'), findsOneWidget);
+
+    // Tap Cancel
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    // Verify step is not deleted and still visible
+    verifyNever(() => mockDb.deleteTreatment(any()));
+    expect(find.text('Mulch around the base'), findsOneWidget);
+  });
+
+  testWidgets('Swiping a step and confirming deletes the step', (tester) async {
+    final now = DateTime.now();
+    final step1 = TreatmentPlan(
+      id: 'step_swipe_2',
+      userId: 'guest',
+      detectionId: 303,
+      cropType: 'Tomato',
+      diseaseName: 'Early Blight',
+      step: 'Mulch around the base',
+      completed: false,
+      dueDate: now,
+      createdAt: now,
+    );
+
+    when(() => mockDb.getAllTreatments(
+          userId: 'guest',
+          limit: any(named: 'limit'),
+          offset: any(named: 'offset'),
+        )).thenAnswer((_) async => [step1]);
+    when(() => mockDb.getPendingTreatmentsCount(userId: 'guest'))
+        .thenAnswer((_) async => 1);
+    when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
+        .thenAnswer((_) async => 0);
+    when(() => mockDb.deleteTreatment('step_swipe_2')).thenAnswer((_) async => 1);
+
+    final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+    await tester.pumpWidget(_wrapScreen(provider: provider));
+    await tester.pumpAndSettle();
+
+    // Swipe the step
+    await tester.drag(find.text('Mulch around the base'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog is shown
+    expect(find.text('Delete Treatment Step?'), findsOneWidget);
+
+    // Prepare mock return for refresh after deletion
+    when(() => mockDb.getAllTreatments(
+          userId: 'guest',
+          limit: any(named: 'limit'),
+          offset: any(named: 'offset'),
+        )).thenAnswer((_) async => []);
+    when(() => mockDb.getPendingTreatmentsCount(userId: 'guest'))
+        .thenAnswer((_) async => 0);
+
+    // Tap Delete button in dialog
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    verify(() => mockDb.deleteTreatment('step_swipe_2')).called(1);
+  });
 }
+

@@ -40,7 +40,7 @@ void main() {
 
     test('returns error when getFarmStats fails', () async {
       when(() => repo.getFarmStats(userId: any(named: 'userId')))
-          .thenAnswer((_) async => Result.error(CacheFailure('stats fail')));
+          .thenAnswer((_) async => Result.error(const CacheFailure('stats fail')));
       when(() => repo.getRecentDetections(userId: any(named: 'userId'), limit: any(named: 'limit')))
           .thenAnswer((_) async => Result.success(scans));
       when(() => repo.getDailyTrend(days: any(named: 'days'), userId: any(named: 'userId')))
@@ -56,7 +56,7 @@ void main() {
       when(() => repo.getFarmStats(userId: any(named: 'userId')))
           .thenAnswer((_) async => Result.success(stats));
       when(() => repo.getRecentDetections(userId: any(named: 'userId'), limit: any(named: 'limit')))
-          .thenAnswer((_) async => Result.error(CacheFailure('scans fail')));
+          .thenAnswer((_) async => Result.error(const CacheFailure('scans fail')));
       when(() => repo.getDailyTrend(days: any(named: 'days'), userId: any(named: 'userId')))
           .thenAnswer((_) async => Result.success(trend));
 
@@ -72,7 +72,7 @@ void main() {
       when(() => repo.getRecentDetections(userId: any(named: 'userId'), limit: any(named: 'limit')))
           .thenAnswer((_) async => Result.success(scans));
       when(() => repo.getDailyTrend(days: any(named: 'days'), userId: any(named: 'userId')))
-          .thenAnswer((_) async => Result.error(CacheFailure('trend fail')));
+          .thenAnswer((_) async => Result.error(const CacheFailure('trend fail')));
 
       final result = await useCase();
 

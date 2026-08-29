@@ -145,17 +145,15 @@ This is the core component of the system. It wraps **tflite_flutter** and runs a
 CNN (MobileNetV2-based, trained by transfer learning) entirely on the device. Its
 working can be summarised as:
 
-1. **Model loading.** Two quantised TFLite models and their label files are loaded
-   from the application assets (`cropguard_plant_disease.tflite` with 54 classes
-   and `cropguard_plant_disease_v2.tflite` with 16 classes).
-2. **Pre-processing.** The captured image is decoded, resized to **224 × 224**
-   pixels, and each pixel's R, G, B channels are normalised to the range **[0, 1]**
-   to form a `[1, 224, 224, 3]` float input tensor.
-3. **Inference.** Both models are executed on the tensor. Because the two models
-   have different numbers of output classes, each model's top confidence is
-   *adjusted* by subtracting its uniform-chance probability (`1 / numClasses`) so
-   that the smaller model's naturally softer soft-max does not dominate. The model
-   with the higher adjusted score wins.
+1. **Model loading.** The quantised TFLite model and its label file are loaded
+   from the application assets (`cropguard_plant_disease_verified.tflite` and
+   `labels_verified.txt` with 51 verified classes).
+2. **Pre-processing.** The captured image is decoded, checked for quality, resized to **128 × 128**
+   pixels, and supplied as raw pixel values in **[0, 255]** to match the model's internal
+   rescaling layer.
+3. **Inference.** Inference runs on-device using temperature-scaled softmax calibration
+   ($T = 1.3409$). Predictions exceeding the 60% confidence threshold are accepted,
+   while low-confidence scans enter a guided diagnostic pathway.
 4. **Result assembly.** The winning label is looked up in an on-device disease
    database to attach the display name, crop type, cause and treatments, producing
    a `ClassificationResult`.

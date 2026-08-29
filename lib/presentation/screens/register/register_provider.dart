@@ -55,8 +55,8 @@ class RegisterProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (password.length < 6) {
-      errorMessage = 'Password must be at least 6 characters.';
+    if (password.length < 8) {
+      errorMessage = 'Password must be at least 8 characters.';
       notifyListeners();
       return;
     }

@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 16;
+  static const _dbVersion = 17;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -87,7 +87,9 @@ class DatabaseHelper {
         treatments TEXT NOT NULL DEFAULT '',
         timestamp INTEGER NOT NULL,
         isDegraded INTEGER NOT NULL DEFAULT 0,
-        modelVersion TEXT
+        modelVersion TEXT,
+        isSynced INTEGER NOT NULL DEFAULT 0,
+        syncedAt INTEGER
       )
     ''');
 
@@ -105,6 +107,7 @@ class DatabaseHelper {
     await _createTreatmentPlansTable(db);
     await _createNotificationsTable(db);
     await db.execute(PendingSyncQueue.createTableSql);
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -147,6 +150,11 @@ class DatabaseHelper {
     }
     if (oldVersion < 16) {
       await _addColumnIfMissing(db, tableDetections, 'modelVersion', 'TEXT');
+    }
+    if (oldVersion < 17) {
+      await _addColumnIfMissing(db, tableDetections, 'isSynced', 'INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfMissing(db, tableDetections, 'syncedAt', 'INTEGER');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
     }
   }
 
@@ -213,6 +221,7 @@ class DatabaseHelper {
     int? dateTo,
     String? searchQuery,
     String? orderBy,
+    bool? isSynced,
   }) async {
     final db = await database;
     final List<String> whereClauses = [];
@@ -225,6 +234,10 @@ class DatabaseHelper {
     if (isHealthy != null) {
       whereClauses.add('isHealthy = ?');
       whereArgs.add(isHealthy ? 1 : 0);
+    }
+    if (isSynced != null) {
+      whereClauses.add('isSynced = ?');
+      whereArgs.add(isSynced ? 1 : 0);
     }
     if (cropTypes != null && cropTypes.isNotEmpty) {
       final placeholders = List.filled(cropTypes.length, '?').join(', ');
@@ -256,6 +269,34 @@ class DatabaseHelper {
       offset: offset,
     );
     return maps.map(DetectionResult.fromMap).toList();
+  }
+
+  Future<List<DetectionResult>> getUnsyncedDetections({String? userId}) async {
+    return getAllDetections(userId: userId, isSynced: false);
+  }
+
+  Future<void> markDetectionSynced(int id, {int? syncedAt}) async {
+    final db = await database;
+    await db.update(
+      tableDetections,
+      {
+        'isSynced': 1,
+        'syncedAt': syncedAt ?? DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> markDetectionsSynced(List<int> ids, {int? syncedAt}) async {
+    if (ids.isEmpty) return;
+    final db = await database;
+    final timestamp = syncedAt ?? DateTime.now().millisecondsSinceEpoch;
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    await db.rawUpdate(
+      'UPDATE $tableDetections SET isSynced = 1, syncedAt = ? WHERE id IN ($placeholders)',
+      [timestamp, ...ids],
+    );
   }
 
   Future<DetectionResult?> getDetectionById(int id) async {
@@ -331,7 +372,7 @@ class DatabaseHelper {
     await db.transaction((txn) async {
       await txn.update(
         tableDetections,
-        {'userId': toUserId},
+        {'userId': toUserId, 'isSynced': 0, 'syncedAt': null},
         where: 'userId = ?',
         whereArgs: [fromUserId],
       );

@@ -29,6 +29,7 @@ class ClassificationResult {
   final bool isDegraded;
   final bool engineUnavailable;
   final bool isOutOfDistribution;
+  final String? modelVersion;
   /// Top-3 predictions from the model in descending confidence order.
   /// Empty on degraded / fallback paths — we never fabricate candidates.
   final List<TopCandidate> topCandidates;
@@ -42,6 +43,7 @@ class ClassificationResult {
     this.isDegraded = false,
     this.engineUnavailable = false,
     this.isOutOfDistribution = false,
+    this.modelVersion,
     this.topCandidates = const [],
   });
 }
@@ -138,15 +140,18 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   }
   final greenRatio = totalPixels > 0 ? plantPixels / totalPixels : 0.0;
 
-  // Build contiguous [1 * 224 * 224 * 3] float tensor normalised to [0, 1].
+  // Build contiguous [1 * 128 * 128 * 3] float tensor — RAW [0, 255].
+  // The V3 model has an internal Rescaling layer (x/127.5 - 1).
+  // Dart must NOT divide by 255 here — doing so produces inputs in
+  // roughly [-1, -0.992], the confirmed failure mode for this model.
   final inputTensor = Float32List(1 * inputSize * inputSize * 3);
   var idx = 0;
   for (var y = 0; y < inputSize; y++) {
     for (var x = 0; x < inputSize; x++) {
       final pixel = resized.getPixel(x, y);
-      inputTensor[idx++] = pixel.r / 255.0;
-      inputTensor[idx++] = pixel.g / 255.0;
-      inputTensor[idx++] = pixel.b / 255.0;
+      inputTensor[idx++] = pixel.r.toDouble();
+      inputTensor[idx++] = pixel.g.toDouble();
+      inputTensor[idx++] = pixel.b.toDouble();
     }
   }
 
@@ -159,6 +164,12 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
 
 /// Runs inference on one model and returns the top label + confidence
 /// plus the top-3 candidates in descending order.
+///
+/// [calibrationTemperature] is loaded from `model_metadata.json`
+/// (`calibration_temperature` key). The model outputs raw logits; this
+/// function applies temperature scaling then softmax unconditionally —
+/// do NOT use the old heuristic (`maxLogit > 1.0`) because a well-calibrated
+/// model's logits can be in any range and will break the heuristic.
 ({
   String label,
   double confidence,
@@ -167,6 +178,7 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   Interpreter interpreter,
   List<String> labels,
   Float32List inputTensor,
+  double calibrationTemperature,
 ) {
   if (labels.isEmpty) {
     return (label: 'Unknown', confidence: 0.0, top3: const []);
@@ -186,21 +198,25 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
       [1, CropDiseaseClassifier.inputSize, CropDiseaseClassifier.inputSize, 3]);
   interpreter.run(reshapedInput, outputBuffer);
 
-  final scores = outputBuffer[0];
+  final logits = outputBuffer[0];
 
-  // Apply Softmax normalization if raw logits are returned.
-  List<double> probabilities = scores;
-  final maxLogit = scores.reduce((a, b) => a > b ? a : b);
-  final isRawLogits = maxLogit > 1.0 || scores.any((s) => s < 0.0);
-  if (isRawLogits) {
-    var expSum = 0.0;
-    final exps = List<double>.filled(scores.length, 0.0);
-    for (var i = 0; i < scores.length; i++) {
-      exps[i] = exp(scores[i] - maxLogit);
-      expSum += exps[i];
-    }
-    probabilities = exps.map((e) => expSum > 0 ? e / expSum : 0.0).toList();
+  // Unconditional temperature-scaled softmax.
+  // scaled_i = logit_i / calibrationTemperature  →  probabilities = softmax(scaled)
+  // calibrationTemperature = 1.3409 (from model_metadata.json).
+  // The heuristic guard (maxLogit > 1.0) has been deliberately removed:
+  // a calibrated model's job is to produce logits that don't look obviously raw,
+  // so the old guard would silently skip temperature scaling on exactly the scans
+  // where it matters most.
+  final temp = calibrationTemperature > 0 ? calibrationTemperature : 1.0;
+  final scaled = logits.map((l) => l / temp).toList();
+  final maxScaled = scaled.reduce((a, b) => a > b ? a : b);
+  var expSum = 0.0;
+  final exps = List<double>.filled(scaled.length, 0.0);
+  for (var i = 0; i < scaled.length; i++) {
+    exps[i] = exp(scaled[i] - maxScaled); // subtract max for numerical stability
+    expSum += exps[i];
   }
+  final probabilities = exps.map((e) => expSum > 0 ? e / expSum : 0.0).toList();
 
   // Build index list sorted by probability descending.
   final indices = List<int>.generate(probabilities.length, (i) => i);
@@ -229,22 +245,26 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
 /// using cached persistent interpreter instances, preventing memory leaks and
 /// reload overhead.
 class CropDiseaseClassifier {
-  static const int inputSize = 224;
+  /// Input spatial dimension — must match the compiled model binary.
+  /// V3 model: [1, 128, 128, 3]  (verified via tf.lite.Interpreter in Python).
+  static const int inputSize = 128;
   static const double confidenceThreshold = 0.60;
   static String? modelVersion;
 
   List<String> _labels = [];
-  List<String> _labelsV2 = [];
-  Interpreter? _interpreterV1;
-  Interpreter? _interpreterV2;
+  Interpreter? _interpreter;
   bool _isLoaded = false;
   bool _engineAvailable = true;
   Future<void>? _loading;
 
+  /// Temperature loaded from `model_metadata.json` (`calibration_temperature`).
+  /// Applied unconditionally: scaled = logit / _calibrationTemperature → softmax.
+  double _calibrationTemperature = 1.3409;
+
   static List<String> _parseLabels(String raw) =>
       raw.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
 
-  /// Initialise both models and their label files. Concurrent calls share a
+  /// Initialise the model and its label file. Concurrent calls share a
   /// single in-flight load so two simultaneous scans don't double-load.
   Future<void> loadModel() {
     if (_isLoaded || !_engineAvailable) return Future.value();
@@ -306,20 +326,20 @@ class CropDiseaseClassifier {
   }
 
   Future<void> _loadModelImpl() async {
-    ByteData? v1Data;
-    Uint8List? v1Bytes;
+    ByteData? modelData;
+    Uint8List? modelBytes;
 
-    // Stage 1: Load V1 asset files
+    // Stage 1: Load verified asset files
     try {
-      v1Data = await rootBundle.load('assets/cropguard_plant_disease.tflite');
-      _labels = _parseLabels(await rootBundle.loadString('assets/labels.txt'));
-      v1Bytes = Uint8List.fromList(
-        v1Data.buffer.asUint8List(v1Data.offsetInBytes, v1Data.lengthInBytes),
+      modelData = await rootBundle.load('assets/cropguard_plant_disease_verified.tflite');
+      _labels = _parseLabels(await rootBundle.loadString('assets/labels_verified.txt'));
+      modelBytes = Uint8List.fromList(
+        modelData.buffer.asUint8List(modelData.offsetInBytes, modelData.lengthInBytes),
       );
     } catch (e, stack) {
       _isLoaded = false;
       _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: V1 asset load failed', e, stack);
+      AppLogger.e('CropDiseaseClassifier: verified asset load failed', e, stack);
       try {
         await FirebaseCrashlytics.instance.recordError(
           e, stack,
@@ -330,13 +350,13 @@ class CropDiseaseClassifier {
       return;
     }
 
-    // Stage 2: Create V1 interpreter
+    // Stage 2: Create interpreter
     try {
-      _interpreterV1 = _createInterpreter(v1Bytes);
+      _interpreter = _createInterpreter(modelBytes);
     } catch (e, stack) {
       _isLoaded = false;
       _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: V1 interpreter creation failed', e, stack);
+      AppLogger.e('CropDiseaseClassifier: interpreter creation failed', e, stack);
       try {
         await FirebaseCrashlytics.instance.recordError(
           e, stack,
@@ -347,18 +367,18 @@ class CropDiseaseClassifier {
       return;
     }
 
-    // Stage 3: Allocate V1 tensors & align labels
+    // Stage 3: Allocate tensors & align labels
     try {
-      _interpreterV1!.allocateTensors();
-      final numClassesV1 = _interpreterV1!.getOutputTensor(0).shape.last;
-      if (_labels.length != numClassesV1) {
+      _interpreter!.allocateTensors();
+      final numClasses = _interpreter!.getOutputTensor(0).shape.last;
+      if (_labels.length != numClasses) {
         AppLogger.w(
-          'CropDiseaseClassifier: V1 label count (${_labels.length}) does not match model output classes ($numClassesV1). Truncating/adjusting.',
+          'CropDiseaseClassifier: label count (${_labels.length}) does not match model output classes ($numClasses). Truncating/adjusting.',
         );
-        if (_labels.length > numClassesV1) {
-          _labels = _labels.sublist(0, numClassesV1);
+        if (_labels.length > numClasses) {
+          _labels = _labels.sublist(0, numClasses);
         } else {
-          while (_labels.length < numClassesV1) {
+          while (_labels.length < numClasses) {
             _labels.add('Unknown_Class_${_labels.length}');
           }
         }
@@ -366,7 +386,7 @@ class CropDiseaseClassifier {
     } catch (e, stack) {
       _isLoaded = false;
       _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: V1 tensor allocation failed', e, stack);
+      AppLogger.e('CropDiseaseClassifier: tensor allocation failed', e, stack);
       try {
         await FirebaseCrashlytics.instance.recordError(
           e, stack,
@@ -377,37 +397,21 @@ class CropDiseaseClassifier {
       return;
     }
 
-    // V2 Model is optional (extended dataset)
-    try {
-      final v2Data = await rootBundle.load('assets/cropguard_plant_disease_v2.tflite');
-      _labelsV2 = _parseLabels(await rootBundle.loadString('assets/labels_v2.txt'));
-      final v2Bytes = Uint8List.fromList(
-        v2Data.buffer.asUint8List(v2Data.offsetInBytes, v2Data.lengthInBytes),
-      );
-      _interpreterV2 = _createInterpreter(v2Bytes);
-      _interpreterV2!.allocateTensors();
-      final numClassesV2 = _interpreterV2!.getOutputTensor(0).shape.last;
-      if (_labelsV2.length != numClassesV2) {
-        if (_labelsV2.length > numClassesV2) {
-          _labelsV2 = _labelsV2.sublist(0, numClassesV2);
-        } else {
-          while (_labelsV2.length < numClassesV2) {
-            _labelsV2.add('Unknown_V2_Class_${_labelsV2.length}');
-          }
-        }
-      }
-    } catch (e) {
-      AppLogger.w('CropDiseaseClassifier: V2 model optional load skipped ($e)');
-      _interpreterV2 = null;
-    }
-
-    // Load metadata version
+    // Load metadata version and calibration temperature
     try {
       final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-      modelVersion = map['version']?.toString() ?? '2.1';
+      modelVersion = map['version']?.toString() ?? '3.0';
+      final rawTemp = map['calibration_temperature'];
+      if (rawTemp != null) {
+        _calibrationTemperature = (rawTemp as num).toDouble();
+        AppLogger.d(
+          'CropDiseaseClassifier: calibration_temperature=$_calibrationTemperature',
+        );
+      }
     } catch (_) {
-      modelVersion = '2.1';
+      modelVersion = '3.0';
+      // _calibrationTemperature keeps its default (1.3409) on error
     }
 
     _isLoaded = true;
@@ -416,26 +420,6 @@ class CropDiseaseClassifier {
 
   bool get isLoaded => _isLoaded;
   bool get isEngineAvailable => _engineAvailable;
-
-  ({String label, double confidence, List<TopCandidate> top3}) _selectBestFromEnsemble(
-    Float32List inputTensor,
-  ) {
-    final r1 = _runSingleModelOnMainThread(_interpreterV1!, _labels, inputTensor);
-    final r2 = _interpreterV2 != null
-        ? _runSingleModelOnMainThread(_interpreterV2!, _labelsV2, inputTensor)
-        : null;
-
-    final adj1 = r1.confidence - (1.0 / (_labels.isNotEmpty ? _labels.length : 1));
-    final adj2 = (r2 != null && _labelsV2.isNotEmpty)
-        ? (r2.confidence - (1.0 / _labelsV2.length))
-        : double.negativeInfinity;
-
-    if (adj2 > adj1 && r2 != null) {
-      return r2;
-    } else {
-      return r1;
-    }
-  }
 
   /// Classify an image from a file path.
   Future<ClassificationResult?> classifyFromPath(String imagePath) async {
@@ -448,7 +432,7 @@ class CropDiseaseClassifier {
 
     if (!_isLoaded && _engineAvailable) await loadModel();
 
-    if (_isLoaded && _interpreterV1 != null && bytes != null) {
+    if (_isLoaded && _interpreter != null && bytes != null) {
       try {
         final prepResult = await compute(
           _preprocessImageIsolate,
@@ -456,14 +440,19 @@ class CropDiseaseClassifier {
         );
 
         if (prepResult.inputTensor != null) {
-          final best = _selectBestFromEnsemble(prepResult.inputTensor!);
-          final topLabel = best.label;
-          final topScore = best.confidence;
-          final topCandidates = best.top3;
+          final singleResult = _runSingleModelOnMainThread(
+            _interpreter!,
+            _labels,
+            prepResult.inputTensor!,
+            _calibrationTemperature,
+          );
+          final topLabel = singleResult.label;
+          final topScore = singleResult.confidence;
+          final topCandidates = singleResult.top3;
 
           final info = DiseaseDatabase.getInfo(topLabel);
 
-          final numClasses = _labels.isNotEmpty ? _labels.length : 38;
+          final numClasses = _labels.isNotEmpty ? _labels.length : 51;
           final isOod = prepResult.greenRatio < 0.05 || topScore < (2.0 / numClasses);
 
           if (topScore >= confidenceThreshold && topLabel != 'Unknown' && !isOod) {
@@ -475,6 +464,7 @@ class CropDiseaseClassifier {
               qualityResult: prepResult.qualityResult,
               isDegraded: false,
               isOutOfDistribution: false,
+              modelVersion: modelVersion,
               topCandidates: topCandidates,
             );
           }
@@ -489,6 +479,7 @@ class CropDiseaseClassifier {
             qualityResult: prepResult.qualityResult,
             isDegraded: true,
             isOutOfDistribution: isOod,
+            modelVersion: modelVersion,
             topCandidates: topCandidates,
           );
         }
@@ -510,7 +501,7 @@ class CropDiseaseClassifier {
       Uint8List rgbaBytes, int width, int height) async {
     if (!_isLoaded && _engineAvailable) await loadModel();
 
-    if (_isLoaded && _interpreterV1 != null) {
+    if (_isLoaded && _interpreter != null) {
       try {
         final prepResult = await compute(
           _preprocessImageIsolate,
@@ -522,10 +513,15 @@ class CropDiseaseClassifier {
         );
 
         if (prepResult.inputTensor != null) {
-          final best = _selectBestFromEnsemble(prepResult.inputTensor!);
-          final topLabel = best.label;
-          final topScore = best.confidence;
-          final topCandidates = best.top3;
+          final singleResult = _runSingleModelOnMainThread(
+            _interpreter!,
+            _labels,
+            prepResult.inputTensor!,
+            _calibrationTemperature,
+          );
+          final topLabel = singleResult.label;
+          final topScore = singleResult.confidence;
+          final topCandidates = singleResult.top3;
 
           final info = DiseaseDatabase.getInfo(topLabel);
           final isBelow = topScore < confidenceThreshold || topLabel == 'Unknown';
@@ -536,6 +532,7 @@ class CropDiseaseClassifier {
             diseaseInfo: info,
             qualityResult: prepResult.qualityResult,
             isDegraded: isBelow,
+            modelVersion: modelVersion,
             topCandidates: topCandidates,
           );
         }
@@ -555,10 +552,8 @@ class CropDiseaseClassifier {
   }
 
   void close() {
-    _interpreterV1?.close();
-    _interpreterV1 = null;
-    _interpreterV2?.close();
-    _interpreterV2 = null;
+    _interpreter?.close();
+    _interpreter = null;
     _isLoaded = false;
   }
 
@@ -673,42 +668,71 @@ class CropDiseaseClassifier {
     );
   }
 
+  /// Computes fused soft-voting candidates across multiple photo candidate distributions.
+  static List<TopCandidate> computeSoftVotingCandidates(
+    List<List<TopCandidate>> candidateLists, {
+    List<TopCandidate> fallbackCandidates = const [],
+  }) {
+    if (candidateLists.isEmpty || candidateLists.every((l) => l.isEmpty)) {
+      return fallbackCandidates;
+    }
+
+    final scoreMap = <String, double>{};
+    int count = 0;
+
+    for (final list in candidateLists) {
+      if (list.isEmpty) continue;
+      count++;
+      for (final candidate in list) {
+        scoreMap[candidate.label] =
+            (scoreMap[candidate.label] ?? 0.0) + candidate.confidence;
+      }
+    }
+
+    if (count == 0 || scoreMap.isEmpty) {
+      return fallbackCandidates;
+    }
+
+    final merged = scoreMap.entries.map((e) {
+      return (label: e.key, confidence: e.value / count);
+    }).toList();
+
+    merged.sort((a, b) => b.confidence.compareTo(a.confidence));
+    return merged.take(3).toList();
+  }
+
   /// Averages a list of [ClassificationResult]s from multi-angle captures.
   ///
-  /// Picks the label from the single highest-confidence individual result
-  /// and sets the returned confidence to the arithmetic mean across all
-  /// inputs. Marks the result as [isDegraded] if any input was degraded.
+  /// Combines candidate probabilities using soft-voting across angles,
+  /// selects the top-scoring disease label, and computes the arithmetic mean
+  /// confidence across inputs. Marks the result as [isDegraded] if any input was degraded.
   static ClassificationResult averageResults(List<ClassificationResult> results) {
     assert(results.isNotEmpty, 'averageResults called with an empty list');
     if (results.length == 1) return results.first;
 
+    final candidateLists = results.map((r) => r.topCandidates).toList();
+    final merged = computeSoftVotingCandidates(candidateLists);
+
     final best = results.reduce(
         (a, b) => a.confidence >= b.confidence ? a : b);
-    final avgConfidence =
-        results.map((r) => r.confidence).reduce((a, b) => a + b) /
+    final avgConfidence = merged.isNotEmpty
+        ? merged.first.confidence
+        : results.map((r) => r.confidence).reduce((a, b) => a + b) /
             results.length;
     final anyDegraded = results.any((r) => r.isDegraded);
-
-    // Merge top candidates: union across all results, deduplicate by label,
-    // sort by max individual confidence, take top 3.
-    final seen = <String>{};
-    final merged = <TopCandidate>[];
-    for (final r in results) {
-      for (final c in r.topCandidates) {
-        if (seen.add(c.label)) merged.add(c);
-      }
-    }
-    merged.sort((a, b) => b.confidence.compareTo(a.confidence));
+    final topLabel = merged.isNotEmpty ? merged.first.label : best.label;
+    final info = DiseaseDatabase.getInfo(topLabel);
 
     return ClassificationResult(
-      label: best.label,
+      label: topLabel,
       confidence: avgConfidence,
-      isHealthy: best.isHealthy,
-      diseaseInfo: best.diseaseInfo,
+      isHealthy: info.isHealthy,
+      diseaseInfo: info,
       qualityResult: best.qualityResult,
       isDegraded: anyDegraded,
       engineUnavailable: best.engineUnavailable,
-      topCandidates: merged.take(3).toList(),
+      modelVersion: best.modelVersion ?? CropDiseaseClassifier.modelVersion,
+      topCandidates: merged,
     );
   }
 
@@ -729,6 +753,7 @@ class CropDiseaseClassifier {
       diseaseInfo: info,
       isDegraded: true,
       engineUnavailable: engineUnavailable,
+      modelVersion: modelVersion,
       topCandidates: topCandidates,
     );
   }

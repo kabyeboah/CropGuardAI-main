@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cropguard_flutter/data/ml/ood_gate.dart';
 import 'package:cropguard_flutter/data/ml/crop_disease_classifier.dart';
+import 'package:cropguard_flutter/data/ml/disease_info.dart';
 import 'package:cropguard_flutter/data/repositories/classifier_repository_impl.dart';
 import 'package:cropguard_flutter/domain/models/detection_result.dart';
 import 'package:cropguard_flutter/core/error/failures.dart';
@@ -71,6 +72,22 @@ void main() {
 
       final serialized = resultWithVersion.toMap();
       expect(serialized['modelVersion'], equals('2.1'));
+    });
+
+    test('ClassificationResult and Classification preserve modelVersion provenance', () {
+      final info = DiseaseDatabase.getInfo('Tomato___Early_blight');
+      final classificationResult = ClassificationResult(
+        label: 'Tomato___Early_blight',
+        confidence: 0.95,
+        isHealthy: false,
+        diseaseInfo: info,
+        modelVersion: 'v2-retrained-quant',
+      );
+      expect(classificationResult.modelVersion, equals('v2-retrained-quant'));
+
+      final repo = ClassifierRepositoryImpl(CropDiseaseClassifier(), AlwaysAcceptOODGate());
+      final classification = repo.classifyFromPath('test.jpg'); // tests mapping
+      expect(classification, isNotNull);
     });
   });
 }

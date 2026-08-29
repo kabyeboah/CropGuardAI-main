@@ -102,22 +102,38 @@ class SettingsScreen extends StatelessWidget {
           _SectionHeader(l10n.sectionModelData),
           _InfoRow(
             label: l10n.modelVersion,
-            value: provider.updateMessageCode?.resolve(context.l10n) ?? 'MobileNetV2 v1.0 (bundled)',
+            value: provider.modelVersionLabel,
             badge: l10n.modelVersionActive,
-            actionLabel: provider.isCheckingUpdates
-                ? l10n.checkingUpdates
-                : l10n.checkUpdates,
-            onAction: provider.isCheckingUpdates
-                ? null
-                : provider.checkForModelUpdates,
           ),
           _InfoRow(
             label: context.l10n.supportedCrops,
-            value: '93 disease classes across 27 crops — '
-                'Cassava, Cocoa, Yam, Plantain, Oil Palm, Cashew, Cowpea, '
-                'Sorghum, Millet, Groundnut, Pepper Chilli, Maize, Tomato, '
-                'Rice, Banana, Potato, Soybean, Pepper Bell, Squash, Apple, '
-                'Blueberry, Cherry, Grape, Orange, Peach, Raspberry, Strawberry',
+            value: '51 disease classes verified across Ghanaian staple & regional crops.',
+          ),
+          _ActionRow(
+            label: provider.isCheckingUpdates ? l10n.checkingUpdates : l10n.checkUpdates,
+            trailing: provider.isCheckingUpdates
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.primary,
+                    ),
+                  )
+                : null,
+            onTap: provider.isCheckingUpdates
+                ? null
+                : () async {
+                    await provider.checkForModelUpdates();
+                    if (context.mounted && provider.updateMessageCode != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(provider.updateMessageCode!.resolve(context.l10n)),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  },
           ),
           _ActionRow(
             label: l10n.clearScanHistory,
@@ -349,10 +365,15 @@ class _ToggleRow extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   final String label;
   final Color? color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
-  const _ActionRow(
-      {required this.label, this.color, required this.onTap});
+  const _ActionRow({
+    required this.label,
+    this.color,
+    required this.onTap,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +391,7 @@ class _ActionRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: color ?? colors.onBackground,
                         )),
-                Icon(Icons.chevron_right, color: colors.muted),
+                trailing ?? Icon(Icons.chevron_right, color: colors.muted),
               ],
             ),
           ),
@@ -500,15 +521,12 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final String? badge;
-  final String? actionLabel;
-  final VoidCallback? onAction;
 
-  const _InfoRow(
-      {required this.label,
-      required this.value,
-      this.badge,
-      this.actionLabel,
-      this.onAction});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.badge,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -540,14 +558,6 @@ class _InfoRow extends StatelessWidget {
                               fontWeight: FontWeight.bold)),
                     ),
                   ],
-                  const Spacer(),
-                  if (actionLabel != null)
-                    TextButton(
-                      onPressed: onAction,
-                      child: Text(actionLabel!,
-                          style: TextStyle(
-                              color: colors.primary, fontSize: 13)),
-                    ),
                 ],
               ),
               Text(value,

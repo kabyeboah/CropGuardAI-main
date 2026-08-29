@@ -91,4 +91,37 @@ void main() {
       expect(res.data, contains(_kField));
     });
   });
+
+  group('DetectionRepositoryImpl - sync operations', () {
+    test('getUnsyncedDetections returns success with list', () async {
+      when(() => mockDb.getUnsyncedDetections(userId: any(named: 'userId')))
+          .thenAnswer((_) async => [_kDetection]);
+
+      final res = await repository.getUnsyncedDetections(userId: 'user_1');
+
+      expect(res.isSuccess, isTrue);
+      expect(res.data, contains(_kDetection));
+      verify(() => mockDb.getUnsyncedDetections(userId: 'user_1')).called(1);
+    });
+
+    test('markDetectionSynced calls dbHelper and returns success', () async {
+      when(() => mockDb.markDetectionSynced(any(), syncedAt: any(named: 'syncedAt')))
+          .thenAnswer((_) async {});
+
+      final res = await repository.markDetectionSynced(1);
+
+      expect(res.isSuccess, isTrue);
+      verify(() => mockDb.markDetectionSynced(1, syncedAt: null)).called(1);
+    });
+
+    test('markDetectionsSynced calls dbHelper and returns success', () async {
+      when(() => mockDb.markDetectionsSynced(any(), syncedAt: any(named: 'syncedAt')))
+          .thenAnswer((_) async {});
+
+      final res = await repository.markDetectionsSynced([1, 2]);
+
+      expect(res.isSuccess, isTrue);
+      verify(() => mockDb.markDetectionsSynced([1, 2], syncedAt: null)).called(1);
+    });
+  });
 }

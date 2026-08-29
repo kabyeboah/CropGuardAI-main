@@ -83,4 +83,25 @@ void main() {
     expect(SettingsProvider.supportedLanguages.keys,
         containsAll(['en', 'tw', 'ee', 'dag']));
   });
+
+  test('modelVersionLabel initializes with default or metadata version', () async {
+    SharedPreferences.setMockInitialValues({});
+    final provider = await build();
+    expect(provider.modelVersionLabel, contains('51 classes'));
+  });
+
+  test('checkForModelUpdates toggles state and resolves updateMessageCode', () async {
+    SharedPreferences.setMockInitialValues({});
+    final provider = await build();
+
+    expect(provider.isCheckingUpdates, isFalse);
+    expect(provider.updateMessageCode, isNull);
+
+    final future = provider.checkForModelUpdates();
+    expect(provider.isCheckingUpdates, isTrue);
+
+    await future;
+    expect(provider.isCheckingUpdates, isFalse);
+    expect(provider.updateMessageCode, isNotNull);
+  });
 }

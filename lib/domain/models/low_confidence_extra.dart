@@ -1,4 +1,5 @@
 import '../../data/ml/crop_disease_classifier.dart';
+import 'disease_risk.dart';
 
 /// Typed payload passed via GoRouter [extra] to the `/low_confidence` route.
 ///
@@ -8,10 +9,12 @@ class LowConfidenceExtra {
   final double confidence;
   final String imagePath;
   final List<TopCandidate> topCandidates;
+  final List<DiseaseRisk>? regionalRisks;
 
   const LowConfidenceExtra({
     required this.confidence,
     required this.imagePath,
     this.topCandidates = const [],
+    this.regionalRisks,
   });
 }

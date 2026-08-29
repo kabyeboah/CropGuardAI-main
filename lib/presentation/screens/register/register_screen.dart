@@ -37,7 +37,7 @@ class _RegisterBodyState extends State<_RegisterBody> {
   int get _passwordStrength {
     final pw = _passwordController.text;
     if (pw.isEmpty) return 0;
-    if (pw.length < 6) return 1;
+    if (pw.length < 8) return 1;
     final hasDigit = pw.contains(RegExp(r'[0-9]'));
     final hasSpecial = pw.contains(RegExp(r'[^a-zA-Z0-9]'));
     if (pw.length >= 12 && hasDigit && hasSpecial) return 4;

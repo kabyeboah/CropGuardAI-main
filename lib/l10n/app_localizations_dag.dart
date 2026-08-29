@@ -51,6 +51,10 @@ class AppLocalizationsDag extends AppLocalizations {
   String get securityWarningTitle => 'Security Warning';
 
   @override
+  String get securityWarningBody =>
+      'CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.';
+
+  @override
   String get proceedAnyway => 'Proceed Anyway';
 
   @override
@@ -1392,7 +1396,7 @@ class AppLocalizationsDag extends AppLocalizations {
   String get passwordsDoNotMatch => 'Passwords do not match.';
 
   @override
-  String get passwordMin6 => 'Password must be at least 6 characters.';
+  String get passwordMin8 => 'Password must be at least 8 characters.';
 
   @override
   String get explore => 'Explore';
@@ -1570,4 +1574,49 @@ class AppLocalizationsDag extends AppLocalizations {
 
   @override
   String get mySubmissionsSubtitle => 'Hali ni lahabali n zɔɣim';
+
+  @override
+  String get deleteTreatmentPlanTitle => 'Nyɛhi Tibbu Soya Din Bɔŋɔ?';
+
+  @override
+  String deleteTreatmentPlanBody(String planName) {
+    return 'Din bɔŋɔ ni nyɛhi tibbu soya din nyɛ \"$planName\" mini di soya zaa bahi.';
+  }
+
+  @override
+  String get deleteTreatmentStepTitle => 'Nyɛhi Tibbu Taba Din Bɔŋɔ?';
+
+  @override
+  String deleteTreatmentStepBody(String stepName) {
+    return 'Din bɔŋɔ ni nyɛhi anammɔn din nyɛ \"$stepName\" bahi.';
+  }
+
+  @override
+  String get syncPending => 'Naa guhira';
+
+  @override
+  String get syncSyncing => 'Sync n-chani';
+
+  @override
+  String get syncFailed => 'Bi nani';
+
+  @override
+  String get syncDeliveryFailed => 'Zaɣisi tuma';
+
+  @override
+  String get syncSynced => 'Niŋ kpe';
+
+  @override
+  String get updateRequiredTitle => 'Bɔri Kpamba Paala';
+
+  @override
+  String get updateRequiredBody =>
+      'CropGuard AI paala kpe na ka bɔri ni a labi kpamba paala pɔi ka tuɣi. M-bɔri suɣulo labi kpamba paala store puuni.';
+
+  @override
+  String get updateNow => 'Kpamba Paala Saha Ŋɔ';
+
+  @override
+  String get scanEngineUnavailableDesc =>
+      'Scan mɔchin maa bi tooi piligi yaa ŋɔ zuɣu. A ni tooi bɔhi pukpariba laɣingu din kpaŋsi.';
 }

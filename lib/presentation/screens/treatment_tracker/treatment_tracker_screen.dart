@@ -517,9 +517,9 @@ class _TreatmentPlanCardState extends State<_TreatmentPlanCard> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Treatment Plan?'),
+        title: Text(context.l10n.deleteTreatmentPlanTitle),
         content: Text(
-          'This will permanently delete the treatment plan for "${group.cropType} — ${group.diseaseName}" and all its steps.',
+          context.l10n.deleteTreatmentPlanBody('${group.cropType} — ${group.diseaseName}'),
         ),
         actions: [
           TextButton(
@@ -564,6 +564,30 @@ class _StepItemTile extends StatelessWidget {
         ),
         child: Icon(Icons.delete_outline, color: colors.diseaseRed, size: 20),
       ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(context.l10n.deleteTreatmentStepTitle),
+            content: Text(
+              context.l10n.deleteTreatmentStepBody(step.step),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(context.l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(
+                  context.l10n.delete,
+                  style: TextStyle(color: colors.diseaseRed),
+                ),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
       onDismissed: (_) => provider.deletePlan(step.id),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),

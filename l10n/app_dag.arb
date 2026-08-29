@@ -27,6 +27,8 @@
   "@outbreakAddPhoto": {"description": "NEEDS TRANSLATION - placeholder English text"},
   "securityWarningTitle": "Security Warning",
   "@securityWarningTitle": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "securityWarningBody": "CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.",
+  "@securityWarningBody": {"description": "NEEDS TRANSLATION - placeholder English text"},
   "proceedAnyway": "Proceed Anyway",
   "showPasswordTooltip": "Show password",
   "@showPasswordTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
@@ -616,7 +618,7 @@
   "passwordResetSuccess": "Your password has been reset. Please sign in.",
   "resetLinkInvalid": "This reset link is invalid or has expired. Please request a new one.",
   "passwordsDoNotMatch": "Passwords do not match.",
-  "passwordMin6": "Password must be at least 6 characters.",
+  "passwordMin8": "Password must be at least 8 characters.",
   "explore": "Explore",
   "allCaughtUp": "All caught up!",
   "today": "Today",
@@ -753,5 +755,41 @@
   "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
   "mySubmissions": "N Lahabali",
   "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
-  "mySubmissionsSubtitle": "Hali ni lahabali n zɔɣim"
+  "mySubmissionsSubtitle": "Hali ni lahabali n zɔɣim",
+  "deleteTreatmentPlanTitle": "Nyɛhi Tibbu Soya Din Bɔŋɔ?",
+  "@deleteTreatmentPlanTitle": {"description": "Title for delete treatment plan confirmation dialog"},
+  "deleteTreatmentPlanBody": "Din bɔŋɔ ni nyɛhi tibbu soya din nyɛ \"{planName}\" mini di soya zaa bahi.",
+  "@deleteTreatmentPlanBody": {
+    "description": "Body message for delete treatment plan confirmation dialog",
+    "placeholders": {
+      "planName": {"type": "String"}
+    }
+  },
+  "deleteTreatmentStepTitle": "Nyɛhi Tibbu Taba Din Bɔŋɔ?",
+  "@deleteTreatmentStepTitle": {"description": "Title for delete treatment step confirmation dialog"},
+  "deleteTreatmentStepBody": "Din bɔŋɔ ni nyɛhi anammɔn din nyɛ \"{stepName}\" bahi.",
+  "@deleteTreatmentStepBody": {
+    "description": "Body message for delete treatment step confirmation dialog",
+    "placeholders": {
+      "stepName": {"type": "String"}
+    }
+  },
+  "syncPending": "Naa guhira",
+  "@syncPending": {"description": "Sync badge status label for pending sync"},
+  "syncSyncing": "Sync n-chani",
+  "@syncSyncing": {"description": "Sync badge status label for ongoing sync"},
+  "syncFailed": "Bi nani",
+  "@syncFailed": {"description": "Sync badge status label for failed sync"},
+  "syncDeliveryFailed": "Zaɣisi tuma",
+  "@syncDeliveryFailed": {"description": "Sync badge status label for abandoned sync after max retries"},
+  "syncSynced": "Niŋ kpe",
+  "@syncSynced": {"description": "Sync badge status label for successfully synced item"},
+  "updateRequiredTitle": "Bɔri Kpamba Paala",
+  "@updateRequiredTitle": {"description": "Title for force-update dialog"},
+  "updateRequiredBody": "CropGuard AI paala kpe na ka bɔri ni a labi kpamba paala pɔi ka tuɣi. M-bɔri suɣulo labi kpamba paala store puuni.",
+  "@updateRequiredBody": {"description": "Body text for force-update dialog"},
+  "updateNow": "Kpamba Paala Saha Ŋɔ",
+  "@updateNow": {"description": "Button label to open app store for update"},
+  "scanEngineUnavailableDesc": "Scan mɔchin maa bi tooi piligi yaa ŋɔ zuɣu. A ni tooi bɔhi pukpariba laɣingu din kpaŋsi.",
+  "@scanEngineUnavailableDesc": {"description": "Description in scan engine unavailable dialog"}
 }

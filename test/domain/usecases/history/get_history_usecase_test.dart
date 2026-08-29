@@ -111,7 +111,7 @@ void main() {
             searchQuery: any(named: 'searchQuery'),
             orderBy: any(named: 'orderBy'),
           )).thenAnswer(
-              (_) async => Result.error(CacheFailure('database error')));
+              (_) async => Result.error(const CacheFailure('database error')));
 
       final result = await useCase(userId: 'user_1');
 

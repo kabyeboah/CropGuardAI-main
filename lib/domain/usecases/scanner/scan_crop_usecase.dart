@@ -4,6 +4,7 @@ import '../../../core/error/failures.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/utils/streak_manager.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
+import '../../../data/ml/disease_info.dart';
 import '../../models/detection_result.dart';
 import '../../repositories/i_classifier_repository.dart';
 import '../../repositories/i_community_repository.dart';
@@ -31,37 +32,53 @@ class ScanCropUseCase {
 
     final classification = classificationResult.data;
     if (classification == null) {
-      return Result.error(MLFailure('Classification failed to return a result'));
+      return Result.error(const MLFailure('Classification failed to return a result'));
     }
 
-    // Severity is sourced from the DiseaseDatabase — each disease has a
-    // pre-set agronomic severity (early | moderate | severe | healthy).
-    // Model confidence is intentionally NOT used as a severity proxy:
-    // a high-confidence prediction does not mean the disease is at a severe
-    // stage; it only means the model is sure about the diagnosis.
-    // Confidence is still used upstream (CropDiseaseClassifier) to trigger
-    // the low-confidence warning when it falls below 0.60.
-    final severity = classification.diseaseInfo.severity;
+    return saveResolvedScan(
+      imagePath: imagePath,
+      userId: userId,
+      diseaseLabel: classification.label,
+      confidence: classification.confidence,
+      topCandidates: classification.topCandidates,
+      isDegraded: classification.isDegraded,
+      modelVersion: classification.modelVersion,
+    );
+  }
+
+  /// Persists a resolved scan result (such as from multi-angle soft-voting fusion
+  /// or user-confirmed candidate) directly to SQLite, streak manager, and Firestore.
+  Future<Result<DetectionResult>> saveResolvedScan({
+    required String imagePath,
+    required String userId,
+    required String diseaseLabel,
+    required double confidence,
+    required List<TopCandidate> topCandidates,
+    bool isDegraded = false,
+    String? modelVersion,
+  }) async {
+    final diseaseInfo = DiseaseDatabase.getInfo(diseaseLabel);
+    final severity = diseaseInfo.severity;
 
     final detection = DetectionResult(
       userId: userId,
       imagePath: imagePath,
-      diseaseLabel: classification.label,
-      displayName: classification.diseaseInfo.displayName,
-      confidence: classification.confidence,
+      diseaseLabel: diseaseLabel,
+      displayName: diseaseInfo.displayName,
+      confidence: confidence,
       severity: severity,
-      isHealthy: classification.isHealthy,
-      cropType: classification.diseaseInfo.cropType,
-      cause: classification.diseaseInfo.cause,
-      treatments: classification.diseaseInfo.treatments,
+      isHealthy: diseaseInfo.isHealthy,
+      cropType: diseaseInfo.cropType,
+      cause: diseaseInfo.cause,
+      treatments: diseaseInfo.treatments,
       timestamp: DateTime.now().millisecondsSinceEpoch,
-      isDegraded: classification.isDegraded,
-      topCandidates: classification.topCandidates,
-      modelVersion: CropDiseaseClassifier.modelVersion,
+      isDegraded: isDegraded,
+      topCandidates: topCandidates,
+      modelVersion: modelVersion ?? CropDiseaseClassifier.modelVersion,
     );
 
     final saveResult = await _detectionRepository.saveDetection(detection);
-    
+
     if (saveResult.isError) {
       return Result.error(saveResult.failure!);
     }
@@ -70,7 +87,10 @@ class ScanCropUseCase {
 
     final savedDetection = detection.copyWith(id: saveResult.data);
     if (_communityRepository != null) {
-      unawaited(_communityRepository.uploadScan(savedDetection.toMap()));
+      unawaited(_communityRepository.upsertScan(
+        savedDetection.id.toString(),
+        savedDetection.toMap(),
+      ));
     }
 
     return Result.success(savedDetection);

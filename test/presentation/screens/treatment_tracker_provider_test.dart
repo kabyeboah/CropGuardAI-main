@@ -2,26 +2,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
 import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/domain/models/app_user.dart';
 import 'package:cropguard_flutter/domain/models/treatment_plan.dart';
+import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_provider.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockIAuthRepository extends Mock implements IAuthRepository {}
 class MockFirestoreService extends Mock implements FirestoreService {}
+class FakeTreatmentPlan extends Fake implements TreatmentPlan {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(FakeTreatmentPlan());
+  });
+
   late MockDatabaseHelper mockDb;
-  late MockFirebaseAuthService mockAuth;
+  late MockIAuthRepository mockAuthRepo;
   late MockFirestoreService mockFirestore;
 
   setUp(() {
     mockDb = MockDatabaseHelper();
-    mockAuth = MockFirebaseAuthService();
+    mockAuthRepo = MockIAuthRepository();
     mockFirestore = MockFirestoreService();
 
-    when(() => mockAuth.currentUserId).thenReturn('guest');
+    when(() => mockAuthRepo.currentUser).thenReturn(null);
   });
 
   group('TreatmentPlanGroup domain model', () {
@@ -159,7 +165,7 @@ void main() {
       when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
           .thenAnswer((_) async => 2);
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       expect(provider.planGroups.length, 2);
@@ -204,7 +210,7 @@ void main() {
           .thenAnswer((_) async => 0);
       when(() => mockDb.deleteTreatment('s1')).thenAnswer((_) async {});
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuth, mockFirestore);
+      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       when(() => mockDb.getAllTreatments(
@@ -219,6 +225,104 @@ void main() {
 
       verify(() => mockDb.deleteTreatment('s1')).called(1);
       expect(provider.planGroups, isEmpty);
+    });
+
+    test('does not throw when currentUser is null and skips firestore sync in guest mode', () async {
+      when(() => mockAuthRepo.currentUser).thenReturn(null);
+      when(() => mockDb.getAllTreatments(
+            userId: 'guest',
+            limit: 100,
+            offset: 0,
+          )).thenAnswer((_) async => []);
+      when(() => mockDb.getPendingTreatmentsCount(userId: 'guest'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getFields(userId: 'guest'))
+          .thenAnswer((_) async => []);
+      when(() => mockDb.insertTreatment(any()))
+          .thenAnswer((_) async => '1');
+
+      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      await Future.delayed(Duration.zero);
+
+      await provider.addTreatmentPlan(
+        crop: 'Maize',
+        disease: 'Blight',
+        steps: ['Apply bio-fungicide'],
+      );
+
+      verifyNever(() => mockFirestore.addTreatment(any()));
+    });
+
+    test('skips firestore sync when user is anonymous', () async {
+      final anonUser = AppUser(
+        id: 'anon_12345',
+        email: '',
+        displayName: 'Guest Farmer',
+        isAnonymous: true,
+      );
+      when(() => mockAuthRepo.currentUser).thenReturn(anonUser);
+      when(() => mockDb.getAllTreatments(
+            userId: 'anon_12345',
+            limit: 100,
+            offset: 0,
+          )).thenAnswer((_) async => []);
+      when(() => mockDb.getPendingTreatmentsCount(userId: 'anon_12345'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getCompletedTreatmentsCount(userId: 'anon_12345'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getFields(userId: 'anon_12345'))
+          .thenAnswer((_) async => []);
+      when(() => mockDb.insertTreatment(any()))
+          .thenAnswer((_) async => '1');
+
+      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      await Future.delayed(Duration.zero);
+
+      await provider.addTreatmentPlan(
+        crop: 'Maize',
+        disease: 'Blight',
+        steps: ['Apply bio-fungicide'],
+      );
+
+      verifyNever(() => mockFirestore.addTreatment(any()));
+    });
+
+    test('syncs to firestore when authenticated user is not anonymous', () async {
+      final realUser = AppUser(
+        id: 'user_real_999',
+        email: 'farmer@example.com',
+        displayName: 'Real Farmer',
+        isAnonymous: false,
+      );
+      when(() => mockAuthRepo.currentUser).thenReturn(realUser);
+      when(() => mockDb.getAllTreatments(
+            userId: 'user_real_999',
+            limit: 100,
+            offset: 0,
+          )).thenAnswer((_) async => []);
+      when(() => mockDb.getPendingTreatmentsCount(userId: 'user_real_999'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getCompletedTreatmentsCount(userId: 'user_real_999'))
+          .thenAnswer((_) async => 0);
+      when(() => mockDb.getFields(userId: 'user_real_999'))
+          .thenAnswer((_) async => []);
+      when(() => mockDb.insertTreatment(any()))
+          .thenAnswer((_) async => '1');
+      when(() => mockFirestore.addTreatment(any()))
+          .thenAnswer((_) async => 'cloud_id_1');
+
+      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      await Future.delayed(Duration.zero);
+
+      await provider.addTreatmentPlan(
+        crop: 'Maize',
+        disease: 'Blight',
+        steps: ['Apply bio-fungicide'],
+      );
+
+      verify(() => mockFirestore.addTreatment(any())).called(greaterThanOrEqualTo(1));
     });
   });
 }

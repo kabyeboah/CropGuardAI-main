@@ -81,6 +81,7 @@ dependencies:
   # Store Features
   in_app_review: ^2.0.9
   in_app_update: ^4.2.5
+  url_launcher: ^6.3.2
 
   # Feedback
   vibration: ^3.1.8
@@ -147,14 +148,8 @@ flutter:
     # the app binary. Release builds supply secrets via --dart-define or Firebase
     # Remote Config (see core/config/app_secrets.dart). .env is loaded at runtime
     # only when present (local dev); see main.dart.
-    #
-    # ML models and label files — listed explicitly so it is auditable which
-    # files ship in the binary. Do NOT use a bare `assets/` glob here; it hides
-    # accidental inclusions and made labels_v2.txt / the v2 model undeclared.
-    - assets/cropguard_plant_disease.tflite
-    - assets/cropguard_plant_disease_v2.tflite
-    - assets/labels.txt
-    - assets/labels_v2.txt
+    - assets/cropguard_plant_disease_verified.tflite
+    - assets/labels_verified.txt
     - assets/model_metadata.json
     - assets/api_specs/
     - assets/diseases/

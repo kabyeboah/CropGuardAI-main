@@ -1,18 +1,43 @@
 {
   "model_name": "CropGuard Plant Disease Classifier",
-  "model_file": "cropguard_plant_disease.tflite",
-  "labels_file": "labels.txt",
-  "num_classes": 93,
-  "model_v2_file": "cropguard_plant_disease_v2.tflite",
-  "labels_v2_file": "labels_v2.txt",
-  "num_classes_v2": 16,
-  "input_size": 224,
+  "model_file": "cropguard_plant_disease_verified.tflite",
+  "labels_file": "labels_verified.txt",
+  "num_classes": 51,
+  "input_size": 128,
   "input_channels": 3,
-  "normalize_mean": [0.0, 0.0, 0.0],
-  "normalize_std": [255.0, 255.0, 255.0],
-  "version": "2.1",
+  "normalize_mean": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "normalize_std": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "preprocessing_note": "Model input is RAW pixel values in [0, 255], NOT divided by 255. Internal rescaling to [-1, 1].",
+  "version": "2026.08.28",
   "architecture": "MobileNetV2",
-  "confidence_threshold": 0.60,
-  "notes": "V1 covers 93 classes (PlantVillage + West Africa crops). V2 covers 16 Ghana-specific classes (Garden Egg, Mango, Sugarcane). labels.txt trimmed to 93 to match V1 output nodes. Model selection uses adjusted-score algorithm (confidence - 1/numClasses) to give V2 a fair comparison."
+  "confidence_threshold": 0.6,
+  "calibration_temperature": 1.3409216403961182,
+  "validation_accuracy": 0.6391851902008057,
+  "field_test_accuracy": 0.6272253582283978,
+  "trained_from_sources": [
+    "ghana_crop_pest_disease",
+    "uganda_cassava",
+    "maize_in_field",
+    "rice_disease",
+    "mango_leaf_disease",
+    "sugarcane_leaf_disease",
+    "banana_disease",
+    "groundnut_leaf"
+  ],
+  "input_dtype": "<class 'numpy.float32'>",
+  "output_dtype": "<class 'numpy.float32'>",
+  "tflite_runtime": "native",
+  "tflite_builtins_only": true,
+  "select_tf_ops": false,
+  "flex_ops_required": false,
+  "flutter_android": true,
+  "flutter_ios": true
 }
-

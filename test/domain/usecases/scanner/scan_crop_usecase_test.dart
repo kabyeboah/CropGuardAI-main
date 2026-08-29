@@ -10,8 +10,11 @@ import 'package:cropguard_flutter/data/ml/disease_info.dart';
 import 'package:cropguard_flutter/core/utils/streak_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cropguard_flutter/domain/repositories/i_community_repository.dart';
+
 class MockClassifierRepository extends Mock implements IClassifierRepository {}
 class MockDetectionRepository extends Mock implements IDetectionRepository {}
+class MockCommunityRepository extends Mock implements ICommunityRepository {}
 
 void main() {
   late ScanCropUseCase useCase;
@@ -91,6 +94,69 @@ void main() {
       final result = await useCase(imagePath, userId);
       
       expect(result.data!.severity, ScanSeverity.early);
+    });
+
+    test('should call upsertScan with deterministic id when community repository is provided', () async {
+      final mockCommunity = MockCommunityRepository();
+      when(() => mockCommunity.upsertScan(any(), any()))
+          .thenAnswer((_) async => Result.success(null));
+
+      final useCaseWithCommunity = ScanCropUseCase(
+        mockClassifier,
+        mockDetection,
+        streakManager,
+        mockCommunity,
+      );
+
+      setupMockWithDisease('Tomato___Early_blight', false);
+
+      final result = await useCaseWithCommunity(imagePath, userId);
+
+      expect(result.isSuccess, isTrue);
+      verify(() => mockCommunity.upsertScan('1', any())).called(1);
+    });
+
+    test('saveResolvedScan builds and saves detection directly without invoking classifier', () async {
+      when(() => mockDetection.saveDetection(any()))
+          .thenAnswer((_) async => Result.success(42));
+
+      final result = await useCase.saveResolvedScan(
+        imagePath: imagePath,
+        userId: userId,
+        diseaseLabel: 'Apple___Black_rot',
+        confidence: 0.92,
+        topCandidates: [(label: 'Apple___Black_rot', confidence: 0.92)],
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.data!.id, 42);
+      expect(result.data!.diseaseLabel, 'Apple___Black_rot');
+      expect(result.data!.confidence, 0.92);
+      expect(result.data!.severity, ScanSeverity.severe);
+      verifyNever(() => mockClassifier.classifyFromPath(any()));
+      verify(() => mockDetection.saveDetection(any())).called(1);
+    });
+
+    test('should propagate modelVersion from classification to saved detection', () async {
+      final diseaseInfo = DiseaseDatabase.getInfo('Apple___Black_rot');
+      when(() => mockClassifier.classifyFromPath(imagePath)).thenAnswer(
+        (_) async => Result.success(Classification(
+          label: 'Apple___Black_rot',
+          confidence: 0.95,
+          isHealthy: false,
+          diseaseInfo: diseaseInfo,
+          modelVersion: 'custom-v2-model',
+        )),
+      );
+
+      when(() => mockDetection.saveDetection(any())).thenAnswer(
+        (_) async => Result.success(99),
+      );
+
+      final result = await useCase(imagePath, userId);
+
+      expect(result.isSuccess, isTrue);
+      expect(result.data!.modelVersion, equals('custom-v2-model'));
     });
   });
 }

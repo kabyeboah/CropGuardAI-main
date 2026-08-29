@@ -101,24 +101,109 @@ void main() {
       expect(provider.errorMessage, isNull);
     });
 
-    test('analyseAndSave sets errorMessage on quality failure', () async {
+    test('analyseAndSave sets errorMessage and errorMessageCode on quality failure', () async {
       when(() => mockScanCropUseCase(any(), any()))
-          .thenAnswer((_) async => Result.error(QualityFailure(ImageQualityIssue.blurry, 'Blurry image')));
+          .thenAnswer((_) async => Result.error(const QualityFailure(ImageQualityIssue.blurry, 'Blurry image')));
 
       final res = await provider.analyseAndSave('path/to/img.jpg');
 
       expect(res, isNull);
       expect(provider.errorMessage, contains('too blurry'));
+      expect(provider.errorMessageCode, isNotNull);
+      expect(provider.errorCode, isNotNull);
     });
 
-    test('analyseAndSave sets errorMessage on general failure', () async {
+    test('analyseAndSave sets errorMessage and errorMessageCode on general failure', () async {
       when(() => mockScanCropUseCase(any(), any()))
-          .thenAnswer((_) async => Result.error(MLFailure('Inference error')));
+          .thenAnswer((_) async => Result.error(const MLFailure('Inference error')));
 
       final res = await provider.analyseAndSave('path/to/img.jpg');
 
       expect(res, isNull);
       expect(provider.errorMessage, 'Inference error');
+      expect(provider.errorMessageCode, isNotNull);
+    });
+
+    test('analyseAndSave handles uncaught exception without leaking raw text', () async {
+      when(() => mockScanCropUseCase(any(), any()))
+          .thenThrow(Exception('platform crash 0xdeadbeef'));
+
+      final res = await provider.analyseAndSave('path/to/img.jpg');
+
+      expect(res, isNull);
+      expect(provider.errorMessage, 'Analysis failed');
+      expect(provider.errorMessage, isNot(contains('0xdeadbeef')));
+      expect(provider.errorMessageCode, isNotNull);
+    });
+  });
+
+  group('ScannerProvider - Merged Scan Saving', () {
+    test('saveMergedScan delegates to saveResolvedScan and returns saved detection', () async {
+      when(() => mockScanCropUseCase.saveResolvedScan(
+            imagePath: any(named: 'imagePath'),
+            userId: any(named: 'userId'),
+            diseaseLabel: any(named: 'diseaseLabel'),
+            confidence: any(named: 'confidence'),
+            topCandidates: any(named: 'topCandidates'),
+            isDegraded: any(named: 'isDegraded'),
+          )).thenAnswer((_) async => Result.success(_kDetection));
+
+      final res = await provider.saveMergedScan(
+        imagePath: 'path/to/img.jpg',
+        diseaseLabel: 'Apple___healthy',
+        confidence: 0.95,
+        topCandidates: [(label: 'Apple___healthy', confidence: 0.95)],
+      );
+
+      expect(res, isNotNull);
+      expect(res!.id, 123);
+      expect(provider.errorMessage, isNull);
+      expect(provider.errorMessageCode, isNull);
+    });
+
+    test('saveMergedScan sets errorMessage on error', () async {
+      when(() => mockScanCropUseCase.saveResolvedScan(
+            imagePath: any(named: 'imagePath'),
+            userId: any(named: 'userId'),
+            diseaseLabel: any(named: 'diseaseLabel'),
+            confidence: any(named: 'confidence'),
+            topCandidates: any(named: 'topCandidates'),
+            isDegraded: any(named: 'isDegraded'),
+          )).thenAnswer((_) async => Result.error(const CacheFailure('Save failed')));
+
+      final res = await provider.saveMergedScan(
+        imagePath: 'path/to/img.jpg',
+        diseaseLabel: 'Apple___healthy',
+        confidence: 0.95,
+        topCandidates: [(label: 'Apple___healthy', confidence: 0.95)],
+      );
+
+      expect(res, isNull);
+      expect(provider.errorMessage, 'Save failed');
+      expect(provider.errorMessageCode, isNotNull);
+    });
+
+    test('saveMergedScan handles uncaught exception without leaking raw text', () async {
+      when(() => mockScanCropUseCase.saveResolvedScan(
+            imagePath: any(named: 'imagePath'),
+            userId: any(named: 'userId'),
+            diseaseLabel: any(named: 'diseaseLabel'),
+            confidence: any(named: 'confidence'),
+            topCandidates: any(named: 'topCandidates'),
+            isDegraded: any(named: 'isDegraded'),
+          )).thenThrow(Exception('database lock error'));
+
+      final res = await provider.saveMergedScan(
+        imagePath: 'path/to/img.jpg',
+        diseaseLabel: 'Apple___healthy',
+        confidence: 0.95,
+        topCandidates: [(label: 'Apple___healthy', confidence: 0.95)],
+      );
+
+      expect(res, isNull);
+      expect(provider.errorMessage, 'Failed to save scan');
+      expect(provider.errorMessage, isNot(contains('database lock error')));
+      expect(provider.errorMessageCode, isNotNull);
     });
   });
 }

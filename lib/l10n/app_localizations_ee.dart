@@ -51,6 +51,10 @@ class AppLocalizationsEe extends AppLocalizations {
   String get securityWarningTitle => 'Security Warning';
 
   @override
+  String get securityWarningBody =>
+      'CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.';
+
+  @override
   String get proceedAnyway => 'Proceed Anyway';
 
   @override
@@ -1392,7 +1396,7 @@ class AppLocalizationsEe extends AppLocalizations {
   String get passwordsDoNotMatch => 'Passwords do not match.';
 
   @override
-  String get passwordMin6 => 'Password must be at least 6 characters.';
+  String get passwordMin8 => 'Password must be at least 8 characters.';
 
   @override
   String get explore => 'Explore';
@@ -1570,4 +1574,49 @@ class AppLocalizationsEe extends AppLocalizations {
 
   @override
   String get mySubmissionsSubtitle => 'Kpɔ nyatakakawo si wòŋlɔ';
+
+  @override
+  String get deleteTreatmentPlanTitle => 'Tutu Doyoɖoɖo Sia?';
+
+  @override
+  String deleteTreatmentPlanBody(String planName) {
+    return 'Esia atutu doyoɖoɖo na \"$planName\" kple eƒe afɔɖeɖewo katã tegbee.';
+  }
+
+  @override
+  String get deleteTreatmentStepTitle => 'Tutu Doyoɖoɖo ƒe Afɔɖeɖe Sia?';
+
+  @override
+  String deleteTreatmentStepBody(String stepName) {
+    return 'Esia atutu afɔɖeɖe \"$stepName\" tegbee.';
+  }
+
+  @override
+  String get syncPending => 'Le lalam';
+
+  @override
+  String get syncSyncing => 'Le sync wom';
+
+  @override
+  String get syncFailed => 'Mewɔ dɔ o';
+
+  @override
+  String get syncDeliveryFailed => 'Mewɔ dɔ kpuie o';
+
+  @override
+  String get syncSynced => 'Sync vɔ';
+
+  @override
+  String get updateRequiredTitle => 'Ehiã Be Nàwɔ Yeyee';
+
+  @override
+  String get updateRequiredBody =>
+      'CropGuard AI yeye aɖe va si hiã be nàwɔ yeyee hafi ayi edzi. Taflatse wɔ yeyee le asitsafe la.';
+
+  @override
+  String get updateNow => 'Wɔ Yeyee Fifi';
+
+  @override
+  String get scanEngineUnavailableDesc =>
+      'Scan mɔ̃ la mete ŋu dze egɔme le mɔ̃ sia dzi o. Àte ŋu abia agbletɔwo ƒe habɔbɔ la hena kpekpeɖeŋu.';
 }

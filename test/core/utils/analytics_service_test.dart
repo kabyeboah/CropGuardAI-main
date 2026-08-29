@@ -50,6 +50,18 @@ void main() {
     expect((captured[1] as Map)['method'], 'google');
   });
 
+  test('logModelFallbackUsed logs event with reason', () async {
+    await service.logModelFallbackUsed(reason: 'v2_load_failed');
+
+    final captured = verify(() => analytics.logEvent(
+          name: captureAny(named: 'name'),
+          parameters: captureAny(named: 'parameters'),
+        )).captured;
+
+    expect(captured[0], 'model_fallback_used');
+    expect((captured[1] as Map)['reason'], 'v2_load_failed');
+  });
+
   test('event logging never throws when Firebase fails', () async {
     when(() => analytics.logEvent(
           name: any(named: 'name'),

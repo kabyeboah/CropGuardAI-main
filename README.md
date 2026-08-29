@@ -70,8 +70,7 @@ lib/
 
 ### 1. On-Device TensorFlow Lite ML Engine
 * **Quantized CNN Models**: Runs on `tflite_flutter` without requiring active cloud network connections.
-  * **V1 General Model** (`cropguard_plant_disease.tflite`): Detects 93 classes across major staple crops (Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, Cowpea, etc.).
-  * **V2 Regional Model** (`cropguard_plant_disease_v2.tflite`): Optimized 16-class classifier dedicated to regional Sub-Saharan crops such as Garden Egg (African Eggplant), Mango, and Sugarcane.
+  * **Verified MobileNetV2 Model** (`cropguard_plant_disease_verified.tflite`): Detects 51 classes across major staple and regional crops (Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, Cowpea, Mango, Sugarcane, etc.).
 * **Pre-Execution Quality Gate**: `ImageQualityAnalyzer` checks image lighting and blur before running tensor operations. Low-confidence predictions (< 60%) automatically navigate to a low-confidence diagnostic helper screen to prevent false treatment recommendations.
 
 ### 2. Offline-First Architecture & Auto-Sync Engine
@@ -114,7 +113,7 @@ Sensitive API keys and endpoints are never hardcoded. [`AppSecrets`](file:///Use
 ```bash
 # Clone repository
 git clone <repository_url>
-cd CropGuardAI-main/CropGuardAI-main
+cd <repository_directory>
 
 # Install dependencies
 flutter pub get
@@ -124,7 +123,10 @@ flutter pub get
 * **CLI Setup (Recommended)**:
   ```bash
   dart pub global activate flutterfire_cli
-  flutterfire configure --project=crop-guard-d36e5
+  # Run interactively to select/create your Firebase project:
+  flutterfire configure
+  # Or explicitly specify your project ID:
+  # flutterfire configure --project=<your-firebase-project-id>
   ```
 * **Manual Setup**: Place configuration files in the appropriate platform directories:
   * Android: `android/app/google-services.json`
@@ -132,10 +134,8 @@ flutter pub get
 
 ### 3. Verify Asset Bundling
 Ensure the following AI models and metadata files exist in `assets/`:
-- `assets/cropguard_plant_disease.tflite`
-- `assets/cropguard_plant_disease_v2.tflite`
-- `assets/labels.txt`
-- `assets/labels_v2.txt`
+- `assets/cropguard_plant_disease_verified.tflite`
+- `assets/labels_verified.txt`
 - `assets/model_metadata.json`
 
 ### 4. Run the Application

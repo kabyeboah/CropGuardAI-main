@@ -61,6 +61,7 @@ import '../utils/biometric_service.dart';
 import '../utils/app_lock_controller.dart';
 import '../utils/auth_state_notifier.dart';
 import '../utils/classifier_health_service.dart';
+import '../utils/push_notification_service.dart';
 import '../../domain/usecases/scanner/scan_batch_usecase.dart';
 
 final GetIt sl = GetIt.instance;
@@ -79,7 +80,6 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<FirebaseStorageService>(() => FirebaseStorageService());
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
   sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(sl<CloudinaryService>(), sl<FirebaseStorageService>()));
-  sl.registerLazySingleton<CropDiseaseClassifier>(() => CropDiseaseClassifier());
   sl.registerLazySingleton<GeminiCloudAiService>(() => GeminiCloudAiService());
   sl.registerSingleton<StreakManager>(StreakManager(prefs));
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
@@ -100,7 +100,7 @@ Future<void> setupServiceLocator() async {
     sl<DatabaseHelper>(),
     sl<ImageUploadService>(),
   ));
-  sl.registerLazySingleton<IClassifierRepository>(() => ClassifierRepositoryImpl(sl<CropDiseaseClassifier>()));
+  sl.registerLazySingleton<IClassifierRepository>(() => ClassifierRepositoryImpl(CropDiseaseClassifier()));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
     sl<FirebaseAuthService>(),
     sl<DatabaseHelper>(),
@@ -142,6 +142,13 @@ Future<void> setupServiceLocator() async {
       if (repo is CommunityRepositoryImpl) {
         repo.drainPendingSync();
       }
+    }
+  });
+
+  // Re-sync FCM push token whenever a user logs in / registers / restores auth state.
+  sl<IAuthRepository>().authStateChanges.listen((user) {
+    if (user != null) {
+      PushNotificationService.syncFcmToken(user.id);
     }
   });
 }

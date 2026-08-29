@@ -6,7 +6,7 @@ How to add new crop/disease classes to the TFLite model and update the app.
 
 ## Overview
 
-The current model (`cropguard_plant_disease.tflite`) covers **93 classes** across 22 crop types.
+The current model (`cropguard_plant_disease_verified.tflite`) covers **51 classes** across Ghana & Sub-Saharan regional crop types.
 Adding new classes requires four steps:
 
 1. [Collect images](#step-1--collect-images)
@@ -238,15 +238,15 @@ model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS_2)
 converter    = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 
-with open('/content/cropguard_plant_disease.tflite', 'wb') as f:
+with open('/content/cropguard_plant_disease_verified.tflite', 'wb') as f:
     f.write(tflite_model)
 
 # ── 7. Save labels in the exact same order as model output nodes ──────────────
-with open('/content/labels.txt', 'w') as f:
+with open('/content/labels_verified.txt', 'w') as f:
     f.write('\n'.join(class_names))
 
 print(f'✅  Exported {NUM_CLASSES} classes.')
-print('Download cropguard_plant_disease.tflite and labels.txt from Colab.')
+print('Download cropguard_plant_disease_verified.tflite and labels_verified.txt from Colab.')
 ```
 
 Download both files from the Colab file browser (left sidebar → Files).
@@ -258,8 +258,8 @@ Download both files from the Colab file browser (left sidebar → Files).
 ### 4a. Replace the model and labels
 
 ```
-assets/cropguard_plant_disease.tflite  ← replace with the new file from Colab
-assets/labels.txt                      ← replace with the new file from Colab
+assets/cropguard_plant_disease_verified.tflite  ← replace with the new file from Colab
+assets/labels_verified.txt                      ← replace with the new file from Colab
 ```
 
 ### 4b. Update model metadata
@@ -269,16 +269,16 @@ Open `assets/model_metadata.json` and change `num_classes` to match your new cou
 ```json
 {
   "model_name": "CropGuard Plant Disease Classifier",
-  "model_file": "cropguard_plant_disease.tflite",
-  "input_size": 224,
+  "model_file": "cropguard_plant_disease_verified.tflite",
+  "input_size": 128,
   "input_channels": 3,
   "normalize_mean": [0.0, 0.0, 0.0],
-  "normalize_std": [255.0, 255.0, 255.0],
+  "normalize_std": [1.0, 1.0, 1.0],
   "num_classes": 107,
   "version": "3.0",
   "architecture": "MobileNetV2",
   "confidence_threshold": 0.60,
-  "labels_file": "labels.txt"
+  "labels_file": "labels_verified.txt"
 }
 ```
 
@@ -291,7 +291,7 @@ import 'package:flutter/services.dart';
 import 'data/ml/disease_info.dart';
 
 // Inside main(), after setupServiceLocator():
-final raw = await rootBundle.loadString('assets/labels.txt');
+final raw = await rootBundle.loadString('assets/labels_verified.txt');
 final labels = raw.split('\n').where((l) => l.isNotEmpty).toList();
 for (final label in labels) {
   final info = DiseaseDatabase.getInfo(label);
@@ -313,7 +313,7 @@ printed in the debug console:
 ```dart
 // ─── Mango ────────────────────────────────────────────────────────────────
 DiseaseInfoEntry(
-  label: 'Mango___Anthracnose',        // must match labels.txt exactly
+  label: 'Mango___Anthracnose',        // must match labels_verified.txt exactly
   displayName: 'Mango Anthracnose',
   cropType: 'Mango',
   cause: 'Fungal infection by Colletotrichum gloeosporioides',
@@ -383,8 +383,8 @@ label string verbatim.
 [ ] Collected 300+ images per new class (including a healthy class)
 [ ] All images organised into one folder per class
 [ ] Model trained and validated (aim for > 85 % validation accuracy)
-[ ] cropguard_plant_disease.tflite replaced in assets/
-[ ] labels.txt replaced in assets/
+[ ] cropguard_plant_disease_verified.tflite replaced in assets/
+[ ] labels_verified.txt replaced in assets/
 [ ] model_metadata.json num_classes updated
 [ ] disease_info.dart has one DiseaseInfoEntry per label (no MISSING ENTRY lines)
 [ ] Debug check removed from main.dart

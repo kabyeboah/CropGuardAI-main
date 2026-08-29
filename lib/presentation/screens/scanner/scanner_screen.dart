@@ -217,9 +217,12 @@ class _ScannerScreenState extends State<ScannerScreen>
     if (!mounted) return;
 
     if (results.isEmpty) {
+      final msg = provider.errorMessageCode?.resolve(context.l10n) ??
+          provider.errorMessage ??
+          context.l10n.batchAnalysisFailed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.errorMessage ?? context.l10n.batchAnalysisFailed),
+          content: Text(msg),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -228,9 +231,11 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     context.read<BatchResultProvider>().calculateResults(results);
 
-    if (provider.errorMessage != null) {
+    if (provider.errorMessageCode != null || provider.errorMessage != null) {
+      final msg = provider.errorMessageCode?.resolve(context.l10n) ??
+          provider.errorMessage!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(provider.errorMessage!)),
+        SnackBar(content: Text(msg)),
       );
     }
 
@@ -417,7 +422,7 @@ class _ScannerScreenState extends State<ScannerScreen>
         batchMode: p.batchMode,
         batchCount: p.batchImagePaths.length,
         isAnalysing: p.isAnalysing,
-        errorMessage: p.errorMessage,
+        errorMessage: p.errorMessageCode?.resolve(context.l10n) ?? p.errorMessage,
       ),
       builder: (context, s, _) {
         return PopScope(

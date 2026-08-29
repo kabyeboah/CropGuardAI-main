@@ -96,7 +96,7 @@ void main() {
 
     test('sets hasError to true on failure', () async {
       when(() => mockGetHomeData(userId: any(named: 'userId'))).thenAnswer(
-        (_) async => Result.error(ServerFailure('Fail')),
+        (_) async => Result.error(const ServerFailure('Fail')),
       );
 
       await provider.load();

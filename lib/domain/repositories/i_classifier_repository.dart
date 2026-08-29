@@ -15,6 +15,7 @@ class Classification {
   // ScanCropUseCase and the history screen.
   final bool isDegraded;
   final List<TopCandidate> topCandidates;
+  final String? modelVersion;
 
   const Classification({
     required this.label,
@@ -23,6 +24,7 @@ class Classification {
     required this.diseaseInfo,
     this.isDegraded = false,
     this.topCandidates = const [],
+    this.modelVersion,
   });
 }
 

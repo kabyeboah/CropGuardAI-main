@@ -30,15 +30,15 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
     try {
       final isPlant = await _oodGate.isPlantImage(imagePath);
       if (!isPlant) {
-        return Result.error(OODFailure());
+        return Result.error(const OODFailure());
       }
 
       final result = await _classifier.classifyFromPath(imagePath);
       if (result == null) {
-        return Result.error(MLFailure('Classification failed to return a result'));
+        return Result.error(const MLFailure('Classification failed to return a result'));
       }
       if (result.engineUnavailable) {
-        return Result.error(MLFailure('ML engine unavailable on this platform or device'));
+        return Result.error(const MLFailure('ML engine unavailable on this platform or device'));
       }
       if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
         return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
@@ -54,15 +54,15 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
     try {
       final isPlant = await _oodGate.isPlantBytes(rgbaBytes, width, height);
       if (!isPlant) {
-        return Result.error(OODFailure());
+        return Result.error(const OODFailure());
       }
 
       final result = await _classifier.classifyFromBytes(rgbaBytes, width, height);
       if (result == null) {
-        return Result.error(MLFailure('Classification failed to return a result'));
+        return Result.error(const MLFailure('Classification failed to return a result'));
       }
       if (result.engineUnavailable) {
-        return Result.error(MLFailure('ML engine unavailable on this platform or device'));
+        return Result.error(const MLFailure('ML engine unavailable on this platform or device'));
       }
       if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
         return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
@@ -87,6 +87,7 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
       diseaseInfo: result.diseaseInfo,
       isDegraded: result.isDegraded,
       topCandidates: result.topCandidates,
+      modelVersion: result.modelVersion,
     );
   }
 }

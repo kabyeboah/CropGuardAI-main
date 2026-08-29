@@ -1,8 +1,9 @@
 import '../../data/ml/crop_disease_classifier.dart';
 import '../../domain/models/disease_risk.dart';
 
-/// Bayesian prior risk adjuster that incorporates regional outbreak data
-/// and weather risk assessments to weight ambiguous ML disease predictions.
+/// Heuristic risk-weighted classifier adjuster that incorporates regional outbreak data
+/// and weather risk assessments to boost confidence scores of ambiguous ML disease predictions
+/// using additive weighting factors and re-normalization.
 class RiskWeightedClassifier {
 
   /// Maps DiseaseRiskType enum to common class label substrings.

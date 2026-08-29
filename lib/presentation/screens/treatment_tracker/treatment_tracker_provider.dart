@@ -9,7 +9,7 @@ import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/scan_severity.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/local/pending_sync_queue.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../domain/repositories/i_auth_repository.dart';
 import '../../../data/remote/firestore_service.dart';
 import '../../../domain/models/field.dart';
 import '../../../domain/models/treatment_plan.dart';
@@ -32,12 +32,12 @@ class TreatmentSeed {
 
 class TreatmentTrackerProvider extends ChangeNotifier {
   final DatabaseHelper _db;
-  final FirebaseAuthService _auth;
+  final IAuthRepository _authRepository;
   final FirestoreService _firestore;
 
   TreatmentTrackerProvider(
     this._db,
-    this._auth,
+    this._authRepository,
     this._firestore, {
     TreatmentSeed? seed,
   }) {
@@ -94,8 +94,9 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     return true;
   }
 
-  String get _userId => _auth.currentUserId;
-  bool get _isGuest => _userId == 'guest';
+  String get _userId => _authRepository.currentUser?.id ?? 'guest';
+  bool get _isGuest =>
+      _userId == 'guest' || (_authRepository.currentUser?.isAnonymous ?? false);
 
   Future<void> _load({bool reset = true}) async {
     if (reset) {

@@ -14,10 +14,12 @@ import '../../../domain/usecases/scanner/scan_crop_usecase.dart';
 import '../../../domain/usecases/scanner/scan_batch_usecase.dart';
 import '../../../core/utils/image_quality_analyzer.dart';
 import '../../../core/utils/analytics_service.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../core/error/failures.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
 import '../../../data/repositories/classifier_repository_impl.dart';
 import '../../../core/di/service_locator.dart';
+import '../../l10n/ui_message.dart';
 
 enum ScanMode { camera, gallery }
 
@@ -67,6 +69,8 @@ class ScannerProvider extends ChangeNotifier {
   ScanMode mode = ScanMode.camera;
   ImageQuality quality = const ImageQuality();
   ScanPreviewQuality? previewQuality;
+  UiMessage? errorMessageCode;
+  UiMessage? get errorCode => errorMessageCode;
   String? errorMessage;
   List<String> batchImagePaths = [];
   bool batchMode = false;
@@ -106,8 +110,10 @@ class ScannerProvider extends ChangeNotifier {
       cameraInitialized = true;
       notifyListeners();
       await _startFrameAnalysis();
-    } catch (e) {
-      errorMessage = 'Camera unavailable: $e';
+    } catch (e, st) {
+      AppLogger.e('ScannerProvider.initCamera failed: $e', e, st);
+      errorMessageCode = UiMessage.cameraUnavailable;
+      errorMessage = 'Camera unavailable. Please check permissions and try again.';
       notifyListeners();
     } finally {
       _initializing = false;
@@ -160,7 +166,9 @@ class ScannerProvider extends ChangeNotifier {
         next ? FlashMode.torch : FlashMode.off,
       );
       torchOn = next;
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.w('ScannerProvider.toggleTorch failed: $e', e, st);
+      errorMessageCode = UiMessage.torchUnavailable;
       errorMessage = 'Torch is not available on this device.';
     }
     notifyListeners();
@@ -177,7 +185,9 @@ class ScannerProvider extends ChangeNotifier {
       capturedImagePath = file.path;
       notifyListeners();
       return file.path;
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.e('ScannerProvider.captureImage failed: $e', e, st);
+      errorMessageCode = UiMessage.captureFailed;
       errorMessage = 'Failed to capture image.';
       notifyListeners();
       return null;
@@ -202,6 +212,7 @@ class ScannerProvider extends ChangeNotifier {
   }
 
   Future<String?> downloadFromUrl(String url) async {
+    errorMessageCode = null;
     errorMessage = null;
     notifyListeners();
     try {
@@ -209,12 +220,16 @@ class ScannerProvider extends ChangeNotifier {
       final response =
           await http.get(uri).timeout(const Duration(seconds: 15));
       if (response.statusCode != 200) {
+        AppLogger.w('ScannerProvider.downloadFromUrl HTTP error ${response.statusCode}');
+        errorMessageCode = UiMessage.downloadFailed(response.statusCode);
         errorMessage = 'Could not download image (HTTP ${response.statusCode}).';
         notifyListeners();
         return null;
       }
       final contentType = response.headers['content-type'] ?? '';
       if (!contentType.startsWith('image/')) {
+        AppLogger.w('ScannerProvider.downloadFromUrl non-image contentType: $contentType');
+        errorMessageCode = UiMessage.urlNotImage;
         errorMessage = 'URL does not point to an image.';
         notifyListeners();
         return null;
@@ -227,7 +242,9 @@ class ScannerProvider extends ChangeNotifier {
       capturedImagePath = file.path;
       notifyListeners();
       return file.path;
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.e('ScannerProvider.downloadFromUrl failed: $e', e, st);
+      errorMessageCode = UiMessage.urlLoadFailed;
       errorMessage = 'Failed to load image from URL.';
       notifyListeners();
       return null;
@@ -260,6 +277,7 @@ class ScannerProvider extends ChangeNotifier {
     if (batchImagePaths.isEmpty) return [];
 
     isAnalysing = true;
+    errorMessageCode = null;
     errorMessage = null;
     notifyListeners();
 
@@ -270,10 +288,15 @@ class ScannerProvider extends ChangeNotifier {
 
     isAnalysing = false;
     if (results.isEmpty) {
+      errorMessageCode = failures > 0
+          ? UiMessage.batchAllFailed
+          : UiMessage.noImagesToAnalyse;
       errorMessage = failures > 0
           ? 'Batch analysis failed for all images.'
           : 'No images to analyse.';
     } else if (failures > 0) {
+      errorMessageCode =
+          UiMessage.batchPartial(results.length, batchImagePaths.length);
       errorMessage =
           'Analysed ${results.length} of ${batchImagePaths.length} images.';
     }
@@ -313,11 +336,79 @@ class ScannerProvider extends ChangeNotifier {
       diseaseInfo: c.diseaseInfo,
       isDegraded: c.isDegraded,
       topCandidates: c.topCandidates,
+      modelVersion: c.modelVersion,
     );
+  }
+
+  /// Persists a multi-angle merged diagnosis or user-confirmed candidate result
+  /// without re-running inference or discarding prior angle data.
+  Future<DetectionResult?> saveMergedScan({
+    required String imagePath,
+    required String diseaseLabel,
+    required double confidence,
+    required List<TopCandidate> topCandidates,
+    bool isDegraded = false,
+    String? modelVersion,
+  }) async {
+    isAnalysing = true;
+    errorMessageCode = null;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final userId = _authRepository.currentUser?.id ?? 'guest';
+      final result = await _scanCropUseCase.saveResolvedScan(
+        imagePath: imagePath,
+        userId: userId,
+        diseaseLabel: diseaseLabel,
+        confidence: confidence,
+        topCandidates: topCandidates,
+        isDegraded: isDegraded,
+        modelVersion: modelVersion,
+      );
+
+      if (result.isError) {
+        AppLogger.e('ScannerProvider.saveMergedScan error: ${result.failure?.message}');
+        errorMessageCode = UiMessage.genericError;
+        errorMessage = result.failure?.message ?? 'Failed to save scan';
+        isAnalysing = false;
+        notifyListeners();
+        return null;
+      }
+
+      isAnalysing = false;
+      notifyListeners();
+      final detection = result.data;
+      if (detection != null) {
+        if (detection.confidence < CropDiseaseClassifier.confidenceThreshold) {
+          unawaited(_analytics.logLowConfidence(
+            confidence: detection.confidence,
+            disease: detection.diseaseLabel,
+            modelVersion: detection.modelVersion,
+          ));
+        }
+        unawaited(_analytics.logScanCompleted(
+          disease: detection.diseaseLabel,
+          confidence: detection.confidence,
+          isHealthy: detection.isHealthy,
+          modelVersion: detection.modelVersion,
+          topCandidates: detection.topCandidates,
+        ));
+      }
+      return detection;
+    } catch (e, st) {
+      AppLogger.e('ScannerProvider.saveMergedScan exception: $e', e, st);
+      errorMessageCode = UiMessage.genericError;
+      errorMessage = 'Failed to save scan';
+      isAnalysing = false;
+      notifyListeners();
+      return null;
+    }
   }
 
   Future<DetectionResult?> analyseAndSave(String imagePath) async {
     isAnalysing = true;
+    errorMessageCode = null;
     errorMessage = null;
     notifyListeners();
     unawaited(_analytics.logScanStarted(source: mode == ScanMode.gallery ? 'gallery' : 'camera'));
@@ -329,9 +420,11 @@ class ScannerProvider extends ChangeNotifier {
       if (result.isError) {
         final failure = result.failure;
         if (failure is QualityFailure) {
+          errorMessageCode = _getQualityUiMessage(failure.issue);
           errorMessage = _getQualityErrorMessage(failure.issue);
           unawaited(_analytics.logScanFailed(reason: 'quality_${failure.issue?.name ?? 'unknown'}'));
         } else {
+          errorMessageCode = UiMessage.analysisFailed;
           errorMessage = failure?.message ?? 'Analysis failed';
           unawaited(_analytics.logScanFailed(reason: 'inference'));
         }
@@ -360,11 +453,28 @@ class ScannerProvider extends ChangeNotifier {
         ));
       }
       return detection;
-    } catch (e) {
-      errorMessage = 'Analysis failed: $e';
+    } catch (e, st) {
+      AppLogger.e('ScannerProvider.analyseAndSave exception: $e', e, st);
+      errorMessageCode = UiMessage.analysisFailed;
+      errorMessage = 'Analysis failed';
       isAnalysing = false;
       notifyListeners();
       return null;
+    }
+  }
+
+  UiMessage _getQualityUiMessage(ImageQualityIssue? issue) {
+    switch (issue) {
+      case ImageQualityIssue.blurry:
+        return UiMessage.qualityBlurry;
+      case ImageQualityIssue.tooDark:
+        return UiMessage.qualityTooDark;
+      case ImageQualityIssue.tooBright:
+        return UiMessage.qualityTooBright;
+      case ImageQualityIssue.tooSmall:
+        return UiMessage.qualityTooSmall;
+      default:
+        return UiMessage.qualityPoor;
     }
   }
 

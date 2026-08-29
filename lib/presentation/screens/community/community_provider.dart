@@ -314,10 +314,33 @@ class CommunityProvider extends ChangeNotifier {
     await postUpdate(_lastComposerText, onPosted: onPosted);
   }
 
-  Future<void> reportPost(String postId) async {
-    errorMessage = 'Post reported. Thank you for keeping our community safe.';
+  Future<void> reportPost(String postId, {String? reason}) async {
+    final userId = _auth.currentUserId;
+    if (userId.isEmpty || _auth.isAnonymous) {
+      errorMessage = 'Please sign in to report posts.';
+      _safeNotify();
+      return;
+    }
+
+    try {
+      final res = await _communityRepo.reportPost(
+        postId: postId,
+        reporterId: userId,
+        reason: reason,
+      );
+      res.fold(
+        (_) {
+          errorMessage = 'Post reported. Thank you for keeping our community safe.';
+        },
+        (failure) {
+          errorMessage = failure.message.isNotEmpty
+              ? failure.message
+              : 'Failed to report post. Please try again.';
+        },
+      );
+    } catch (e) {
+      errorMessage = 'Failed to report post. Please try again.';
+    }
     _safeNotify();
-    await Future.delayed(const Duration(seconds: 3));
-    clearError();
   }
 }

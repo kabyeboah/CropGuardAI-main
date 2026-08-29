@@ -22,6 +22,8 @@ class DetectionResult {
   final bool isDegraded;
   final List<TopCandidate> topCandidates;
   final String? modelVersion;
+  final bool isSynced;
+  final int? syncedAt;
 
   const DetectionResult({
     this.id = 0,
@@ -39,6 +41,8 @@ class DetectionResult {
     this.isDegraded = false,
     this.topCandidates = const [],
     this.modelVersion,
+    this.isSynced = false,
+    this.syncedAt,
   });
 
   DetectionResult copyWith({
@@ -57,6 +61,8 @@ class DetectionResult {
     bool? isDegraded,
     List<TopCandidate>? topCandidates,
     String? modelVersion,
+    bool? isSynced,
+    int? syncedAt,
   }) {
     return DetectionResult(
       id: id ?? this.id,
@@ -74,6 +80,8 @@ class DetectionResult {
       isDegraded: isDegraded ?? this.isDegraded,
       topCandidates: topCandidates ?? this.topCandidates,
       modelVersion: modelVersion ?? this.modelVersion,
+      isSynced: isSynced ?? this.isSynced,
+      syncedAt: syncedAt ?? this.syncedAt,
     );
   }
 
@@ -93,10 +101,19 @@ class DetectionResult {
       'timestamp': timestamp,
       'isDegraded': isDegraded ? 1 : 0,
       'modelVersion': modelVersion,
+      'isSynced': isSynced ? 1 : 0,
+      'syncedAt': syncedAt,
     };
   }
 
   factory DetectionResult.fromMap(Map<String, dynamic> map) {
+    int? parseSyncedAt(dynamic val) {
+      if (val == null) return null;
+      if (val is int) return val;
+      if (val is num) return val.toInt();
+      return null;
+    }
+
     return DetectionResult(
       id: map['id'] as int? ?? 0,
       userId: map['userId'] as String? ?? '',
@@ -112,6 +129,8 @@ class DetectionResult {
       timestamp: map['timestamp'] as int? ?? 0,
       isDegraded: (map['isDegraded'] as int? ?? 0) == 1,
       modelVersion: map['modelVersion'] as String?,
+      isSynced: (map['isSynced'] as int? ?? 0) == 1,
+      syncedAt: parseSyncedAt(map['syncedAt']),
     );
   }
 }

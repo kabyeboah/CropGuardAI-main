@@ -89,7 +89,7 @@ void main() {
       expect(provider.errorMessage, 'Please accept the terms and privacy policy.');
     });
 
-    test('errors if password < 6 characters', () async {
+    test('errors if password < 8 characters', () async {
       await provider.register(
         name: 'Test',
         email: 'test@example.com',
@@ -98,7 +98,7 @@ void main() {
         termsAccepted: true,
         onSuccess: () {},
       );
-      expect(provider.errorMessage, 'Password must be at least 6 characters.');
+      expect(provider.errorMessage, 'Password must be at least 8 characters.');
     });
   });
 
@@ -130,7 +130,7 @@ void main() {
             email: any(named: 'email'),
             password: any(named: 'password'),
             name: any(named: 'name'),
-          )).thenAnswer((_) async => Result.error(AuthFailure('email-already-in-use')));
+          )).thenAnswer((_) async => Result.error(const AuthFailure('email-already-in-use')));
 
       await provider.register(
         name: 'New User',

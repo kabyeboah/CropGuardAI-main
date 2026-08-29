@@ -38,7 +38,7 @@ void main() {
 
     test('returns failure when repository fails', () async {
       when(() => mockRepository.deleteDetection(any())).thenAnswer(
-          (_) async => Result.error(CacheFailure('file not found')));
+          (_) async => Result.error(const CacheFailure('file not found')));
 
       final result = await useCase(1);
 

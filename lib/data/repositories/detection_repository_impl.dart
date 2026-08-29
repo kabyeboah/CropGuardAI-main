@@ -31,6 +31,7 @@ class DetectionRepositoryImpl implements IDetectionRepository {
     int? dateTo,
     String? searchQuery,
     String? orderBy,
+    bool? isSynced,
   }) async {
     try {
       final detections = await _dbHelper.getAllDetections(
@@ -43,8 +44,39 @@ class DetectionRepositoryImpl implements IDetectionRepository {
         dateTo: dateTo,
         searchQuery: searchQuery,
         orderBy: orderBy,
+        isSynced: isSynced,
       );
       return Result.success(detections);
+    } catch (e) {
+      return Result.error(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<List<DetectionResult>>> getUnsyncedDetections({String? userId}) async {
+    try {
+      final detections = await _dbHelper.getUnsyncedDetections(userId: userId);
+      return Result.success(detections);
+    } catch (e) {
+      return Result.error(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> markDetectionSynced(int id, {int? syncedAt}) async {
+    try {
+      await _dbHelper.markDetectionSynced(id, syncedAt: syncedAt);
+      return Result.success(null);
+    } catch (e) {
+      return Result.error(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> markDetectionsSynced(List<int> ids, {int? syncedAt}) async {
+    try {
+      await _dbHelper.markDetectionsSynced(ids, syncedAt: syncedAt);
+      return Result.success(null);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
     }

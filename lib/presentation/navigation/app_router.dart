@@ -7,6 +7,7 @@ import '../../data/local/database_helper.dart';
 import '../../data/remote/firebase_auth_service.dart';
 import '../../data/remote/firestore_service.dart';
 import '../../data/remote/image_upload_service.dart';
+import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/repositories/i_community_repository.dart';
 import '../../domain/repositories/i_detection_repository.dart';
 import '../../domain/usecases/auth/send_password_reset_usecase.dart';
@@ -197,7 +198,7 @@ class AppRouter {
               ChangeNotifierProvider(
                 create: (_) => TreatmentTrackerProvider(
                   sl<DatabaseHelper>(),
-                  sl<FirebaseAuthService>(),
+                  sl<IAuthRepository>(),
                   sl<FirestoreService>(),
                 ),
               ),
@@ -223,6 +224,7 @@ class AppRouter {
               confidence: extra.confidence,
               imagePath: extra.imagePath,
               topCandidates: extra.topCandidates,
+              regionalRisks: extra.regionalRisks,
             );
           }
           final confidence = double.tryParse(
@@ -284,7 +286,7 @@ class AppRouter {
         builder: (ctx, state) => ChangeNotifierProvider(
           create: (_) => TreatmentTrackerProvider(
             sl<DatabaseHelper>(),
-            sl<FirebaseAuthService>(),
+            sl<IAuthRepository>(),
             sl<FirestoreService>(),
             seed: state.extra is TreatmentSeed
                 ? state.extra as TreatmentSeed

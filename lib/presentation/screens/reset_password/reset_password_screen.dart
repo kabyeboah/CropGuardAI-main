@@ -48,8 +48,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   Future<void> _submit() async {
     final l10n = context.l10n;
-    if (_password.length < 6) {
-      setState(() => _error = l10n.passwordMin6);
+    if (_password.length < 8) {
+      setState(() => _error = l10n.passwordMin8);
       return;
     }
     if (_password != _confirm) {

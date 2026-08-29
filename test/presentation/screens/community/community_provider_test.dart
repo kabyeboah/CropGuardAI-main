@@ -104,4 +104,36 @@ void main() {
       p.dispose();
     });
   });
+
+  group('CommunityProvider - reportPost', () {
+    test('reportPost rejects anonymous/guest users', () async {
+      when(() => mockAuth.isAnonymous).thenReturn(true);
+
+      await provider.reportPost('post_123');
+
+      expect(provider.errorMessage, 'Please sign in to report posts.');
+      verifyNever(() => mockCommunityRepo.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          ));
+    });
+
+    test('reportPost calls repository with user ID when authenticated', () async {
+      when(() => mockCommunityRepo.reportPost(
+            postId: any(named: 'postId'),
+            reporterId: any(named: 'reporterId'),
+            reason: any(named: 'reason'),
+          )).thenAnswer((_) async => Result.success(null));
+
+      await provider.reportPost('post_123', reason: 'abusive');
+
+      verify(() => mockCommunityRepo.reportPost(
+            postId: 'post_123',
+            reporterId: 'u123',
+            reason: 'abusive',
+          )).called(1);
+      expect(provider.errorMessage, 'Post reported. Thank you for keeping our community safe.');
+    });
+  });
 }

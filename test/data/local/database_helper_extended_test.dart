@@ -271,4 +271,49 @@ void main() {
       expect(await db.getFields(userId: 'alice'), isEmpty);
     });
   });
+
+  // ── Unsynced Detections & Sync Tracking ─────────────────────────────────
+
+  group('Unsynced Detections & Sync Tracking', () {
+    test('insertDetection defaults isSynced to false and syncedAt to null', () async {
+      final id = await db.insertDetection(detection(userId: 'alice'));
+      final saved = await db.getDetectionById(id);
+
+      expect(saved, isNotNull);
+      expect(saved!.isSynced, isFalse);
+      expect(saved.syncedAt, isNull);
+    });
+
+    test('getUnsyncedDetections returns only unsynced scans for the user', () async {
+      final id1 = await db.insertDetection(detection(userId: 'alice'));
+      final id2 = await db.insertDetection(detection(userId: 'alice'));
+      await db.insertDetection(detection(userId: 'bob'));
+
+      await db.markDetectionSynced(id1);
+
+      final unsyncedAlice = await db.getUnsyncedDetections(userId: 'alice');
+      expect(unsyncedAlice.length, 1);
+      expect(unsyncedAlice.first.id, id2);
+
+      final unsyncedBob = await db.getUnsyncedDetections(userId: 'bob');
+      expect(unsyncedBob.length, 1);
+    });
+
+    test('markDetectionsSynced marks multiple scans as synced', () async {
+      final id1 = await db.insertDetection(detection(userId: 'alice'));
+      final id2 = await db.insertDetection(detection(userId: 'alice'));
+      final id3 = await db.insertDetection(detection(userId: 'alice'));
+
+      await db.markDetectionsSynced([id1, id2]);
+
+      final unsynced = await db.getUnsyncedDetections(userId: 'alice');
+      expect(unsynced.length, 1);
+      expect(unsynced.first.id, id3);
+
+      final syncedDetections = await db.getAllDetections(userId: 'alice', isSynced: true);
+      expect(syncedDetections.length, 2);
+      expect(syncedDetections.map((d) => d.id), containsAll([id1, id2]));
+      expect(syncedDetections.every((d) => d.syncedAt != null), isTrue);
+    });
+  });
 }

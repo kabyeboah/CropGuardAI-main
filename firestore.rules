@@ -42,11 +42,15 @@ service cloud.firestore {
                     && request.resource.data.userId == request.auth.uid;
     }
     match /expert_requests/{req} {
+      allow read:   if request.auth != null
+                    && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
     }
 
     match /missing_crops/{crop} {
+      allow read:   if request.auth != null
+                    && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
     }
@@ -54,6 +58,20 @@ service cloud.firestore {
     match /training_candidates/{candidate} {
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Reported posts: authenticated users can report a post tagged with their reporterId/userId.
+    // Immutable moderation log: create only, no updates or deletes allowed from clients.
+    match /reported_posts/{report} {
+      allow read: if false;
+      allow create: if request.auth != null
+                    && (request.resource.data.reporterId == request.auth.uid || request.resource.data.userId == request.auth.uid)
+                    && request.resource.data.postId is string
+                    && request.resource.data.postId.size() > 0
+                    && (!('reason' in request.resource.data)
+                        || (request.resource.data.reason is string
+                            && request.resource.data.reason.size() <= 200));
+      allow update, delete: if false;
     }
 
     // Outbreak reports: authenticated users can read; authors create their own.

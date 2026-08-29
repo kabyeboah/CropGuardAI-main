@@ -105,6 +105,7 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Map<String, dynamic>> trend = [];
 
   List<Map<String, dynamic>> _outbreaks = [];
+  List<Map<String, dynamic>> get outbreaks => _outbreaks;
 
   WeatherForecast? weather;
   bool isWeatherLoading = false;

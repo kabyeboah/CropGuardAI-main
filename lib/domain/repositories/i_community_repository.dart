@@ -12,6 +12,7 @@ abstract class ICommunityRepository {
     required String diseaseName,
   });
   Future<Result<void>> uploadScan(Map<String, dynamic> scanData);
+  Future<Result<void>> upsertScan(String docId, Map<String, dynamic> scanData);
   Future<Result<Map<String, dynamic>?>> getUserProfile(String uid);
   Future<Result<void>> updateUserProfile(String uid, Map<String, dynamic> data);
   Future<Result<List<Map<String, dynamic>>>> getOutbreakReports();
@@ -39,6 +40,12 @@ abstract class ICommunityRepository {
   });
 
   Future<Result<void>> submitTrainingCandidate(Map<String, dynamic> candidateData);
+
+  Future<Result<void>> reportPost({
+    required String postId,
+    required String reporterId,
+    String? reason,
+  });
 
   Future<List<Map<String, dynamic>>> getPendingSyncItems(PendingSyncType type);
 }

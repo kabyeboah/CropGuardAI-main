@@ -234,6 +234,7 @@ class FirestoreService {
         () => _db
             .collection('outbreak_reports')
             .where('userId', isEqualTo: userId)
+            .limit(100)
             .get(),
         maxAttempts: 3,
         timeout: const Duration(seconds: 15),
@@ -260,13 +261,14 @@ class FirestoreService {
         () => _db
             .collection('outbreak_reports')
             .where('verifiedBy', arrayContains: userId)
+            .count()
             .get(),
         maxAttempts: 3,
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
       );
 
-      final verificationsGiven = verificationsGivenSnap.docs.length;
+      final verificationsGiven = verificationsGivenSnap.count ?? 0;
 
       return {
         'totalSubmitted': totalSubmitted,
@@ -286,10 +288,14 @@ class FirestoreService {
   }
 
   // ─── Treatment Tracking ───────────────────────────────────────────────
-  Stream<List<Map<String, dynamic>>> treatmentsStream(String userId) {
+  Stream<List<Map<String, dynamic>>> treatmentsStream(
+    String userId, {
+    int limit = 100,
+  }) {
     return _db
         .collection('treatments')
         .where('userId', isEqualTo: userId)
+        .limit(limit)
         .snapshots()
         .map((snap) => snap.docs
             .map((doc) => {'id': doc.id, ...doc.data()})
@@ -411,6 +417,31 @@ class FirestoreService {
     }
   }
 
+  /// Submits a moderation report for a community post to the `reported_posts` collection.
+  Future<void> reportPost({
+    required String postId,
+    required String reporterId,
+    String? reason,
+  }) async {
+    try {
+      await RetryUtils.retry(
+        () => _db.collection('reported_posts').add({
+          'postId': postId,
+          'reporterId': reporterId,
+          'userId': reporterId,
+          'reason': reason ?? 'inappropriate_content',
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'pending_review',
+        }),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isFirestoreTransientError,
+      );
+    } catch (e) {
+      throw ServerFailure('Failed to report post: $e');
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getUserExpertRequests(String userId) async {
     if (userId.isEmpty) return [];
     try {
@@ -449,6 +480,25 @@ class FirestoreService {
     }
   }
 
+  /// Helper to delete all documents returned by a query using [WriteBatch]
+  /// chunked up to the Firestore limit of 500 operations per batch.
+  Future<void> _deleteQueryInBatches(Query<Map<String, dynamic>> query) async {
+    final snapshot = await query.get();
+    if (snapshot.docs.isEmpty) return;
+
+    const int maxBatchSize = 500;
+    final docs = snapshot.docs;
+    for (int i = 0; i < docs.length; i += maxBatchSize) {
+      final end = (i + maxBatchSize < docs.length) ? i + maxBatchSize : docs.length;
+      final chunk = docs.sublist(i, end);
+      final batch = _db.batch();
+      for (final doc in chunk) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
+
   /// Purges all documents owned by [uid] across users, community_posts, treatments, and scans
   /// collections prior to deleting the Auth user.
   Future<void> deleteUserData(String uid) async {
@@ -457,25 +507,23 @@ class FirestoreService {
       // 1. Delete user profile doc
       await _db.collection('users').doc(uid).delete();
 
-      // 2. Delete user's community posts
-      final postsQuery = await _db.collection('community_posts').where('userId', isEqualTo: uid).get();
-      for (final doc in postsQuery.docs) {
-        await doc.reference.delete();
-      }
+      // 2. Delete user's community posts in batches
+      await _deleteQueryInBatches(
+        _db.collection('community_posts').where('userId', isEqualTo: uid),
+      );
 
-      // 3. Delete user's treatments
-      final treatmentsQuery = await _db.collection('treatments').where('userId', isEqualTo: uid).get();
-      for (final doc in treatmentsQuery.docs) {
-        await doc.reference.delete();
-      }
+      // 3. Delete user's treatments in batches
+      await _deleteQueryInBatches(
+        _db.collection('treatments').where('userId', isEqualTo: uid),
+      );
 
-      // 4. Delete user's cloud scans
-      final scansQuery = await _db.collection('scans').where('userId', isEqualTo: uid).get();
-      for (final doc in scansQuery.docs) {
-        await doc.reference.delete();
-      }
+      // 4. Delete user's cloud scans in batches
+      await _deleteQueryInBatches(
+        _db.collection('scans').where('userId', isEqualTo: uid),
+      );
     } catch (e) {
-      AppLogger.w('FirestoreService: deleteUserData error (proceeding with auth deletion): $e');
+      AppLogger.e('FirestoreService: deleteUserData error: $e');
+      rethrow;
     }
   }
 }

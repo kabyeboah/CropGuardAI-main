@@ -53,7 +53,7 @@ The notebook will:
 - ✅ Download plant disease datasets (~3–5 GB)
 - ✅ Organise images into `Crop___Disease` folders
 - ✅ Train MobileNetV2 (Phase 1: frozen base, Phase 2: fine-tune)
-- ✅ Export `cropguard_plant_disease.tflite` + `labels.txt` + `model_metadata.json`
+- ✅ Export `cropguard_plant_disease_verified.tflite` + `labels_verified.txt` + `model_metadata.json`
 - ✅ Download all 3 files to your computer
 
 > **Target accuracy:** ≥ 85% validation accuracy before deploying.  
@@ -66,9 +66,9 @@ The notebook will:
 Replace the 3 files in the `assets/` folder:
 
 ```
-assets/cropguard_plant_disease.tflite   ← new file from Colab
-assets/labels.txt                        ← new file from Colab
-assets/model_metadata.json               ← new file from Colab
+assets/cropguard_plant_disease_verified.tflite   ← new file from Colab
+assets/labels_verified.txt                        ← new file from Colab
+assets/model_metadata.json                        ← new file from Colab
 ```
 
 ---
@@ -82,7 +82,7 @@ import 'package:flutter/services.dart';
 import 'data/ml/disease_info.dart';
 
 // Inside main(), after setupServiceLocator():
-final raw = await rootBundle.loadString('assets/labels.txt');
+final raw = await rootBundle.loadString('assets/labels_verified.txt');
 final labels = raw.split('\n').where((l) => l.isNotEmpty).toList();
 for (final label in labels) {
   final info = DiseaseDatabase.getInfo(label);

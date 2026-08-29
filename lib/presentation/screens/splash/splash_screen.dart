@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/root_detection_helper.dart';
 import '../../../core/utils/version_check_service.dart';
 import '../../../core/utils/analytics_service.dart';
+import '../../../domain/repositories/i_classifier_repository.dart';
 import '../../../main.dart' show startupStopwatch;
 
 /// Equivalent of SplashScreen.kt — 1.5s delay then route based on onboarding flag
@@ -41,6 +44,11 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
+    // Fire-and-forget ML model preload so the first scan does not incur cold-start latency.
+    if (sl.isRegistered<IClassifierRepository>()) {
+      unawaited(sl<IClassifierRepository>().loadModel());
+    }
+
     _navigate();
   }
 
@@ -62,12 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
           builder: (dialogCtx) => AlertDialog(
             icon: const Icon(Icons.security_update_warning, color: Colors.orange, size: 40),
             title: Text(context.l10n.securityWarningTitle),
-            content: const Text(
-              'CropGuard AI has detected that your device is rooted or jailbroken. '
-              'Running on a compromised operating system increases the risk of exposing your '
-              'personal data, location history, and scan reports. '
-              'Please proceed with caution.',
-            ),
+            content: Text(context.l10n.securityWarningBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
@@ -99,24 +102,22 @@ class _SplashScreenState extends State<SplashScreen>
           canPop: false,
           child: AlertDialog(
             icon: const Icon(Icons.system_update, size: 40, color: Color(0xFF16A34A)),
-            title: const Text(
-              'Update Required',
+            title: Text(
+              context.l10n.updateRequiredTitle,
               textAlign: TextAlign.center,
             ),
-            content: const Text(
-              'A newer version of CropGuard AI is available and required to continue. '
-              'Please update the app from the store.',
+            content: Text(
+              context.l10n.updateRequiredBody,
               textAlign: TextAlign.center,
             ),
             actionsAlignment: MainAxisAlignment.center,
             actions: [
               ElevatedButton.icon(
                 icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('Update Now'),
-                onPressed: () {
-                  // The user must go to the store — no dismiss path.
-                  // In production, launch the store URL here.
+                label: Text(context.l10n.updateNow),
+                onPressed: () async {
                   AppLogger.i('SplashScreen: user tapped Update Now');
+                  await VersionCheckService.launchStoreUrl();
                 },
               ),
             ],

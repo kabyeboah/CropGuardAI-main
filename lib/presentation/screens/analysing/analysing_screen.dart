@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/agri_weather_utils.dart';
 import '../../../core/utils/scan_feedback_helper.dart';
 import '../../../core/utils/tts_manager.dart';
+import '../../../domain/models/disease_risk.dart';
+import '../home/home_provider.dart';
 import '../scanner/scanner_provider.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
 import '../../../domain/models/low_confidence_extra.dart';
@@ -42,7 +45,9 @@ class _AnalisingScreenState extends State<AnalisingScreen>
     if (!mounted) return;
 
     if (result == null) {
-      final errorMsg = provider.errorMessage ?? context.l10n.analysisFailed;
+      final errorMsg = provider.errorMessageCode?.resolve(context.l10n) ??
+          provider.errorMessage ??
+          context.l10n.analysisFailed;
       final isEngineUnavailable = errorMsg.contains('ML engine unavailable');
 
       if (isEngineUnavailable) {
@@ -57,10 +62,7 @@ class _AnalisingScreenState extends State<AnalisingScreen>
                 Expanded(child: Text(context.l10n.scanEngineUnavailable)),
               ],
             ),
-            content: const Text(
-              "The scan engine couldn't start on this device. "
-              "You can ask the farming community for disease identification.",
-            ),
+            content: Text(context.l10n.scanEngineUnavailableDesc),
             actions: [
               TextButton(
                 onPressed: () {
@@ -135,12 +137,28 @@ class _AnalisingScreenState extends State<AnalisingScreen>
     const double kLowConfidenceThreshold = CropDiseaseClassifier.confidenceThreshold;
 
     if (result.confidence < kLowConfidenceThreshold) {
+      List<DiseaseRisk>? regionalRisks;
+      try {
+        final homeProvider = context.read<HomeProvider>();
+        if (homeProvider.weeklyRisks.isNotEmpty) {
+          regionalRisks = homeProvider.weeklyRisks;
+        } else if (homeProvider.weather != null && homeProvider.weather!.daily.isNotEmpty) {
+          final region = homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
+          regionalRisks = AgriWeatherUtils.assessWeeklyRisks(
+            homeProvider.weather!.daily,
+            outbreaks: homeProvider.outbreaks,
+            region: region,
+          );
+        }
+      } catch (_) {}
+
       context.replace(
         '/low_confidence',
         extra: LowConfidenceExtra(
           confidence: result.confidence,
           imagePath: result.imagePath,
           topCandidates: result.topCandidates,
+          regionalRisks: regionalRisks,
         ),
       );
     } else {

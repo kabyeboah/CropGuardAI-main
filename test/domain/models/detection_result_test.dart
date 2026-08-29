@@ -35,6 +35,19 @@ void main() {
       expect(restored.cause, tResult.cause);
       expect(restored.treatments, tResult.treatments);
       expect(restored.timestamp, tResult.timestamp);
+      expect(restored.isSynced, tResult.isSynced);
+      expect(restored.syncedAt, tResult.syncedAt);
+    });
+
+    test('isSynced and syncedAt round-trip correctly', () {
+      final synced = tResult.copyWith(isSynced: true, syncedAt: 1700000005000);
+      final map = synced.toMap();
+      expect(map['isSynced'], 1);
+      expect(map['syncedAt'], 1700000005000);
+
+      final restored = DetectionResult.fromMap(map);
+      expect(restored.isSynced, isTrue);
+      expect(restored.syncedAt, 1700000005000);
     });
 
     test('treatments list is serialized as pipe-separated string', () {

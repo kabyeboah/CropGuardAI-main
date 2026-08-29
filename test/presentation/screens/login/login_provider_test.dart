@@ -87,7 +87,7 @@ void main() {
 
     test('failed email sign in sets status to error and maps failure message', () async {
       when(() => mockLoginUseCase(any(), any()))
-          .thenAnswer((_) async => Result.error(AuthFailure('wrong-password')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('wrong-password')));
 
       await provider.signIn('test@example.com', 'wrongpass', () {});
 
@@ -112,7 +112,7 @@ void main() {
 
     test('failed Google sign in sets error state', () async {
       when(() => mockGoogleUseCase())
-          .thenAnswer((_) async => Result.error(AuthFailure('google failure')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('google failure')));
 
       await provider.signInWithGoogle(() {});
 
@@ -137,7 +137,7 @@ void main() {
 
     test('failed guest sign in sets error state', () async {
       when(() => mockGuestUseCase())
-          .thenAnswer((_) async => Result.error(AuthFailure('guest failure')));
+          .thenAnswer((_) async => Result.error(const AuthFailure('guest failure')));
 
       await provider.signInAsGuest(() {});
 

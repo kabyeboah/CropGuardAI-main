@@ -54,7 +54,7 @@ State management is **Provider** (`ChangeNotifier`) registered globally in `buil
 
 **No direct data-layer access from UI** — widgets and providers must not import Firebase, sqflite, or tflite directly. All calls go through use cases.
 
-**ML model contract** — `CropDiseaseClassifier` uses `assets/cropguard_plant_disease.tflite`, input 224×224 RGB normalised to [0,1], confidence threshold 0.60. Do not change input dimensions or normalisation without shipping a matching `.tflite` and updating `labels.txt`.
+**ML model contract** — `CropDiseaseClassifier` uses `assets/cropguard_plant_disease_verified.tflite`, input 128×128 RAW [0, 255] RGB with internal Rescaling layer, confidence threshold 0.60. Do not change input dimensions or normalisation without shipping a matching `.tflite` and updating `labels_verified.txt`.
 
 **Localization** — generated from `l10n/app_*.arb` into `lib/l10n/`. Supported locales: `en`, `tw` (Twi), `ee` (Ewe), `dag` (Dagbani). Use `AppLocalizations.of(context)!` in widgets; no hardcoded user-visible strings.
 

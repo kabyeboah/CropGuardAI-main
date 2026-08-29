@@ -1,12 +1,34 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_storage/firebase_storage.dart';
-import '../../core/utils/retry_utils.dart';
 import '../../core/error/failures.dart';
+import '../../core/utils/retry_utils.dart';
 
 /// Uploads local files to Firebase Storage for community and scan assets.
 class FirebaseStorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseStorage _storage;
+
+  FirebaseStorageService({FirebaseStorage? storage})
+      : _storage = storage ?? FirebaseStorage.instance;
+
+  bool _isStorageTransientError(Object error) {
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'unavailable':
+        case 'deadline-exceeded':
+        case 'internal':
+        case 'retry-limit-exceeded':
+        case 'network-request-failed':
+        case 'service-unavailable':
+        case 'too-many-requests':
+          return true;
+        default:
+          return false;
+      }
+    }
+    return error is TimeoutException || error is SocketException;
+  }
 
   Future<String> uploadCommunityImage({
     required String localPath,
@@ -22,12 +44,18 @@ class FirebaseStorageService {
     );
 
     try {
-      return await RetryUtils.retry(() async {
-        await ref.putFile(file);
-        return await ref.getDownloadURL();
-      }, maxAttempts: 3, timeout: const Duration(seconds: 30));
+      return await RetryUtils.retry(
+        () async {
+          await ref.putFile(file);
+          return await ref.getDownloadURL();
+        },
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 30),
+        retryIf: _isStorageTransientError,
+      );
     } catch (e) {
       throw ServerFailure('Firebase Storage upload failed: $e');
     }
   }
 }
+

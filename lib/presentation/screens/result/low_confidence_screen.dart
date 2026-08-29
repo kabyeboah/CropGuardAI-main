@@ -16,7 +16,9 @@ import '../../../data/remote/gemini_cloud_ai_service.dart';
 import '../../../domain/models/community_post.dart';
 import '../../../domain/models/disease_risk.dart';
 import '../../../core/utils/risk_weighted_classifier.dart';
+import '../../../core/utils/agri_weather_utils.dart';
 import '../../../data/ml/crop_disease_classifier.dart';
+import '../home/home_provider.dart';
 import '../scanner/scanner_provider.dart';
 
 // ─── How many extra angles can be added ──────────────────────────────────────
@@ -27,12 +29,14 @@ class LowConfidenceScreen extends StatefulWidget {
   final String imagePath;
   /// Top-3 candidates from the model on the initial scan.  Empty on fallback.
   final List<TopCandidate> topCandidates;
+  final List<DiseaseRisk>? regionalRisks;
 
   const LowConfidenceScreen({
     super.key,
     required this.confidence,
     required this.imagePath,
     this.topCandidates = const [],
+    this.regionalRisks,
   });
 
   @override
@@ -60,18 +64,27 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
         ? List<TopCandidate>.from(widget.topCandidates)
         : _getFallbackTopCandidates();
 
-    // Regional Outbreak Bayesian Risk-Weighted adjustment fallback
+    List<DiseaseRisk> risks = widget.regionalRisks ?? const [];
+    if (risks.isEmpty) {
+      try {
+        final homeProvider = context.read<HomeProvider>();
+        if (homeProvider.weeklyRisks.isNotEmpty) {
+          risks = homeProvider.weeklyRisks;
+        } else if (homeProvider.weather != null && homeProvider.weather!.daily.isNotEmpty) {
+          final region = homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
+          risks = AgriWeatherUtils.assessWeeklyRisks(
+            homeProvider.weather!.daily,
+            outbreaks: homeProvider.outbreaks,
+            region: region,
+          );
+        }
+      } catch (_) {}
+    }
+
+    // Regional Outbreak Risk-Weighted adjustment
     final regionalRiskAdjusted = RiskWeightedClassifier.adjustCandidatesWithRegionalRisk(
       candidates: initialCandidates,
-      regionalRisks: const [
-        DiseaseRisk(
-          type: DiseaseRiskType.blackPod,
-          level: RiskLevel.high,
-          humidity: 85,
-          temp: 24,
-          hasNearbyOutbreak: true,
-        ),
-      ],
+      regionalRisks: risks,
     );
 
     _allPhotosCandidates = [regionalRiskAdjusted];
@@ -79,33 +92,20 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
   }
 
   List<TopCandidate> _getFallbackTopCandidates() {
-    final conf = widget.confidence > 0 ? widget.confidence : 0.42;
+    final conf = widget.confidence > 0 ? widget.confidence : 0.0;
     return [
-      (label: 'Cocoa___Black_pod_rot', confidence: conf),
-      (label: 'Cocoa___Frosty_pod_rot', confidence: (1.0 - conf) * 0.5),
-      (label: 'Cocoa___Healthy', confidence: (1.0 - conf) * 0.3),
+      (label: 'Unidentified', confidence: conf),
     ];
   }
 
   void _recomputeSoftVotingCandidates() {
-    final Map<String, double> labelSumMap = {};
-    for (final photoCandidates in _allPhotosCandidates) {
-      for (final c in photoCandidates) {
-        labelSumMap[c.label] = (labelSumMap[c.label] ?? 0.0) + c.confidence;
-      }
-    }
-    final int n = _allPhotosCandidates.length;
-    if (n == 0 || labelSumMap.isEmpty) {
-      _mergedCandidates = widget.topCandidates.isNotEmpty
-          ? List<TopCandidate>.from(widget.topCandidates)
-          : _getFallbackTopCandidates();
-      return;
-    }
-    final List<TopCandidate> averaged = labelSumMap.entries.map((e) {
-      return (label: e.key, confidence: e.value / n);
-    }).toList();
-    averaged.sort((a, b) => b.confidence.compareTo(a.confidence));
-    _mergedCandidates = averaged.take(3).toList();
+    final fallback = widget.topCandidates.isNotEmpty
+        ? List<TopCandidate>.from(widget.topCandidates)
+        : _getFallbackTopCandidates();
+    _mergedCandidates = CropDiseaseClassifier.computeSoftVotingCandidates(
+      _allPhotosCandidates,
+      fallbackCandidates: fallback,
+    );
   }
 
   double get _averageConfidence =>
@@ -160,8 +160,16 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
       if (_averageConfidence >= CropDiseaseClassifier.confidenceThreshold) {
         if (!mounted) return;
-        final detection =
-            await context.read<ScannerProvider>().analyseAndSave(file.path);
+        final topLabel = _mergedCandidates.isNotEmpty
+            ? _mergedCandidates.first.label
+            : result.label;
+        final detection = await context.read<ScannerProvider>().saveMergedScan(
+              imagePath: widget.imagePath,
+              diseaseLabel: topLabel,
+              confidence: _averageConfidence,
+              topCandidates: _mergedCandidates,
+              isDegraded: false,
+            );
         if (!mounted) return;
         if (detection != null) {
           context.replace('/result/${detection.id}');
@@ -419,9 +427,13 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final detection = await context
-                  .read<ScannerProvider>()
-                  .analyseAndSave(widget.imagePath);
+              final detection = await context.read<ScannerProvider>().saveMergedScan(
+                    imagePath: widget.imagePath,
+                    diseaseLabel: candidate.label,
+                    confidence: candidate.confidence,
+                    topCandidates: _mergedCandidates,
+                    isDegraded: false,
+                  );
               if (mounted && detection != null) {
                 context.replace('/result/${detection.id}');
               } else if (mounted) {

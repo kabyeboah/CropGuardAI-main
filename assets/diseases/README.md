@@ -6,7 +6,7 @@ reliable source — prefer it over the network fallback.
 
 ## Naming convention
 
-The filename is the disease **label** (from `assets/labels.txt` /
+The filename is the disease **label** (from `assets/labels_verified.txt` /
 `DiseaseInfoEntry.label`) "slugified": every run of non-alphanumeric characters
 is replaced with a single underscore, then `.jpg` is appended.
 

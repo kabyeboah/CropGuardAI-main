@@ -20,9 +20,14 @@ class AppLogger {
     }
   }
 
-  static void w(String message) {
+  static void w(String message, [dynamic error, StackTrace? stackTrace]) {
     if (LogLevel.warning.index >= minLevel.index && kDebugMode) {
-      dev.log('WARNING: $message', name: 'CropGuard');
+      dev.log(
+        'WARNING: $message',
+        name: 'CropGuard',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 

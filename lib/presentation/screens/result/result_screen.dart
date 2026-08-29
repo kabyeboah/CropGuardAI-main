@@ -11,6 +11,7 @@ import '../../components/cropguard_card.dart';
 import '../../components/primary_button.dart';
 import '../../components/section_label.dart';
 import '../../components/severity_badge.dart';
+import '../../../data/ml/disease_info.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/utils/scan_report_pdf_exporter.dart';
@@ -40,7 +41,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLabels();
+    _allLabels = DiseaseDatabase.getAllLabels();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ResultProvider>().load(widget.detectionId);
     });
@@ -67,15 +68,6 @@ class _ResultScreenState extends State<ResultScreen> {
     _didSpeakResult = true;
     final lang = Localizations.localeOf(context).languageCode;
     TtsManager().speak(result.displayName, languageCode: lang);
-  }
-
-  Future<void> _loadLabels() async {
-    final data = await DefaultAssetBundle.of(context).loadString('assets/labels.txt');
-    if (mounted) {
-      setState(() {
-        _allLabels = data.split('\n').where((l) => l.isNotEmpty).toList();
-      });
-    }
   }
 
   @override

@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
@@ -77,7 +76,29 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   }
 
   @override
+  Future<Result<void>> upsertScan(String docId, Map<String, dynamic> scanData) async {
+    try {
+      await _firestoreService.upsertScan(docId, scanData).timeout(const Duration(seconds: 4));
+      final intId = int.tryParse(docId);
+      if (intId != null) {
+        await _dbHelper.markDetectionSynced(intId);
+      }
+      return Result.success(null);
+    } catch (e) {
+      final payload = Map<String, dynamic>.from(scanData);
+      payload['id'] = docId;
+      await _enqueue(PendingSyncType.scanUpload, payload);
+      AppLogger.w('CommunityRepo.upsertScan offline/timeout — queued: $e');
+      return Result.success(null);
+    }
+  }
+
+  @override
   Future<Result<void>> uploadScan(Map<String, dynamic> scanData) async {
+    final docId = scanData['id']?.toString();
+    if (docId != null && docId.isNotEmpty && docId != '0') {
+      return upsertScan(docId, scanData);
+    }
     try {
       await _firestoreService.uploadScan(scanData).timeout(const Duration(seconds: 4));
       return Result.success(null);
@@ -296,6 +317,37 @@ class CommunityRepositoryImpl implements ICommunityRepository {
     }
   }
 
+  @override
+  Future<Result<void>> reportPost({
+    required String postId,
+    required String reporterId,
+    String? reason,
+  }) async {
+    if (reporterId.isEmpty) {
+      return Result.error(const AuthFailure('You must be signed in to report a post.'));
+    }
+    try {
+      await _firestoreService.reportPost(
+        postId: postId,
+        reporterId: reporterId,
+        reason: reason,
+      );
+      return Result.success(null);
+    } catch (e) {
+      if (!_isTransientError(e)) {
+        AppLogger.e('CommunityRepo.reportPost permanent failure — not queuing: $e');
+        return Result.error(ServerFailure(e.toString()));
+      }
+      await _enqueue(PendingSyncType.reportedPost, {
+        'postId': postId,
+        'reporterId': reporterId,
+        'reason': reason ?? 'inappropriate_content',
+      });
+      AppLogger.w('CommunityRepo.reportPost offline — queued: $e');
+      return Result.success(null);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Offline queue helpers
   // ---------------------------------------------------------------------------
@@ -424,6 +476,10 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             final docId = payload['id']?.toString() ?? payload['timestamp']?.toString();
             if (docId != null && docId.isNotEmpty) {
               await _firestoreService.upsertScan(docId, payload);
+              final intId = int.tryParse(docId);
+              if (intId != null) {
+                await _dbHelper.markDetectionSynced(intId);
+              }
             } else {
               await _firestoreService.uploadScan(payload);
             }
@@ -455,6 +511,13 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             }
             final finalPayload = Map<String, dynamic>.from(payload)..['imagePath'] = cloudUrl;
             await _firestoreService.submitTrainingCandidate(finalPayload);
+            return true;
+          case PendingSyncType.reportedPost:
+            await _firestoreService.reportPost(
+              postId: payload['postId'] as String,
+              reporterId: payload['reporterId'] as String,
+              reason: payload['reason'] as String?,
+            );
             return true;
         }
       } catch (_) {

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:developer' as dev;
 
 import '../config/app_secrets.dart';
+import 'image_compressor.dart';
 
 class AppBootstrap {
   static Future<void> runStartupTasks() async {
@@ -17,6 +18,12 @@ class AppBootstrap {
       await _initAppCheck();
     } catch (e) {
       dev.log("App Check install failed: $e");
+    }
+
+    try {
+      await ImageCompressor.cleanOldCompressedImages();
+    } catch (e) {
+      dev.log("Old compressed images cleanup failed: $e");
     }
   }
 

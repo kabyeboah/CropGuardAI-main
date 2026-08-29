@@ -186,6 +186,12 @@ abstract class AppLocalizations {
   /// **'Security Warning'**
   String get securityWarningTitle;
 
+  /// Security warning dialog message body when device is rooted or jailbroken
+  ///
+  /// In en, this message translates to:
+  /// **'CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.'**
+  String get securityWarningBody;
+
   /// Proceed anyway button
   ///
   /// In en, this message translates to:
@@ -2682,11 +2688,11 @@ abstract class AppLocalizations {
   /// **'Passwords do not match.'**
   String get passwordsDoNotMatch;
 
-  /// No description provided for @passwordMin6.
+  /// No description provided for @passwordMin8.
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 6 characters.'**
-  String get passwordMin6;
+  /// **'Password must be at least 8 characters.'**
+  String get passwordMin8;
 
   /// No description provided for @explore.
   ///
@@ -2993,6 +2999,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Track your expert & missing-crop reports'**
   String get mySubmissionsSubtitle;
+
+  /// Title for delete treatment plan confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Treatment Plan?'**
+  String get deleteTreatmentPlanTitle;
+
+  /// Body message for delete treatment plan confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete the treatment plan for \"{planName}\" and all its steps.'**
+  String deleteTreatmentPlanBody(String planName);
+
+  /// Title for delete treatment step confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Treatment Step?'**
+  String get deleteTreatmentStepTitle;
+
+  /// Body message for delete treatment step confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently delete the step \"{stepName}\".'**
+  String deleteTreatmentStepBody(String stepName);
+
+  /// Sync badge status label for pending sync
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get syncPending;
+
+  /// Sync badge status label for ongoing sync
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get syncSyncing;
+
+  /// Sync badge status label for failed sync
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get syncFailed;
+
+  /// Sync badge status label for abandoned sync after max retries
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Failed'**
+  String get syncDeliveryFailed;
+
+  /// Sync badge status label for successfully synced item
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get syncSynced;
+
+  /// Title for force-update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Update Required'**
+  String get updateRequiredTitle;
+
+  /// Body text for force-update dialog
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of CropGuard AI is available and required to continue. Please update the app from the store.'**
+  String get updateRequiredBody;
+
+  /// Button label to open app store for update
+  ///
+  /// In en, this message translates to:
+  /// **'Update Now'**
+  String get updateNow;
+
+  /// Description in scan engine unavailable dialog
+  ///
+  /// In en, this message translates to:
+  /// **'The scan engine couldn\'t start on this device. You can ask the farming community for disease identification.'**
+  String get scanEngineUnavailableDesc;
 }
 
 class _AppLocalizationsDelegate

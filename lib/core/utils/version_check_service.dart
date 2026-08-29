@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 import 'package:firebase_remote_config/firebase_remote_config.dart';
+import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_secrets.dart';
 import 'app_logger.dart';
 
 class VersionCheckService {
@@ -22,6 +25,47 @@ class VersionCheckService {
       return _isVersionLower(currentVersion, minRequiredVersion);
     } catch (e) {
       AppLogger.w('VersionCheckService: check failed ($e)');
+      return false;
+    }
+  }
+
+  /// Checks if a newer model version is published in Firebase Remote Config.
+  /// Compares bundled model version [currentVersion] against Remote Config parameter `latest_model_version`.
+  static Future<bool> isModelUpdateAvailable(String currentVersion) async {
+    try {
+      final rc = FirebaseRemoteConfig.instance;
+      await rc.fetchAndActivate().timeout(const Duration(seconds: 4));
+      final latestModelVersion = rc.getString('latest_model_version');
+
+      if (latestModelVersion.isEmpty) return false;
+      return _isVersionLower(currentVersion, latestModelVersion);
+    } catch (e) {
+      AppLogger.w('VersionCheckService: model update check failed ($e)');
+      return false;
+    }
+  }
+
+  /// Returns the platform-appropriate store URL for the app based on [defaultTargetPlatform] (or given [platform]).
+  static Uri getStoreUri([TargetPlatform? platform]) {
+    final target = platform ?? defaultTargetPlatform;
+    final isIos = target == TargetPlatform.iOS;
+    final url = isIos
+        ? 'https://apps.apple.com/app/${AppSecrets.iosBundleId}'
+        : 'https://play.google.com/store/apps/details?id=${AppSecrets.androidPackageName}';
+    return Uri.parse(url);
+  }
+
+  /// Opens the store listing for updating the app.
+  static Future<bool> launchStoreUrl([TargetPlatform? platform]) async {
+    try {
+      final uri = getStoreUri(platform);
+      if (await canLaunchUrl(uri)) {
+        return await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        return await launchUrl(uri);
+      }
+    } catch (e) {
+      AppLogger.e('VersionCheckService: failed to launch store url ($e)');
       return false;
     }
   }

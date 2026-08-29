@@ -25,6 +25,7 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
 
   List<Map<String, dynamic>> _submissions = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -33,61 +34,72 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
   }
 
   Future<void> _loadSubmissions() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     final userId = _auth.currentUserId;
 
     List<Map<String, dynamic>> items = [];
+    String? fetchError;
 
-    if (userId.isNotEmpty && userId != 'guest') {
-      try {
-        final expertReqs = await _firestore.getUserExpertRequests(userId);
-        final missingCrops = await _firestore.getUserMissingCrops(userId);
-        items.addAll(expertReqs);
-        items.addAll(missingCrops);
-      } catch (_) {}
-    }
-
-    // Also include pending offline queue items for expertRequest & cropNotFound
     try {
-      final db = await _db.database;
-      final pendingRows = await PendingSyncQueue.getPendingItems(db);
-      for (final row in pendingRows) {
-        final type = row['type'] as String;
-        final status = row['status'] as String? ?? 'pending';
-        // Skip types that have their own Firestore surface (community posts are
-        // shown in the feed; outbreak/feedback have no submissions screen).
-        if (type == PendingSyncType.expertRequest.name) {
-          items.add({
-            'type': 'expert_request',
-            'diseaseName': 'Expert Consultation (Queued)',
-            'message': 'Queued offline submission',
-            'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
-            'timestamp': DateTime.now(),
-          });
-        } else if (type == PendingSyncType.cropNotFound.name) {
-          items.add({
-            'type': 'missing_crop',
-            'suggestedCrop': 'Missing Crop Report (Queued)',
-            'observedSymptoms': 'Queued offline submission',
-            'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
-            'timestamp': DateTime.now(),
-          });
+      if (userId.isNotEmpty && userId != 'guest') {
+        try {
+          final expertReqs = await _firestore.getUserExpertRequests(userId);
+          final missingCrops = await _firestore.getUserMissingCrops(userId);
+          items.addAll(expertReqs);
+          items.addAll(missingCrops);
+        } catch (_) {
+          fetchError = 'Unable to load submissions. Please check your network connection.';
         }
       }
-    } catch (_) {}
 
-    // Sort descending by timestamp
-    items.sort((a, b) {
-      final dtA = _parseDate(a['timestamp']);
-      final dtB = _parseDate(b['timestamp']);
-      return dtB.compareTo(dtA);
-    });
+      // Also include pending offline queue items for expertRequest & cropNotFound
+      try {
+        final db = await _db.database;
+        final pendingRows = await PendingSyncQueue.getPendingItems(db);
+        for (final row in pendingRows) {
+          final type = row['type'] as String;
+          final status = row['status'] as String? ?? 'pending';
+          // Skip types that have their own Firestore surface (community posts are
+          // shown in the feed; outbreak/feedback have no submissions screen).
+          if (type == PendingSyncType.expertRequest.name) {
+            items.add({
+              'type': 'expert_request',
+              'diseaseName': 'Expert Consultation (Queued)',
+              'message': 'Queued offline submission',
+              'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
+              'timestamp': DateTime.now(),
+            });
+          } else if (type == PendingSyncType.cropNotFound.name) {
+            items.add({
+              'type': 'missing_crop',
+              'suggestedCrop': 'Missing Crop Report (Queued)',
+              'observedSymptoms': 'Queued offline submission',
+              'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
+              'timestamp': DateTime.now(),
+            });
+          }
+        }
+      } catch (_) {}
 
-    if (mounted) {
-      setState(() {
-        _submissions = items;
-        _isLoading = false;
+      // Sort descending by timestamp
+      items.sort((a, b) {
+        final dtA = _parseDate(a['timestamp']);
+        final dtB = _parseDate(b['timestamp']);
+        return dtB.compareTo(dtA);
       });
+    } catch (e) {
+      fetchError ??= 'Unable to load submissions: $e';
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submissions = items;
+          _errorMessage = fetchError;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -135,18 +147,18 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : _submissions.isEmpty
+            : _errorMessage != null && _submissions.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.assignment_turned_in_outlined,
-                              size: 48, color: colors.muted),
+                          Icon(Icons.cloud_off_rounded,
+                              size: 48, color: colors.diseaseRed),
                           const SizedBox(height: 12),
                           Text(
-                            'No Submissions Yet',
+                            'Failed to Load Submissions',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -154,22 +166,95 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Your requests for expert consultations and missing crop reports will appear here.',
+                            _errorMessage!,
                             textAlign: TextAlign.center,
                             style: TextStyle(color: colors.muted, fontSize: 13),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadSubmissions,
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colors.primary,
+                              foregroundColor: Colors.white,
+                            ),
                           ),
                         ],
                       ),
                     ),
                   )
-                : RefreshIndicator(
-                    onRefresh: _loadSubmissions,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _submissions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) {
-                        final item = _submissions[i];
+                : _submissions.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.assignment_turned_in_outlined,
+                                  size: 48, color: colors.muted),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No Submissions Yet',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Your requests for expert consultations and missing crop reports will appear here.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: colors.muted, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadSubmissions,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _submissions.length + (_errorMessage != null ? 1 : 0),
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, i) {
+                            if (_errorMessage != null && i == 0) {
+                              return Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colors.diseaseRed.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: colors.diseaseRed.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: colors.diseaseRed,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: TextStyle(
+                                          color: colors.diseaseRed,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _loadSubmissions,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            final itemIndex = _errorMessage != null ? i - 1 : i;
+                            final item = _submissions[itemIndex];
                         final isExpert = item['type'] == 'expert_request';
                         final title = isExpert
                             ? 'Expert Consultation: ${item['diseaseName'] ?? 'Disease'}'

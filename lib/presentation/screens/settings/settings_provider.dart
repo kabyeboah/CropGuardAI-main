@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +13,7 @@ import '../../../core/utils/app_lock_controller.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/biometric_service.dart';
+import '../../../core/utils/version_check_service.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../data/remote/firestore_service.dart';
@@ -39,9 +38,13 @@ class SettingsProvider extends ChangeNotifier {
   ) {
     _load();
     _loadAppVersion();
+    _loadModelVersion();
   }
 
   String appVersionLabel = 'CropGuard AI';
+  String modelVersionLabel = 'v2026.08.28 (51 classes)';
+  bool isCheckingUpdates = false;
+  UiMessage? updateMessageCode;
 
   bool largeTextMode = false;
   bool showConfidence = true;
@@ -240,57 +243,53 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  bool isCheckingUpdates = false;
-  UiMessage? updateMessageCode;
+  String _rawModelVersion = '2026.08.28';
 
-  /// Task 0.3: Honestly compare local model_metadata.json against Remote Config.
+  Future<void> _loadModelVersion() async {
+    try {
+      final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final ver = map['version']?.toString() ?? '2026.08.28';
+      _rawModelVersion = ver;
+      final classes = map['num_classes_verified'] ?? map['num_classes'] ?? 51;
+      modelVersionLabel = 'v$ver ($classes classes)';
+      notifyListeners();
+    } catch (_) {
+      _rawModelVersion = '2026.08.28';
+      modelVersionLabel = 'v2026.08.28 (51 classes)';
+      notifyListeners();
+    }
+  }
+
+  /// Checks bundled model metadata version against Firebase Remote Config
+  /// parameter `latest_model_version` via [VersionCheckService].
   Future<void> checkForModelUpdates() async {
+    if (isCheckingUpdates) return;
     isCheckingUpdates = true;
     updateMessageCode = null;
     notifyListeners();
 
+    await _loadModelVersion();
+
     try {
-      final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
-      final metadata = jsonDecode(jsonStr) as Map<String, dynamic>;
-      final localVersion = metadata['version']?.toString() ?? '1.0';
-
-      String remoteVersion = localVersion;
-      try {
-        final rc = FirebaseRemoteConfig.instance;
-        await rc.fetchAndActivate().timeout(const Duration(seconds: 4));
-        final val = rc.getString('latest_model_version');
-        if (val.isNotEmpty) remoteVersion = val;
-      } catch (_) {}
-
-      isCheckingUpdates = false;
-      if (remoteVersion != localVersion && _isVersionHigher(remoteVersion, localVersion)) {
-        updateMessageCode = UiMessage((l) => 'New model v$remoteVersion available!');
+      final hasUpdate = await VersionCheckService.isModelUpdateAvailable(_rawModelVersion);
+      if (hasUpdate) {
+        updateMessageCode = UiMessage((l) => 'A newer model version is available. Update the app to get the latest model.');
       } else {
         updateMessageCode = UiMessage.modelUpToDate;
       }
-      notifyListeners();
     } catch (_) {
-      isCheckingUpdates = false;
       updateMessageCode = UiMessage.modelUpToDate;
+    } finally {
+      isCheckingUpdates = false;
       notifyListeners();
     }
 
-    await Future.delayed(const Duration(seconds: 3));
-    updateMessageCode = null;
-    notifyListeners();
-  }
-
-  bool _isVersionHigher(String v1, String v2) {
-    try {
-      final parts1 = v1.split('.').map(int.parse).toList();
-      final parts2 = v2.split('.').map(int.parse).toList();
-      for (var i = 0; i < math.max(parts1.length, parts2.length); i++) {
-        final p1 = i < parts1.length ? parts1[i] : 0;
-        final p2 = i < parts2.length ? parts2[i] : 0;
-        if (p1 > p2) return true;
-        if (p1 < p2) return false;
+    Future.delayed(const Duration(seconds: 4), () {
+      if (updateMessageCode != null) {
+        updateMessageCode = null;
+        notifyListeners();
       }
-    } catch (_) {}
-    return false;
+    });
   }
 }

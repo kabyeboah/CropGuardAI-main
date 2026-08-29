@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../domain/models/detection_result.dart';
 import '../../../core/utils/scan_severity.dart';
-import '../../../data/ml/crop_disease_classifier.dart';
 
 class BatchScanResult {
   final int totalLeaves;
@@ -44,10 +43,6 @@ class BatchResultProvider extends ChangeNotifier {
             .reduce((a, b) => a.value > b.value ? a : b)
             .key;
       }
-
-      final avgConfidence = results.isNotEmpty
-          ? results.map((r) => r.confidence).reduce((a, b) => a + b) / results.length
-          : 0.0;
 
       String overallSeverity = ScanSeverity.healthy;
       if (diseasedLeaves > 0) {

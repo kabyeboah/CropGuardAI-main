@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import '../../core/di/service_locator.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/result.dart';
 import '../../domain/models/app_user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
+import '../../domain/repositories/i_community_repository.dart';
+import 'community_repository_impl.dart';
 import '../remote/firebase_auth_service.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
@@ -30,7 +33,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       if (user != null) {
         return Result.success(user);
       } else {
-        return Result.error(AuthFailure('Sign in failed: User is null'));
+        return Result.error(const AuthFailure('Sign in failed: User is null'));
       }
     } catch (e) {
       if (e is Failure) return Result.error(e);
@@ -44,9 +47,12 @@ class AuthRepositoryImpl implements IAuthRepository {
       final credential = await _authService.register(email: email, password: password, name: name);
       final user = _mapFirebaseUser(credential.user);
       if (user != null) {
-        return Result.success(user);
+        final effectiveUser = (user.displayName.isEmpty || user.displayName == 'Farmer') && name.trim().isNotEmpty
+            ? user.copyWith(displayName: name.trim())
+            : user;
+        return Result.success(effectiveUser);
       } else {
-        return Result.error(AuthFailure('Registration failed: User is null'));
+        return Result.error(const AuthFailure('Registration failed: User is null'));
       }
     } catch (e) {
       if (e is Failure) return Result.error(e);
@@ -79,6 +85,16 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
+      try {
+        if (sl.isRegistered<ICommunityRepository>()) {
+          final repo = sl<ICommunityRepository>();
+          if (repo is CommunityRepositoryImpl) {
+            await repo.drainPendingSync().timeout(const Duration(seconds: 4));
+          }
+        }
+      } catch (_) {
+        // Best-effort drain; do not block sign-out if offline or timed out
+      }
       await _authService.signOut();
       return Result.success(null);
     } catch (e) {

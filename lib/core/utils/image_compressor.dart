@@ -9,6 +9,8 @@ import 'app_logger.dart';
 class ImageCompressor {
   ImageCompressor._();
 
+  static const String tempFilePrefix = 'cropguard_compressed_';
+
   static Future<File> compressImage(
     File file, {
     int maxDimension = 1080,
@@ -42,7 +44,8 @@ class ImageCompressor {
 
       final tempDir = Directory.systemTemp;
       final timeStamp = DateTime.now().millisecondsSinceEpoch;
-      final compressedFile = File('${tempDir.path}/cropguard_compressed_$timeStamp.jpg');
+      final compressedFile =
+          File('${tempDir.path}/$tempFilePrefix$timeStamp.jpg');
       await compressedFile.writeAsBytes(compressedBytes);
 
       AppLogger.i(
@@ -53,6 +56,38 @@ class ImageCompressor {
     } catch (e) {
       AppLogger.w('ImageCompressor: Compression failed ($e), using original file');
       return file;
+    }
+  }
+
+  /// Cleans up any leftover compressed images from the temp directory that are older than [maxAge].
+  static Future<void> cleanOldCompressedImages({
+    Duration maxAge = const Duration(hours: 24),
+  }) async {
+    try {
+      final tempDir = Directory.systemTemp;
+      if (!await tempDir.exists()) return;
+
+      final now = DateTime.now();
+      await for (final entity in tempDir.list()) {
+        if (entity is File) {
+          final fileName = entity.uri.pathSegments.isNotEmpty
+              ? entity.uri.pathSegments.last
+              : entity.path;
+          if (fileName.startsWith(tempFilePrefix) && fileName.endsWith('.jpg')) {
+            try {
+              final stat = await entity.stat();
+              if (now.difference(stat.modified) > maxAge) {
+                await entity.delete();
+                AppLogger.d('ImageCompressor: Cleaned up orphaned temp file: ${entity.path}');
+              }
+            } catch (e) {
+              AppLogger.w('ImageCompressor: Failed to delete old file ${entity.path}: $e');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.w('ImageCompressor: Cleanup routine failed: $e');
     }
   }
 }

@@ -33,9 +33,14 @@ class NotificationHelper {
     await _notificationsPlugin.initialize(settings: initializationSettings);
   }
 
+  static int _notificationCounter = 0;
+
   /// Returns a notification ID that is unique per call so rapid successive
   /// notifications do not overwrite each other in the system tray.
-  static int _uniqueId() => DateTime.now().millisecondsSinceEpoch % 100000;
+  /// Uses a 32-bit positive integer safe for Android and iOS notification systems.
+  static int _uniqueId() =>
+      (DateTime.now().millisecondsSinceEpoch + (_notificationCounter++)) &
+      0x7FFFFFFF;
 
   static const _androidDetails = AndroidNotificationDetails(
     _channelId,

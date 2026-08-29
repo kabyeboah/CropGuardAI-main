@@ -7,7 +7,8 @@ App id: `com.crop.guard.app` · version is in `pubspec.yaml` (`version: x.y.z+bu
 - Local signing: create `android/key.properties` (gitignored) with
   `keyAlias`, `keyPassword`, `storeFile=../cropguard-release.jks`, `storePassword`.
 - CI signing: add GitHub Secrets `KEYSTORE_BASE64` (base64 of the .jks),
-  `KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`, plus
+  `KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`,
+  `GOOGLE_SERVICES_JSON_BASE64` (base64 of android/app/google-services.json), plus
   `GHANA_NLP_SUBSCRIPTION_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET`.
 - Firebase: register the release SHA-256 for App Check (Play Integrity) and
   enable App Check enforcement per service.

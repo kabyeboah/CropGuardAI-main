@@ -25,7 +25,7 @@ enum ConnectionStatus {
 /// one. So on top of the interface signal we run a lightweight TCP reachability
 /// probe and time it, which lets us distinguish online / poor / offline.
 class ConnectivityService with WidgetsBindingObserver {
-  final _connectivity = Connectivity();
+  final Connectivity _connectivity;
   final _controller = StreamController<ConnectionStatus>.broadcast();
 
   StreamSubscription<List<ConnectivityResult>>? _interfaceSub;
@@ -45,21 +45,28 @@ class ConnectivityService with WidgetsBindingObserver {
 
   // How often to re-probe while the app is in use. Interface-change events do
   // not fire when the *same* WiFi silently loses internet or degrades, so a
-  // modest poll is the only way to notice that.
-  static const _pollInterval = Duration(seconds: 30);
+  // modest poll is used. To conserve mobile data and battery for cost-conscious
+  // users on long foreground sessions, polling starts at 60s and progressively
+  // backs off up to 5 minutes while the connection status remains stable.
+  static const _basePollInterval = Duration(seconds: 60);
+  static const _maxPollInterval = Duration(minutes: 5);
 
-  ConnectivityService() {
+  ConnectivityService({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity() {
     // Re-probe whenever the OS reports an interface change (wifi <-> mobile <->
-    // none) and, while the app is in the foreground, on a steady interval to
-    // catch silent degradation.
-    _interfaceSub =
-        _connectivity.onConnectivityChanged.listen((_) => _refresh());
+    // none) and, while the app is in the foreground, on an adaptive interval to
+    // catch silent degradation without wasteful continuous polling.
+    _interfaceSub = _connectivity.onConnectivityChanged.listen((_) => _onInterfaceChanged());
     WidgetsBinding.instance.addObserver(this);
     _startPolling();
     _refresh();
   }
 
-  Duration _currentPollInterval = _pollInterval;
+  Duration _currentPollInterval = _basePollInterval;
+
+  /// Visible for testing the adaptive polling backoff.
+  @visibleForTesting
+  Duration get currentPollInterval => _currentPollInterval;
 
   /// Immediate current connection status without awaiting a probe.
   ConnectionStatus get currentStatus => _last;
@@ -70,21 +77,39 @@ class ConnectivityService with WidgetsBindingObserver {
   /// One-shot status check (also broadcasts if the status changed).
   Future<ConnectionStatus> checkStatus() async {
     final status = await _probe();
-    if (status != _last) {
+    final bool statusChanged = status != _last;
+    if (statusChanged) {
       _last = status;
       if (!_controller.isClosed) _controller.add(status);
-      _adjustPollInterval(status);
     }
+    _adjustPollInterval(status, statusChanged: statusChanged);
     return status;
   }
 
-  void _adjustPollInterval(ConnectionStatus status) {
-    if (status == ConnectionStatus.offline) {
-      // Exponential backoff: 30s -> 60s -> 120s -> 300s
-      final newSeconds = (_currentPollInterval.inSeconds * 2).clamp(30, 300);
+  void _onInterfaceChanged() {
+    _currentPollInterval = _basePollInterval;
+    _refresh();
+  }
+
+  void _adjustPollInterval(ConnectionStatus status, {bool statusChanged = false}) {
+    if (statusChanged) {
+      // Status transition detected — reset to base interval to monitor actively.
+      _currentPollInterval = _basePollInterval;
+    } else if (status == ConnectionStatus.offline) {
+      // Exponential backoff when offline: 60s -> 120s -> 240s -> 300s max.
+      final newSeconds = (_currentPollInterval.inSeconds * 2).clamp(
+        _basePollInterval.inSeconds,
+        _maxPollInterval.inSeconds,
+      );
       _currentPollInterval = Duration(seconds: newSeconds);
     } else {
-      _currentPollInterval = _pollInterval;
+      // Progressive idle backoff while stable online / poor: 60s -> 120s -> 180s -> 240s -> 300s max
+      // significantly reduces socket traffic for farmers reading static screens.
+      final newSeconds = (_currentPollInterval.inSeconds + 60).clamp(
+        _basePollInterval.inSeconds,
+        _maxPollInterval.inSeconds,
+      );
+      _currentPollInterval = Duration(seconds: newSeconds);
     }
     _startPolling();
   }
@@ -100,13 +125,13 @@ class ConnectivityService with WidgetsBindingObserver {
 
   // ── App lifecycle ─────────────────────────────────────────────────────────
   // Polling only earns its keep while the user can see the banner. Pause it
-  // when the app leaves the foreground so the probe isn't dialing every 30s in
-  // the background, and resume with an immediate check on return.
+  // when the app leaves the foreground so the probe isn't dialing in
+  // the background, and resume with an immediate check and reset on return.
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _currentPollInterval = _pollInterval;
+      _currentPollInterval = _basePollInterval;
       _startPolling();
       _refresh();
     } else if (state == AppLifecycleState.paused ||
