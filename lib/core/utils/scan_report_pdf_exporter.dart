@@ -13,4 +13,10 @@ class ScanReportPdfExporter {
     // No‑op placeholder – intentionally does nothing.
     return;
   }
+
+  /// Shares a combined monthly PDF report for a list of [results].
+  static Future<void> shareMonthlyReport(List<DetectionResult> results) async {
+    // No‑op placeholder – intentionally does nothing.
+    return;
+  }
 }
