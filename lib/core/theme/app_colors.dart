@@ -80,15 +80,24 @@ class CropColors {
   const CropColors({this.isDark = false});
 
   Color get primary => isDark ? AppColors.primaryDark : AppColors.primaryLight;
-  Color get primaryLight => isDark ? AppColors.primaryLightDark : AppColors.primaryLightVariant;
-  Color get primaryDark_ => isDark ? AppColors.primaryDarkDark : AppColors.primaryDarkLight;
-  Color get background => isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+  Color get primaryLight =>
+      isDark ? AppColors.primaryLightDark : AppColors.primaryLightVariant;
+  Color get primaryDark_ =>
+      isDark ? AppColors.primaryDarkDark : AppColors.primaryDarkLight;
+  Color get background =>
+      isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
   Color get surface => isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-  Color get surfaceVariant => isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
-  Color get onPrimary => isDark ? AppColors.onPrimaryDark : AppColors.onPrimaryLight;
-  Color get onBackground => isDark ? AppColors.onBackgroundDark : AppColors.onBackgroundLight;
-  Color get onSurface => isDark ? AppColors.onSurfaceDark : AppColors.onSurfaceLight;
-  Color get onBackgroundSecondary => isDark ? AppColors.onBackgroundSecondaryDark : AppColors.onBackgroundSecondaryLight;
+  Color get surfaceVariant =>
+      isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
+  Color get onPrimary =>
+      isDark ? AppColors.onPrimaryDark : AppColors.onPrimaryLight;
+  Color get onBackground =>
+      isDark ? AppColors.onBackgroundDark : AppColors.onBackgroundLight;
+  Color get onSurface =>
+      isDark ? AppColors.onSurfaceDark : AppColors.onSurfaceLight;
+  Color get onBackgroundSecondary => isDark
+      ? AppColors.onBackgroundSecondaryDark
+      : AppColors.onBackgroundSecondaryLight;
   Color get border => isDark ? AppColors.borderDark : AppColors.borderLight;
   Color get muted => isDark ? AppColors.mutedDark : AppColors.mutedLight;
   Color get divider => isDark ? AppColors.dividerDark : AppColors.dividerLight;
@@ -96,19 +105,31 @@ class CropColors {
   Color get success => isDark ? AppColors.successDark : AppColors.successLight;
   Color get warning => isDark ? AppColors.warningDark : AppColors.warningLight;
   Color get healthy => isDark ? AppColors.healthyDark : AppColors.healthyLight;
-  Color get healthyBg => isDark ? AppColors.healthyBgDark : AppColors.healthyBgLight;
-  Color get diseaseRed => isDark ? AppColors.diseaseRedDark : AppColors.diseaseRedLight;
-  Color get diseaseBg => isDark ? AppColors.diseaseBgDark : AppColors.diseaseBgLight;
-  Color get lowConfidence => isDark ? AppColors.lowConfidenceDark : AppColors.lowConfidenceLight;
-  Color get lowConfidenceBg => isDark ? AppColors.lowConfidenceBgDark : AppColors.lowConfidenceBgLight;
+  Color get healthyBg =>
+      isDark ? AppColors.healthyBgDark : AppColors.healthyBgLight;
+  Color get diseaseRed =>
+      isDark ? AppColors.diseaseRedDark : AppColors.diseaseRedLight;
+  Color get diseaseBg =>
+      isDark ? AppColors.diseaseBgDark : AppColors.diseaseBgLight;
+  Color get lowConfidence =>
+      isDark ? AppColors.lowConfidenceDark : AppColors.lowConfidenceLight;
+  Color get lowConfidenceBg =>
+      isDark ? AppColors.lowConfidenceBgDark : AppColors.lowConfidenceBgLight;
   Color get accent => isDark ? AppColors.accentDark : AppColors.accentLight;
-  Color get limeDark => isDark ? AppColors.limeDarkDark : AppColors.limeDarkLight;
-  Color get badgeDiseasedBg => isDark ? AppColors.badgeDiseasedBgDark : AppColors.badgeDiseasedBgLight;
-  Color get badgeHealthyBg => isDark ? AppColors.badgeHealthyBgDark : AppColors.badgeHealthyBgLight;
-  Color get badgeWarningBg => isDark ? AppColors.badgeWarningBgDark : AppColors.badgeWarningBgLight;
-  Color get severityEarly => isDark ? AppColors.severityEarlyDark : AppColors.severityEarlyLight;
-  Color get severityModerate => isDark ? AppColors.severityModerateDark : AppColors.severityModerateLight;
-  Color get severitySevere => isDark ? AppColors.severitySevereDark : AppColors.severitySevereLight;
+  Color get limeDark =>
+      isDark ? AppColors.limeDarkDark : AppColors.limeDarkLight;
+  Color get badgeDiseasedBg =>
+      isDark ? AppColors.badgeDiseasedBgDark : AppColors.badgeDiseasedBgLight;
+  Color get badgeHealthyBg =>
+      isDark ? AppColors.badgeHealthyBgDark : AppColors.badgeHealthyBgLight;
+  Color get badgeWarningBg =>
+      isDark ? AppColors.badgeWarningBgDark : AppColors.badgeWarningBgLight;
+  Color get severityEarly =>
+      isDark ? AppColors.severityEarlyDark : AppColors.severityEarlyLight;
+  Color get severityModerate =>
+      isDark ? AppColors.severityModerateDark : AppColors.severityModerateLight;
+  Color get severitySevere =>
+      isDark ? AppColors.severitySevereDark : AppColors.severitySevereLight;
   Color get darkM => isDark ? AppColors.darkMDark : AppColors.darkMLight;
   Color get greenXL => isDark ? AppColors.greenXLDark : AppColors.greenXLLight;
   Color get info => isDark ? AppColors.infoDark : AppColors.infoLight;
@@ -134,5 +155,6 @@ class AppColorsScope extends InheritedWidget {
   }
 
   @override
-  bool updateShouldNotify(AppColorsScope old) => colors.isDark != old.colors.isDark;
+  bool updateShouldNotify(AppColorsScope old) =>
+      colors.isDark != old.colors.isDark;
 }

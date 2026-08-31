@@ -84,7 +84,9 @@ class _ResultScreenState extends State<ResultScreen> {
 
     if (provider.result == null) {
       return Scaffold(
-        body: Center(child: Text(provider.errorCode?.resolve(context.l10n) ?? context.l10n.genericError)),
+        body: Center(
+            child: Text(provider.errorCode?.resolve(context.l10n) ??
+                context.l10n.genericError)),
       );
     }
 
@@ -111,7 +113,10 @@ class _ResultScreenState extends State<ResultScreen> {
           appBar: AppBar(
             backgroundColor: headerColor,
             foregroundColor: Colors.white,
-            title: Text(isHealthy ? context.l10n.healthyCropTitle : context.l10n.diseaseDetectedTitle,
+            title: Text(
+                isHealthy
+                    ? context.l10n.healthyCropTitle
+                    : context.l10n.diseaseDetectedTitle,
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
             leading: BackButton(
@@ -124,357 +129,476 @@ class _ResultScreenState extends State<ResultScreen> {
                 }
               },
             ),
-        actions: [
-          IconButton(
-            tooltip: 'Share Report',
-            icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () async {
-              await ScanReportPdfExporter.shareScanReport(result);
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image
-            if (File(result.imagePath).existsSync())
-              Semantics(
-                label: 'Captured leaf image for ${result.displayName}',
-                child: SizedBox(
-                  height: 220,
-                  width: double.infinity,
-                  child: Image.file(File(result.imagePath), fit: BoxFit.cover),
-                ),
-              )
-            else
-              Container(
-                height: 220,
-                width: double.infinity,
-                color: colors.surface,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.photo_camera_outlined,
-                        size: 48, color: colors.muted),
-                    const SizedBox(height: 8),
-                    Text(
-                      context.l10n.imageUnavailable,
-                      style: TextStyle(
-                          color: colors.onBackgroundSecondary, fontSize: 13),
-                    ),
-                  ],
-                ),
+            actions: [
+              IconButton(
+                tooltip: 'Share Report',
+                icon: const Icon(Icons.share, color: Colors.white),
+                onPressed: () async {
+                  await ScanReportPdfExporter.shareScanReport(result);
+                },
               ),
-
-            // Result header band
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              color: headerBg,
-              child: Row(
-                children: [
+            ],
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Image
+                if (File(result.imagePath).existsSync())
                   Semantics(
-                    label: isHealthy
-                        ? 'Status: Healthy crop'
-                        : 'Status: Disease detected — ${result.displayName}',
-                    excludeSemantics: true,
-                    child: Icon(
-                      isHealthy ? Icons.check_circle : Icons.warning_amber,
-                      color: headerColor,
-                      size: 32,
+                    label: 'Captured leaf image for ${result.displayName}',
+                    child: SizedBox(
+                      height: 220,
+                      width: double.infinity,
+                      child:
+                          Image.file(File(result.imagePath), fit: BoxFit.cover),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  )
+                else
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    color: colors.surface,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(result.displayName,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                    color: headerColor,
-                                    fontWeight: FontWeight.bold)),
-                        Text(result.cropType,
-                            style: TextStyle(
-                                color: headerColor.withValues(alpha: 0.8),
-                                fontSize: 13)),
+                        Icon(Icons.photo_camera_outlined,
+                            size: 48, color: colors.muted),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.l10n.imageUnavailable,
+                          style: TextStyle(
+                              color: colors.onBackgroundSecondary,
+                              fontSize: 13),
+                        ),
                       ],
                     ),
                   ),
-                  Semantics(
-                    label: 'Severity: ${result.severity}',
-                    excludeSemantics: true,
-                    child: SeverityBadge(severity: result.severity),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'Read result aloud',
-                    icon: const Icon(Icons.volume_up, color: Colors.white),
-                    style: IconButton.styleFrom(
-                      backgroundColor: headerColor.withValues(alpha: 0.3),
-                    ),
-                    onPressed: () {
-                      final lang = Localizations.localeOf(context).languageCode;
-                      final treatments = result.treatments.take(3).join(". ");
-                      final text = context.l10n.ttsResultSummary(
-                        result.displayName,
-                        result.severity,
-                        treatments,
-                      );
-                      TtsManager().speak(text, languageCode: lang);
-                    },
-                  ),
-                ],
-              ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (showConfidence) ...[
-                    Semantics(
-                      label: 'Confidence: ${(result.confidence * 100).toStringAsFixed(0)}%',
-                      child: CropGuardCard(
-                        child: ConfidenceBar(
-                          confidence: result.confidence,
+                // Result header band
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  color: headerBg,
+                  child: Row(
+                    children: [
+                      Semantics(
+                        label: isHealthy
+                            ? 'Status: Healthy crop'
+                            : 'Status: Disease detected — ${result.displayName}',
+                        excludeSemantics: true,
+                        child: Icon(
+                          isHealthy ? Icons.check_circle : Icons.warning_amber,
                           color: headerColor,
+                          size: 32,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Cause
-                  if (!isHealthy && result.cause.isNotEmpty) ...[
-                    SectionLabel(text: context.l10n.causeLabel),
-                    const SizedBox(height: 8),
-                    CropGuardCard(
-                      child: Text(result.cause,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Treatments
-                  if (result.treatments.isNotEmpty) ...[
-                    SectionLabel(
-                        text: isHealthy
-                            ? context.l10n.cropCareTips
-                            : context.l10n.treatmentSteps),
-                    const SizedBox(height: 8),
-                    CropGuardCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: result.treatments
-                            .asMap()
-                            .entries
-                            .map((e) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 22,
-                                        height: 22,
-                                        margin:
-                                            const EdgeInsets.only(right: 8),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: headerColor.withValues(alpha: 0.15),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            '${e.key + 1}',
-                                            style: TextStyle(
-                                                color: headerColor,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Text(e.value,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium),
-                                      ),
-                                    ],
-                                  ),
-                                ))
-                            .toList(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(result.displayName,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                        color: headerColor,
+                                        fontWeight: FontWeight.bold)),
+                            Text(result.cropType,
+                                style: TextStyle(
+                                    color: headerColor.withValues(alpha: 0.8),
+                                    fontSize: 13)),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                      Semantics(
+                        label: 'Severity: ${result.severity}',
+                        excludeSemantics: true,
+                        child: SeverityBadge(severity: result.severity),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        tooltip: 'Read result aloud',
+                        icon: const Icon(Icons.volume_up, color: Colors.white),
+                        style: IconButton.styleFrom(
+                          backgroundColor: headerColor.withValues(alpha: 0.3),
+                        ),
+                        onPressed: () {
+                          final lang =
+                              Localizations.localeOf(context).languageCode;
+                          final treatments =
+                              result.treatments.take(3).join(". ");
+                          final text = context.l10n.ttsResultSummary(
+                            result.displayName,
+                            result.severity,
+                            treatments,
+                          );
+                          TtsManager().speak(text, languageCode: lang);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
 
-                  // Spray Advisory
-                  if (!isHealthy && (provider.sprayAdvisory.isNotEmpty || provider.sprayAdvisoryUnavailable)) ...[
-                    SectionLabel(text: context.l10n.bestSprayWindow),
-                    const SizedBox(height: 8),
-                    CropGuardCard(
-                      backgroundColor: colors.primary.withValues(alpha: 0.05),
-                      child: Row(
-                        children: [
-                          Icon(Icons.wb_sunny_outlined, color: colors.primary, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              provider.sprayAdvisoryUnavailable
-                                  ? context.l10n.sprayAdvisoryUnavailable
-                                  : provider.sprayAdvisory,
-                              style: TextStyle(
-                                color: colors.onBackground,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showConfidence) ...[
+                        Semantics(
+                          label:
+                              'Confidence: ${(result.confidence * 100).toStringAsFixed(0)}%',
+                          child: CropGuardCard(
+                            child: ConfidenceBar(
+                              confidence: result.confidence,
+                              color: headerColor,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
-                  // Actions
-                  if (!isHealthy) ...[
-                    // Track Treatment CTA
-                    _TrackTreatmentButton(
-                      detectionId: result.id,
-                      cropType: result.cropType,
-                      diseaseName: result.displayName,
-                      treatments: result.treatments,
-                      severity: result.severity,
-                    ),
-                    const SizedBox(height: 10),
-                    PrimaryButton(
-                      text: context.l10n.requestExpertHelp,
-                      icon: Icons.support_agent,
-                      isLoading: provider.isRequestingExpert,
-                      onPressed: provider.expertRequestSent
-                          ? null
-                          : () => _showExpertDialog(context, provider),
-                    ),
-                    const SizedBox(height: 10),
-                    // Report this detection to the community outbreak map,
-                    // carrying the CNN's disease + confidence + severity.
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        side: BorderSide(color: colors.diseaseRed),
-                        foregroundColor: colors.diseaseRed,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                      // Cause
+                      if (!isHealthy && result.cause.isNotEmpty) ...[
+                        SectionLabel(text: context.l10n.causeLabel),
+                        const SizedBox(height: 8),
+                        CropGuardCard(
+                          child: Text(result.cause,
+                              style: Theme.of(context).textTheme.bodyMedium),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Treatments
+                      if (result.treatments.isNotEmpty) ...[
+                        SectionLabel(
+                            text: isHealthy
+                                ? context.l10n.cropCareTips
+                                : context.l10n.treatmentSteps),
+                        const SizedBox(height: 8),
+                        CropGuardCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...result.treatments.asMap().entries.map((e) =>
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 22,
+                                          height: 22,
+                                          margin:
+                                              const EdgeInsets.only(right: 8),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: headerColor.withValues(
+                                                alpha: 0.15),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '${e.key + 1}',
+                                              style: TextStyle(
+                                                  color: headerColor,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(e.value,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: colors.primary
+                                          .withValues(alpha: 0.2)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.verified_outlined,
+                                        size: 14, color: colors.primary),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Source / Basis: ${DiseaseDatabase.getInfo(result.diseaseLabel).sourceBasis}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: colors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!isHealthy &&
+                                  DiseaseDatabase.getInfo(result.diseaseLabel)
+                                          .safetyPrecautions !=
+                                      null) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.health_and_safety_outlined,
+                                        size: 14, color: colors.warning),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        DiseaseDatabase.getInfo(
+                                                result.diseaseLabel)
+                                            .safetyPrecautions!,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: colors.onBackgroundSecondary,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 6),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      size: 14, color: colors.muted),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      context.l10n.treatmentAdvisoryDisclaimer,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colors.onBackgroundSecondary,
+                                        fontStyle: FontStyle.italic,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Spray Advisory
+                      if (!isHealthy &&
+                          (provider.sprayAdvisory.isNotEmpty ||
+                              provider.sprayAdvisoryUnavailable)) ...[
+                        SectionLabel(text: context.l10n.bestSprayWindow),
+                        const SizedBox(height: 8),
+                        CropGuardCard(
+                          backgroundColor:
+                              colors.primary.withValues(alpha: 0.05),
+                          child: Row(
+                            children: [
+                              Icon(Icons.wb_sunny_outlined,
+                                  color: colors.primary, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  provider.sprayAdvisoryUnavailable
+                                      ? context.l10n.sprayAdvisoryUnavailable
+                                      : provider.sprayAdvisory,
+                                  style: TextStyle(
+                                    color: colors.onBackground,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Actions
+                      if (!isHealthy) ...[
+                        // Track Treatment CTA
+                        _TrackTreatmentButton(
+                          detectionId: result.id,
+                          cropType: result.cropType,
+                          diseaseName: result.displayName,
+                          treatments: result.treatments,
+                          severity: result.severity,
+                        ),
+                        const SizedBox(height: 10),
+                        PrimaryButton(
+                          text: context.l10n.requestExpertHelp,
+                          icon: Icons.support_agent,
+                          isLoading: provider.isRequestingExpert,
+                          onPressed: provider.expertRequestSent
+                              ? null
+                              : () => _showExpertDialog(context, provider),
+                        ),
+                        const SizedBox(height: 10),
+                        // Report this detection to the community outbreak map,
+                        // carrying the CNN's disease + confidence + severity.
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 48),
+                            side: BorderSide(color: colors.diseaseRed),
+                            foregroundColor: colors.diseaseRed,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.add_location_alt, size: 18),
+                          label: Text(context.l10n.reportToOutbreakMap,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () => context.push(
+                            '/outbreak_map',
+                            extra: OutbreakReportPrefill(
+                              disease: result.displayName,
+                              confidence: result.confidence,
+                              severity: _outbreakSeverity(result.severity),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      PrimaryButton(
+                        text: context.l10n.scanAnotherCrop,
+                        icon: Icons.camera_alt,
+                        onPressed: () => context.go('/scanner'),
                       ),
-                      icon: const Icon(Icons.add_location_alt, size: 18),
-                      label: Text(context.l10n.reportToOutbreakMap,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                      onPressed: () => context.push(
-                        '/outbreak_map',
-                        extra: OutbreakReportPrefill(
-                          disease: result.displayName,
-                          confidence: result.confidence,
-                          severity: _outbreakSeverity(result.severity),
+                      const SizedBox(height: 10),
+
+                      // Post to Community button - always visible
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          side: BorderSide(color: colors.primary),
+                          foregroundColor: colors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.forum_outlined, size: 18),
+                        label: Text(context.l10n.postToCommunity,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () => context.push('/community'),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Feedback
+                      if (!provider.feedbackSent)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 44),
+                            side: BorderSide(color: colors.border),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: Icon(Icons.feedback_outlined,
+                              color: colors.muted, size: 16),
+                          label: Text(context.l10n.feedbackPrompt,
+                              style: TextStyle(
+                                  color: colors.onBackgroundSecondary,
+                                  fontSize: 13)),
+                          onPressed: () =>
+                              _showFeedbackDialog(context, provider),
+                        ),
+                      if (provider.feedbackSent)
+                        Center(
+                          child: Text(context.l10n.feedbackThanks,
+                              style: TextStyle(
+                                  color: colors.healthy, fontSize: 13)),
+                        ),
+
+                      const SizedBox(height: 10),
+
+                      // Crop Not Found Feedback
+                      if (!provider.cropNotFoundSent)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 44),
+                            side: BorderSide(color: colors.border),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: Icon(Icons.help_center_outlined,
+                              color: colors.muted, size: 16),
+                          label: Text(context.l10n.cropNotFoundPrompt,
+                              style: TextStyle(
+                                  color: colors.onBackgroundSecondary,
+                                  fontSize: 13)),
+                          onPressed: () =>
+                              _showCropNotFoundDialog(context, provider),
+                        ),
+                      if (provider.cropNotFoundSent)
+                        Center(
+                          child: Text(context.l10n.cropReportSubmitted,
+                              style: TextStyle(
+                                  color: colors.primary, fontSize: 13)),
+                        ),
+
+                      const SizedBox(height: 16),
+
+                      // ── Persistent Scope Disclaimer (Task 3) ────────────────
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.shield_outlined,
+                                size: 16, color: colors.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'CropGuard identifies known crop leaf diseases from photos. It is not validated for other subjects and should not be the sole basis for treatment decisions.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.onBackgroundSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
 
-                  PrimaryButton(
-                    text: context.l10n.scanAnotherCrop,
-                    icon: Icons.camera_alt,
-                    onPressed: () => context.go('/scanner'),
+                      const SizedBox(height: 32),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-
-                  // Post to Community button - always visible
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                      side: BorderSide(color: colors.primary),
-                      foregroundColor: colors.primary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.forum_outlined, size: 18),
-                    label: Text(context.l10n.postToCommunity,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    onPressed: () => context.push('/community'),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Feedback
-                  if (!provider.feedbackSent)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 44),
-                        side: BorderSide(color: colors.border),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: Icon(Icons.feedback_outlined,
-                          color: colors.muted, size: 16),
-                      label: Text(context.l10n.feedbackPrompt,
-                          style: TextStyle(
-                              color: colors.onBackgroundSecondary,
-                              fontSize: 13)),
-                      onPressed: () =>
-                          _showFeedbackDialog(context, provider),
-                    ),
-                  if (provider.feedbackSent)
-                    Center(
-                      child: Text(context.l10n.feedbackThanks,
-                          style: TextStyle(
-                              color: colors.healthy, fontSize: 13)),
-                    ),
-
-                  const SizedBox(height: 10),
-
-                  // Crop Not Found Feedback
-                  if (!provider.cropNotFoundSent)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 44),
-                        side: BorderSide(color: colors.border),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: Icon(Icons.help_center_outlined,
-                          color: colors.muted, size: 16),
-                      label: Text(context.l10n.cropNotFoundPrompt,
-                          style: TextStyle(
-                              color: colors.onBackgroundSecondary,
-                              fontSize: 13)),
-                      onPressed: () =>
-                          _showCropNotFoundDialog(context, provider),
-                    ),
-                  if (provider.cropNotFoundSent)
-                    Center(
-                      child: Text(context.l10n.cropReportSubmitted,
-                          style: TextStyle(
-                              color: colors.primary, fontSize: 13)),
-                    ),
-
-                  const SizedBox(height: 32),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
-  Future<void> _showExpertDialog(BuildContext ctx, ResultProvider provider) async {
+  Future<void> _showExpertDialog(
+      BuildContext ctx, ResultProvider provider) async {
     final controller = TextEditingController();
     try {
       await showDialog<void>(
@@ -505,7 +629,9 @@ class _ResultScreenState extends State<ResultScreen> {
                     return Text(
                       '${value.text.length}/500',
                       style: TextStyle(
-                          color: value.text.length >= 500 ? Colors.red : Colors.grey,
+                          color: value.text.length >= 500
+                              ? Colors.red
+                              : Colors.grey,
                           fontSize: 12),
                     );
                   },
@@ -531,8 +657,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 final sentMsg = ctx.l10n.expertRequestSentMsg;
                 await provider.requestExpertHelp(userId: uid, message: message);
                 messenger.showSnackBar(SnackBar(
-                  content:
-                      Text(provider.expertRequestSent ? sentMsg : failMsg),
+                  content: Text(provider.expertRequestSent ? sentMsg : failMsg),
                 ));
               },
               child: Text(ctx.l10n.send),
@@ -545,7 +670,8 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
-  Future<void> _showFeedbackDialog(BuildContext ctx, ResultProvider provider) async {
+  Future<void> _showFeedbackDialog(
+      BuildContext ctx, ResultProvider provider) async {
     final controller = TextEditingController();
     try {
       await showDialog<void>(
@@ -601,7 +727,8 @@ class _ResultScreenState extends State<ResultScreen> {
                   messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                   return;
                 }
-                await provider.submitFeedback(userId: uid, correctedLabel: label);
+                await provider.submitFeedback(
+                    userId: uid, correctedLabel: label);
                 if (!provider.feedbackSent) {
                   messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                 }
@@ -616,7 +743,8 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
-  Future<void> _showCropNotFoundDialog(BuildContext ctx, ResultProvider provider) async {
+  Future<void> _showCropNotFoundDialog(
+      BuildContext ctx, ResultProvider provider) async {
     final cropController = TextEditingController();
     final symptomsController = TextEditingController();
     try {
@@ -746,8 +874,8 @@ class _TrackTreatmentButtonState extends State<_TrackTreatmentButton> {
           backgroundColor:
               _saved ? colors.healthy : colors.primary.withValues(alpha: 0.9),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 0,
         ),
         icon: _saving

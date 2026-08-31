@@ -13,7 +13,8 @@ class InAppUpdateHelper {
         await InAppUpdate.startFlexibleUpdate();
       }
     } catch (e) {
-      AppLogger.w('InAppUpdateHelper: update check failed (Play Store API): $e');
+      AppLogger.w(
+          'InAppUpdateHelper: update check failed (Play Store API): $e');
     }
   }
 }

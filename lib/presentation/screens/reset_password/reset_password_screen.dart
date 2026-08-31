@@ -100,61 +100,61 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             },
           ),
         ),
-      backgroundColor: colors.background,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _verifying
-            ? const Center(child: CircularProgressIndicator())
-            : !_codeValid
-                ? _Message(
-                    icon: Icons.link_off,
-                    color: colors.error,
-                    text: l10n.resetLinkInvalid,
-                    cta: l10n.backToLogin,
-                    onCta: () => context.go('/login'),
-                  )
-                : _done
-                    ? _Message(
-                        icon: Icons.check_circle,
-                        color: colors.healthy,
-                        text: l10n.passwordResetSuccess,
-                        cta: l10n.backToLogin,
-                        onCta: () => context.go('/login'),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(l10n.enterNewPasswordHint,
-                              style: Theme.of(context).textTheme.bodyMedium),
-                          const SizedBox(height: 20),
-                          CropGuardTextField(
-                            value: _password,
-                            onChanged: (v) => setState(() => _password = v),
-                            label: l10n.newPassword,
-                            placeholder: '••••••••',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 12),
-                          CropGuardTextField(
-                            value: _confirm,
-                            onChanged: (v) => setState(() => _confirm = v),
-                            label: l10n.confirmPassword,
-                            placeholder: '••••••••',
-                            obscureText: true,
-                          ),
-                          if (_error != null) ...[
+        backgroundColor: colors.background,
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: _verifying
+              ? const Center(child: CircularProgressIndicator())
+              : !_codeValid
+                  ? _Message(
+                      icon: Icons.link_off,
+                      color: colors.error,
+                      text: l10n.resetLinkInvalid,
+                      cta: l10n.backToLogin,
+                      onCta: () => context.go('/login'),
+                    )
+                  : _done
+                      ? _Message(
+                          icon: Icons.check_circle,
+                          color: colors.healthy,
+                          text: l10n.passwordResetSuccess,
+                          cta: l10n.backToLogin,
+                          onCta: () => context.go('/login'),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(l10n.enterNewPasswordHint,
+                                style: Theme.of(context).textTheme.bodyMedium),
+                            const SizedBox(height: 20),
+                            CropGuardTextField(
+                              value: _password,
+                              onChanged: (v) => setState(() => _password = v),
+                              label: l10n.newPassword,
+                              placeholder: '••••••••',
+                              obscureText: true,
+                            ),
                             const SizedBox(height: 12),
-                            Text(_error!,
-                                style: TextStyle(color: colors.error)),
+                            CropGuardTextField(
+                              value: _confirm,
+                              onChanged: (v) => setState(() => _confirm = v),
+                              label: l10n.confirmPassword,
+                              placeholder: '••••••••',
+                              obscureText: true,
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 12),
+                              Text(_error!,
+                                  style: TextStyle(color: colors.error)),
+                            ],
+                            const SizedBox(height: 24),
+                            PrimaryButton(
+                              text: l10n.resetPasswordCta,
+                              isLoading: _submitting,
+                              onPressed: _submitting ? null : _submit,
+                            ),
                           ],
-                          const SizedBox(height: 24),
-                          PrimaryButton(
-                            text: l10n.resetPasswordCta,
-                            isLoading: _submitting,
-                            onPressed: _submitting ? null : _submit,
-                          ),
-                        ],
-                      ),
+                        ),
         ),
       ),
     );

@@ -12,7 +12,8 @@ class RejectingOODGate implements OODGate {
   Future<bool> isPlantImage(String imagePath) async => false;
 
   @override
-  Future<bool> isPlantBytes(Uint8List rgbaBytes, int width, int height) async => false;
+  Future<bool> isPlantBytes(Uint8List rgbaBytes, int width, int height) async =>
+      false;
 }
 
 void main() {
@@ -25,7 +26,9 @@ void main() {
       expect(resultBytes, isTrue);
     });
 
-    test('ClassifierRepositoryImpl returns OODFailure when OODGate rejects image', () async {
+    test(
+        'ClassifierRepositoryImpl returns OODFailure when OODGate rejects image',
+        () async {
       final classifier = CropDiseaseClassifier();
       final repo = ClassifierRepositoryImpl(classifier, RejectingOODGate());
 
@@ -34,7 +37,9 @@ void main() {
       expect(res.failure, isA<OODFailure>());
     });
 
-    test('ClassifierRepositoryImpl returns OODFailure when OODGate rejects bytes', () async {
+    test(
+        'ClassifierRepositoryImpl returns OODFailure when OODGate rejects bytes',
+        () async {
       final classifier = CropDiseaseClassifier();
       final repo = ClassifierRepositoryImpl(classifier, RejectingOODGate());
 
@@ -74,7 +79,9 @@ void main() {
       expect(serialized['modelVersion'], equals('2.1'));
     });
 
-    test('ClassificationResult and Classification preserve modelVersion provenance', () {
+    test(
+        'ClassificationResult and Classification preserve modelVersion provenance',
+        () {
       final info = DiseaseDatabase.getInfo('Tomato___Early_blight');
       final classificationResult = ClassificationResult(
         label: 'Tomato___Early_blight',
@@ -85,9 +92,26 @@ void main() {
       );
       expect(classificationResult.modelVersion, equals('v2-retrained-quant'));
 
-      final repo = ClassifierRepositoryImpl(CropDiseaseClassifier(), AlwaysAcceptOODGate());
+      final repo = ClassifierRepositoryImpl(
+          CropDiseaseClassifier(), AlwaysAcceptOODGate());
       final classification = repo.classifyFromPath('test.jpg'); // tests mapping
       expect(classification, isNotNull);
+    });
+
+    test(
+        'ClassifierRepositoryImpl returns explicit MLFailure subtype when model is unavailable or input is invalid',
+        () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final classifier = CropDiseaseClassifier();
+      final repo = ClassifierRepositoryImpl(classifier, AlwaysAcceptOODGate());
+
+      final res = await repo.classifyFromPath('non_existent.jpg');
+      expect(res.isError, isTrue);
+      expect(res.failure, isA<MLFailure>());
+      expect(
+          (res.failure as MLFailure).code,
+          anyOf(equals('MODEL_LOAD_FAILED'), equals('MODEL_CONTRACT_FAILED'),
+              equals('MODEL_INPUT_INVALID')));
     });
   });
 }

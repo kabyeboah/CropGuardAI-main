@@ -5,15 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Data sources
 import '../../data/local/database_helper.dart';
-import '../../data/ml/crop_disease_classifier.dart';
 import '../../data/remote/firebase_auth_service.dart';
+import '../../data/remote/cloud_functions_service.dart';
 import '../../data/remote/firestore_service.dart';
 import '../../data/remote/cloudinary_service.dart';
 import '../../data/remote/firebase_storage_service.dart';
 import '../../data/remote/image_upload_service.dart';
 import '../../data/remote/gemini_cloud_ai_service.dart';
+import '../../data/remote/ghana_nlp_service.dart';
 
 // Repositories
+import '../../data/ml/crop_disease_classifier.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/classifier_repository_impl.dart';
 import '../../data/repositories/community_repository_impl.dart';
@@ -62,6 +64,9 @@ import '../utils/app_lock_controller.dart';
 import '../utils/auth_state_notifier.dart';
 import '../utils/classifier_health_service.dart';
 import '../utils/push_notification_service.dart';
+import '../utils/nominatim_service.dart';
+import '../utils/user_block_service.dart';
+import '../utils/rate_limiter.dart';
 import '../../domain/usecases/scanner/scan_batch_usecase.dart';
 
 final GetIt sl = GetIt.instance;
@@ -76,63 +81,91 @@ Future<void> setupServiceLocator() async {
   // 1. Data Sources (Low level)
   sl.registerLazySingleton<DatabaseHelper>(() => DatabaseHelper());
   sl.registerLazySingleton<FirebaseAuthService>(() => FirebaseAuthService());
-  sl.registerLazySingleton<FirestoreService>(() => FirestoreService());
-  sl.registerLazySingleton<FirebaseStorageService>(() => FirebaseStorageService());
+  sl.registerLazySingleton<CloudFunctionsService>(
+      () => CloudFunctionsService());
+  sl.registerLazySingleton<FirestoreService>(
+      () => FirestoreService(functions: sl<CloudFunctionsService>()));
+  sl.registerLazySingleton<FirebaseStorageService>(
+      () => FirebaseStorageService());
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
-  sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(sl<CloudinaryService>(), sl<FirebaseStorageService>()));
-  sl.registerLazySingleton<GeminiCloudAiService>(() => GeminiCloudAiService());
+  sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(
+      sl<CloudinaryService>(), sl<FirebaseStorageService>()));
+  sl.registerLazySingleton<GeminiCloudAiService>(
+      () => GeminiCloudAiService(functions: sl<CloudFunctionsService>()));
+  GhanaNlpService(functions: sl<CloudFunctionsService>());
   sl.registerSingleton<StreakManager>(StreakManager(prefs));
   sl.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   sl.registerLazySingleton<AnalyticsService>(() => AnalyticsService());
   sl.registerLazySingleton<DeepLinkService>(() => DeepLinkService());
   sl.registerLazySingleton<BiometricService>(() => BiometricService());
+  sl.registerLazySingleton<NominatimService>(
+      () => NominatimService(prefs: prefs));
   sl.registerSingleton<ClassifierHealthService>(ClassifierHealthService());
   sl.registerSingleton<AuthStateNotifier>(AuthStateNotifier());
+  sl.registerSingleton<UserBlockService>(UserBlockService(prefs));
+  sl.registerLazySingleton<RateLimiter>(() => RateLimiter());
   // Singleton (not lazy): the router uses it as refreshListenable and reads
   // isLocked synchronously in redirect, so it must exist before the router.
-  sl.registerSingleton<AppLockController>(AppLockController(prefs, analytics: sl<AnalyticsService>()));
+  sl.registerSingleton<AppLockController>(
+      AppLockController(prefs, analytics: sl<AnalyticsService>()));
 
   // 2. Repositories (Implementation details)
-  sl.registerLazySingleton<IAuthRepository>(() => AuthRepositoryImpl(sl<FirebaseAuthService>()));
-  sl.registerLazySingleton<IDetectionRepository>(() => DetectionRepositoryImpl(sl<DatabaseHelper>()));
+  sl.registerLazySingleton<IAuthRepository>(
+      () => AuthRepositoryImpl(sl<FirebaseAuthService>()));
+  sl.registerLazySingleton<IDetectionRepository>(
+      () => DetectionRepositoryImpl(sl<DatabaseHelper>()));
   sl.registerLazySingleton<ICommunityRepository>(() => CommunityRepositoryImpl(
-    sl<FirestoreService>(),
-    sl<DatabaseHelper>(),
-    sl<ImageUploadService>(),
-  ));
-  sl.registerLazySingleton<IClassifierRepository>(() => ClassifierRepositoryImpl(CropDiseaseClassifier()));
+        sl<FirestoreService>(),
+        sl<DatabaseHelper>(),
+        sl<ImageUploadService>(),
+      ));
+  sl.registerLazySingleton<IClassifierRepository>(
+      () => ClassifierRepositoryImpl(CropDiseaseClassifier()));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
-    sl<FirebaseAuthService>(),
-    sl<DatabaseHelper>(),
-    sl<SharedPreferences>(),
-    sl<FirestoreService>(),
-  ));
+        sl<FirebaseAuthService>(),
+        sl<DatabaseHelper>(),
+        sl<SharedPreferences>(),
+        sl<FirestoreService>(),
+      ));
   sl.registerLazySingleton<IWeatherRepository>(() => WeatherRepositoryImpl());
   sl.registerLazySingleton<IRiskRepository>(() => RiskRepositoryImpl(
-    sl<ICommunityRepository>(),
-    sl<IWeatherRepository>(),
-  ));
+        sl<ICommunityRepository>(),
+        sl<IWeatherRepository>(),
+      ));
 
   // 3. Use Cases (Business logic)
-  sl.registerLazySingleton<LoginUseCase>(() => LoginUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<RegisterUseCase>(() => RegisterUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<LogoutUseCase>(() => LogoutUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<SignInWithGoogleUseCase>(() => SignInWithGoogleUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<SignInAnonymouslyUseCase>(() => SignInAnonymouslyUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<SendPasswordResetUseCase>(() => SendPasswordResetUseCase(sl<IAuthRepository>()));
-  sl.registerLazySingleton<GetHistoryUseCase>(() => GetHistoryUseCase(sl<IDetectionRepository>()));
-  sl.registerLazySingleton<DeleteDetectionUseCase>(() => DeleteDetectionUseCase(sl<IDetectionRepository>()));
-  sl.registerLazySingleton<RestoreDetectionUseCase>(() => RestoreDetectionUseCase(sl<IDetectionRepository>()));
-  sl.registerLazySingleton<GetHomeDataUseCase>(() => GetHomeDataUseCase(sl<IDetectionRepository>()));
+  sl.registerLazySingleton<LoginUseCase>(
+      () => LoginUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<RegisterUseCase>(
+      () => RegisterUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<LogoutUseCase>(
+      () => LogoutUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<SignInWithGoogleUseCase>(
+      () => SignInWithGoogleUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<SignInAnonymouslyUseCase>(
+      () => SignInAnonymouslyUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<SendPasswordResetUseCase>(
+      () => SendPasswordResetUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton<GetHistoryUseCase>(
+      () => GetHistoryUseCase(sl<IDetectionRepository>()));
+  sl.registerLazySingleton<DeleteDetectionUseCase>(
+      () => DeleteDetectionUseCase(sl<IDetectionRepository>()));
+  sl.registerLazySingleton<RestoreDetectionUseCase>(
+      () => RestoreDetectionUseCase(sl<IDetectionRepository>()));
+  sl.registerLazySingleton<GetHomeDataUseCase>(
+      () => GetHomeDataUseCase(sl<IDetectionRepository>()));
   sl.registerLazySingleton<ScanCropUseCase>(() => ScanCropUseCase(
-    sl<IClassifierRepository>(),
-    sl<IDetectionRepository>(),
-    sl<StreakManager>(),
-    sl<ICommunityRepository>(),
-  ));
-  sl.registerLazySingleton<ScanBatchUseCase>(() => ScanBatchUseCase(sl<ScanCropUseCase>()));
-  sl.registerLazySingleton<GetWeatherUseCase>(() => GetWeatherUseCase(sl<IWeatherRepository>()));
-  sl.registerLazySingleton<GetRiskAssessmentUseCase>(() => GetRiskAssessmentUseCase(sl<IRiskRepository>()));
+        sl<IClassifierRepository>(),
+        sl<IDetectionRepository>(),
+        sl<StreakManager>(),
+        sl<ICommunityRepository>(),
+      ));
+  sl.registerLazySingleton<ScanBatchUseCase>(
+      () => ScanBatchUseCase(sl<ScanCropUseCase>()));
+  sl.registerLazySingleton<GetWeatherUseCase>(
+      () => GetWeatherUseCase(sl<IWeatherRepository>()));
+  sl.registerLazySingleton<GetRiskAssessmentUseCase>(
+      () => GetRiskAssessmentUseCase(sl<IRiskRepository>()));
 
   // Wire offline → online drain: whenever connectivity is restored, replay
   // any community/feedback operations that were queued while offline.
@@ -156,44 +189,61 @@ Future<void> setupServiceLocator() async {
 /// Builds the list of top-level providers so they're accessible anywhere
 List<SingleChildWidget> buildProviders() {
   return [
-    ChangeNotifierProvider(create: (_) => LoginProvider(
-      sl<LoginUseCase>(),
-      sl<SignInWithGoogleUseCase>(),
-      sl<SignInAnonymouslyUseCase>(),
-      sl<DatabaseHelper>(),
-      sl<FirebaseAuthService>(),
-      sl<AnalyticsService>(),
-    )),
-    ChangeNotifierProvider(create: (_) => RegisterProvider(
-      sl<RegisterUseCase>(),
-      sl<DatabaseHelper>(),
-      sl<FirebaseAuthService>(),
-    )),
-    ChangeNotifierProvider(create: (_) => HomeProvider(
-      sl<GetHomeDataUseCase>(),
-      sl<GetWeatherUseCase>(),
-      sl<IAuthRepository>(),
-      sl<SharedPreferences>(),
-      sl<ConnectivityService>(),
-      sl<ICommunityRepository>(),
-    )),
-    ChangeNotifierProvider(create: (_) => HistoryProvider(
-      sl<GetHistoryUseCase>(),
-      sl<DeleteDetectionUseCase>(),
-      sl<RestoreDetectionUseCase>(),
-      sl<IAuthRepository>(),
-    )),
-    ChangeNotifierProvider(create: (_) => ProfileProvider(sl<IProfileRepository>(), sl<IAuthRepository>(), sl<ConnectivityService>(), sl<ImageUploadService>())),
-    ChangeNotifierProvider(create: (_) => ScannerProvider(sl<ScanCropUseCase>(), sl<IAuthRepository>(), sl<AnalyticsService>())),
+    ChangeNotifierProvider(
+        create: (_) => LoginProvider(
+              sl<LoginUseCase>(),
+              sl<SignInWithGoogleUseCase>(),
+              sl<SignInAnonymouslyUseCase>(),
+              sl<DatabaseHelper>(),
+              sl<FirebaseAuthService>(),
+              sl<AnalyticsService>(),
+            )),
+    ChangeNotifierProvider(
+        create: (_) => RegisterProvider(
+              sl<RegisterUseCase>(),
+              sl<DatabaseHelper>(),
+              sl<FirebaseAuthService>(),
+            )),
+    ChangeNotifierProvider(
+        create: (_) => HomeProvider(
+              sl<GetHomeDataUseCase>(),
+              sl<GetWeatherUseCase>(),
+              sl<IAuthRepository>(),
+              sl<SharedPreferences>(),
+              sl<ConnectivityService>(),
+              sl<ICommunityRepository>(),
+              nominatimService: sl<NominatimService>(),
+            )),
+    ChangeNotifierProvider(
+        create: (_) => HistoryProvider(
+              sl<GetHistoryUseCase>(),
+              sl<DeleteDetectionUseCase>(),
+              sl<RestoreDetectionUseCase>(),
+              sl<IAuthRepository>(),
+            )),
+    ChangeNotifierProvider(
+        create: (_) => ProfileProvider(
+            sl<IProfileRepository>(),
+            sl<IAuthRepository>(),
+            sl<ConnectivityService>(),
+            sl<ImageUploadService>())),
+    ChangeNotifierProvider(
+        create: (_) => ScannerProvider(sl<ScanCropUseCase>(),
+            sl<IAuthRepository>(), sl<AnalyticsService>())),
     // ResultProvider and CommunityProvider are intentionally absent here.
     // They are provided at route level in AppRouter so they are created only
     // when the screen is navigated to and disposed when it is popped.
-    ChangeNotifierProvider(create: (_) => SettingsProvider(sl<SharedPreferences>(), sl<FirebaseAuthService>(), sl<DatabaseHelper>(), sl<AnalyticsService>(), sl<BiometricService>(), sl<AppLockController>())),
+    ChangeNotifierProvider(
+        create: (_) => SettingsProvider(
+            sl<SharedPreferences>(),
+            sl<FirebaseAuthService>(),
+            sl<DatabaseHelper>(),
+            sl<AnalyticsService>(),
+            sl<BiometricService>(),
+            sl<AppLockController>())),
     ChangeNotifierProvider(create: (_) => BatchResultProvider()),
     // TreatmentTrackerProvider is provided at route level in AppRouter so it
     // is created only when /treatment_tracker is navigated to and disposed
     // when the screen is popped.
   ];
 }
-
-

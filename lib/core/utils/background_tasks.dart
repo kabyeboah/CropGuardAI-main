@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,6 +15,7 @@ import '../../data/local/database_helper.dart';
 import '../../data/remote/firestore_service.dart';
 import '../../domain/models/app_notification.dart';
 import '../../domain/repositories/i_auth_repository.dart';
+import '../../core/utils/app_logger.dart';
 import '../../core/utils/notification_helper.dart';
 import '../../core/utils/outbreak_alert_service.dart';
 import '../../domain/repositories/i_community_repository.dart';
@@ -66,12 +66,13 @@ void callbackDispatcher() {
       return await taskFuture.timeout(
         const Duration(minutes: 2),
         onTimeout: () {
-          dev.log('Background Task ($task) timed out. Completing to prevent wakelock leak.');
+          AppLogger.w(
+              'Background Task ($task) timed out. Completing to prevent wakelock leak.');
           return false;
         },
       );
     } catch (e) {
-      dev.log('Background Task Failed ($task): $e');
+      AppLogger.w('Background Task Failed ($task): $e');
       return Future.value(false);
     }
   });
@@ -97,13 +98,13 @@ Future<bool> _syncScansTask() async {
     try {
       await fbUser.getIdToken(true);
     } catch (e) {
-      dev.log('Sync Task: token refresh failed, will retry: $e');
+      AppLogger.w('Sync Task: token refresh failed, will retry: $e');
       return false;
     }
 
     final pending = await db.getUnsyncedDetections(userId: userId);
     if (pending.isEmpty) {
-      dev.log('Sync Task: No unsynced scans found.');
+      AppLogger.d('Sync Task: No unsynced scans found.');
       return true;
     }
 
@@ -124,7 +125,7 @@ Future<bool> _syncScansTask() async {
         );
         syncedIds.add(scan.id);
       } catch (e) {
-        dev.log('Sync Task: failed to sync scan ${scan.id}: $e');
+        AppLogger.w('Sync Task: failed to sync scan ${scan.id}: $e');
       }
     }
 
@@ -134,7 +135,7 @@ Future<bool> _syncScansTask() async {
 
     return syncedIds.length == pending.length;
   } catch (e) {
-    dev.log('Sync Task Error: $e');
+    AppLogger.e('Sync Task Error: $e');
     return false;
   }
 }
@@ -206,7 +207,7 @@ Future<bool> _outbreakAlertTask() async {
       db: sl<DatabaseHelper>(),
     );
   } catch (e) {
-    dev.log('Outbreak Alert Task Error: $e');
+    AppLogger.e('Outbreak Alert Task Error: $e');
     return false;
   }
 }
@@ -273,10 +274,10 @@ class BackgroundTaskHelper {
         if (repo is CommunityRepositoryImpl) {
           await repo.drainPendingSync();
         }
-        dev.log('iOS BGAppRefreshTask sync drain completed.');
+        AppLogger.d('iOS BGAppRefreshTask sync drain completed.');
         return true;
       } catch (e) {
-        dev.log('iOS BGAppRefreshTask sync drain failed: $e');
+        AppLogger.w('iOS BGAppRefreshTask sync drain failed: $e');
         return false;
       }
     });
@@ -291,7 +292,7 @@ class BackgroundTaskHelper {
     } on MissingPluginException {
       // Unit test environment — no plugin registered. Ignored.
     } catch (e) {
-      dev.log('scheduleIosBGAppRefresh failed: $e');
+      AppLogger.w('scheduleIosBGAppRefresh failed: $e');
     }
   }
 
@@ -304,7 +305,7 @@ class BackgroundTaskHelper {
         await repo.drainPendingSync();
       }
     } catch (e) {
-      dev.log('iOS foreground sync drain skipped/failed: $e');
+      AppLogger.w('iOS foreground sync drain skipped/failed: $e');
     }
   }
 

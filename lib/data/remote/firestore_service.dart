@@ -7,10 +7,18 @@ import '../../core/error/failures.dart';
 import '../../core/utils/app_logger.dart';
 import '../../core/utils/retry_utils.dart';
 import '../../domain/models/community_post.dart';
+import 'cloud_functions_service.dart';
 
 /// Firestore service — replaces Firebase-backed repository implementations
 class FirestoreService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+  final CloudFunctionsService _functions;
+
+  FirestoreService({
+    FirebaseFirestore? db,
+    CloudFunctionsService? functions,
+  })  : _db = db ?? FirebaseFirestore.instance,
+        _functions = functions ?? CloudFunctionsService();
 
   bool _isFirestoreTransientError(Object error) {
     if (error is FirebaseException) {
@@ -37,8 +45,8 @@ class FirestoreService {
             .map((doc) => CommunityPost.fromMap(doc.data(), doc.id))
             .toList())
         .handleError((error) {
-          throw ServerFailure('Failed to stream community posts: $error');
-        });
+      throw ServerFailure('Failed to stream community posts: $error');
+    });
   }
 
   Future<void> addPost(CommunityPost post) async {
@@ -127,14 +135,11 @@ class FirestoreService {
     }
   }
 
-  Future<void> updateUserProfile(
-      String uid, Map<String, dynamic> data) async {
+  Future<void> updateUserProfile(String uid, Map<String, dynamic> data) async {
     try {
       await RetryUtils.retry(
-        () => _db
-            .collection('users')
-            .doc(uid)
-            .set(data, SetOptions(merge: true)),
+        () =>
+            _db.collection('users').doc(uid).set(data, SetOptions(merge: true)),
         maxAttempts: 3,
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
@@ -166,32 +171,18 @@ class FirestoreService {
     }
   }
 
-
   Future<void> verifyOutbreak({
     required String reportId,
     required String userId,
     required bool confirm,
   }) async {
     try {
-      final docRef = _db.collection('outbreak_reports').doc(reportId);
-      await RetryUtils.retry(() async {
-        if (confirm) {
-          await docRef.update({
-            'verifiedBy': FieldValue.arrayUnion([userId]),
-            'refutedBy': FieldValue.arrayRemove([userId]),
-          });
-        } else {
-          await docRef.update({
-            'verifiedBy': FieldValue.arrayRemove([userId]),
-            'refutedBy': FieldValue.arrayUnion([userId]),
-          });
-        }
-      },
-        maxAttempts: 3,
-        timeout: const Duration(seconds: 15),
-        retryIf: _isFirestoreTransientError,
+      await _functions.verifyOutbreak(
+        reportId: reportId,
+        confirm: confirm,
       );
     } catch (e) {
+      if (e is Failure) rethrow;
       throw ServerFailure('Failed to verify outbreak: $e');
     }
   }
@@ -249,7 +240,8 @@ class FirestoreService {
         final data = doc.data();
         final verifiedBy = (data['verifiedBy'] as List?) ?? [];
         final refutedBy = (data['refutedBy'] as List?) ?? [];
-        if (verifiedBy.length >= 2 || (verifiedBy.length > refutedBy.length && verifiedBy.isNotEmpty)) {
+        if (verifiedBy.length >= 2 ||
+            (verifiedBy.length > refutedBy.length && verifiedBy.isNotEmpty)) {
           verifiedReports++;
         }
         if (refutedBy.length > verifiedBy.length) {
@@ -297,12 +289,11 @@ class FirestoreService {
         .where('userId', isEqualTo: userId)
         .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => {'id': doc.id, ...doc.data()})
-            .toList())
+        .map((snap) =>
+            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList())
         .handleError((error) {
-          throw ServerFailure('Failed to stream treatments: $error');
-        });
+      throw ServerFailure('Failed to stream treatments: $error');
+    });
   }
 
   Future<void> addTreatment(Map<String, dynamic> data) async {
@@ -343,7 +334,6 @@ class FirestoreService {
       throw ServerFailure('Failed to delete treatment: $e');
     }
   }
-
 
   // ─── Feedback ─────────────────────────────────────────────────────────
   Future<void> submitFeedback({
@@ -401,7 +391,8 @@ class FirestoreService {
     }
   }
 
-  Future<void> submitTrainingCandidate(Map<String, dynamic> candidateData) async {
+  Future<void> submitTrainingCandidate(
+      Map<String, dynamic> candidateData) async {
     try {
       await RetryUtils.retry(
         () => _db.collection('training_candidates').add({
@@ -442,7 +433,8 @@ class FirestoreService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getUserExpertRequests(String userId) async {
+  Future<List<Map<String, dynamic>>> getUserExpertRequests(
+      String userId) async {
     if (userId.isEmpty) return [];
     try {
       final snap = await RetryUtils.retry(
@@ -454,7 +446,9 @@ class FirestoreService {
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
       );
-      return snap.docs.map((d) => {'id': d.id, ...d.data(), 'type': 'expert_request'}).toList();
+      return snap.docs
+          .map((d) => {'id': d.id, ...d.data(), 'type': 'expert_request'})
+          .toList();
     } catch (e) {
       AppLogger.w('FirestoreService: getUserExpertRequests error: $e');
       return [];
@@ -473,7 +467,9 @@ class FirestoreService {
         timeout: const Duration(seconds: 15),
         retryIf: _isFirestoreTransientError,
       );
-      return snap.docs.map((d) => {'id': d.id, ...d.data(), 'type': 'missing_crop'}).toList();
+      return snap.docs
+          .map((d) => {'id': d.id, ...d.data(), 'type': 'missing_crop'})
+          .toList();
     } catch (e) {
       AppLogger.w('FirestoreService: getUserMissingCrops error: $e');
       return [];
@@ -489,7 +485,8 @@ class FirestoreService {
     const int maxBatchSize = 500;
     final docs = snapshot.docs;
     for (int i = 0; i < docs.length; i += maxBatchSize) {
-      final end = (i + maxBatchSize < docs.length) ? i + maxBatchSize : docs.length;
+      final end =
+          (i + maxBatchSize < docs.length) ? i + maxBatchSize : docs.length;
       final chunk = docs.sublist(i, end);
       final batch = _db.batch();
       for (final doc in chunk) {

@@ -28,8 +28,8 @@ void main() {
     });
 
     test('returns failure when sign-out throws', () async {
-      when(() => mockRepository.signOut())
-          .thenAnswer((_) async => Result.error(const AuthFailure('network error')));
+      when(() => mockRepository.signOut()).thenAnswer(
+          (_) async => Result.error(const AuthFailure('network error')));
 
       final result = await useCase();
 

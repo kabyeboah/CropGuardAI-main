@@ -13,10 +13,13 @@ class WeatherForecast {
         'latitude': latitude,
         'longitude': longitude,
         'daily': {
-          'time': daily.map((d) => d.date.toIso8601String().substring(0, 10)).toList(),
+          'time': daily
+              .map((d) => d.date.toIso8601String().substring(0, 10))
+              .toList(),
           'temperature_2m_max': daily.map((d) => d.maxTemp).toList(),
           'temperature_2m_min': daily.map((d) => d.minTemp).toList(),
-          'precipitation_probability_max': daily.map((d) => d.precipitationProbability).toList(),
+          'precipitation_probability_max':
+              daily.map((d) => d.precipitationProbability).toList(),
           'relative_humidity_2m_max': daily.map((d) => d.humidity).toList(),
           'weather_code': daily.map((d) => d.weatherCode).toList(),
         },
@@ -28,11 +31,22 @@ class WeatherForecast {
     // Open-Meteo may return integers for whole-number values (e.g. 25 instead
     // of 25.0). Cast via num.toDouble() to avoid "type 'int' is not a subtype
     // of type 'double'" at runtime.
-    final List<double> maxTemps = List<num>.from(dailyJson['temperature_2m_max']).map((e) => e.toDouble()).toList();
-    final List<double> minTemps = List<num>.from(dailyJson['temperature_2m_min']).map((e) => e.toDouble()).toList();
-    final List<double> rainProb = List<num>.from(dailyJson['precipitation_probability_max']).map((e) => e.toDouble()).toList();
+    final List<double> maxTemps =
+        List<num>.from(dailyJson['temperature_2m_max'])
+            .map((e) => e.toDouble())
+            .toList();
+    final List<double> minTemps =
+        List<num>.from(dailyJson['temperature_2m_min'])
+            .map((e) => e.toDouble())
+            .toList();
+    final List<double> rainProb =
+        List<num>.from(dailyJson['precipitation_probability_max'])
+            .map((e) => e.toDouble())
+            .toList();
     final List<double> humidity = dailyJson['relative_humidity_2m_max'] != null
-        ? List<num>.from(dailyJson['relative_humidity_2m_max']).map((e) => e.toDouble()).toList()
+        ? List<num>.from(dailyJson['relative_humidity_2m_max'])
+            .map((e) => e.toDouble())
+            .toList()
         : <double>[];
     final List<int> weatherCodes = List<int>.from(dailyJson['weather_code']);
 
@@ -76,15 +90,33 @@ class DailyForecast {
   String get weatherIcon {
     // WMO Weather interpretation codes (WW)
     // https://open-meteo.com/en/docs
-    if (weatherCode == 0) return '☀️'; // Clear sky
-    if (weatherCode <= 3) return '⛅'; // Mainly clear, partly cloudy, and overcast
-    if (weatherCode <= 48) return '🌫️'; // Fog
-    if (weatherCode <= 55) return '🌦️'; // Drizzle
-    if (weatherCode <= 65) return '🌧️'; // Rain
-    if (weatherCode <= 77) return '❄️'; // Snow
-    if (weatherCode <= 82) return '⛈️'; // Rain showers
-    if (weatherCode <= 86) return '🌨️'; // Snow showers
-    if (weatherCode <= 99) return '⛈️'; // Thunderstorm
+    if (weatherCode == 0) {
+      return '☀️'; // Clear sky
+    }
+    if (weatherCode <= 3) {
+      return '⛅'; // Mainly clear, partly cloudy, and overcast
+    }
+    if (weatherCode <= 48) {
+      return '🌫️'; // Fog
+    }
+    if (weatherCode <= 55) {
+      return '🌦️'; // Drizzle
+    }
+    if (weatherCode <= 65) {
+      return '🌧️'; // Rain
+    }
+    if (weatherCode <= 77) {
+      return '❄️'; // Snow
+    }
+    if (weatherCode <= 82) {
+      return '⛈️'; // Rain showers
+    }
+    if (weatherCode <= 86) {
+      return '🌨️'; // Snow showers
+    }
+    if (weatherCode <= 99) {
+      return '⛈️'; // Thunderstorm
+    }
     return '❓';
   }
 

@@ -32,6 +32,8 @@
 # TensorFlow Lite
 -keep class org.tensorflow.** { *; }
 -keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.nnapi.** { *; }
+-keep class org.tensorflow.lite.support.** { *; }
 -dontwarn org.tensorflow.**
 
 # Firebase
@@ -74,3 +76,7 @@
 # Cloudinary
 -dontwarn com.cloudinary.**
 -keep class com.cloudinary.** { *; }
+# Keep native methods to avoid stripping
+-keepclassmembers class * {
+    native <methods>;
+}

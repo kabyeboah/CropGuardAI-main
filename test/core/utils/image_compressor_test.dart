@@ -8,7 +8,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ImageCompressor tests', () {
-    test('compressImage resizes image exceeding maxDimension to ~1080px', () async {
+    test('compressImage resizes image exceeding maxDimension to ~1080px',
+        () async {
       // Generate synthetic high-resolution image (2000 x 1500)
       final rawImage = img.Image(width: 2000, height: 1500);
       img.fill(rawImage, color: img.ColorRgb8(0, 128, 255));
@@ -38,7 +39,9 @@ void main() {
       }
     });
 
-    test('compressImage returns original or valid compressed file for small images', () async {
+    test(
+        'compressImage returns original or valid compressed file for small images',
+        () async {
       final rawImage = img.Image(width: 400, height: 300);
       img.fill(rawImage, color: img.ColorRgb8(255, 0, 0));
       final jpgBytes = img.encodeJpg(rawImage, quality: 90);
@@ -66,21 +69,27 @@ void main() {
       }
     });
 
-    test('cleanOldCompressedImages removes expired compressed files and retains newer ones', () async {
+    test(
+        'cleanOldCompressedImages removes expired compressed files and retains newer ones',
+        () async {
       final tempDir = Directory.systemTemp;
-      final oldFile = File('${tempDir.path}/${ImageCompressor.tempFilePrefix}old_test.jpg');
+      final oldFile =
+          File('${tempDir.path}/${ImageCompressor.tempFilePrefix}old_test.jpg');
       await oldFile.writeAsBytes([1, 2, 3]);
       // Set last modified date to 2 days ago
-      await oldFile.setLastModified(DateTime.now().subtract(const Duration(days: 2)));
+      await oldFile
+          .setLastModified(DateTime.now().subtract(const Duration(days: 2)));
 
-      final newFile = File('${tempDir.path}/${ImageCompressor.tempFilePrefix}new_test.jpg');
+      final newFile =
+          File('${tempDir.path}/${ImageCompressor.tempFilePrefix}new_test.jpg');
       await newFile.writeAsBytes([1, 2, 3]);
 
       try {
         expect(await oldFile.exists(), isTrue);
         expect(await newFile.exists(), isTrue);
 
-        await ImageCompressor.cleanOldCompressedImages(maxAge: const Duration(hours: 24));
+        await ImageCompressor.cleanOldCompressedImages(
+            maxAge: const Duration(hours: 24));
 
         expect(await oldFile.exists(), isFalse);
         expect(await newFile.exists(), isTrue);

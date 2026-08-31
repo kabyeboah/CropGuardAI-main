@@ -65,8 +65,16 @@ class _HomeScreenState extends State<HomeScreen> {
     String selectedCrop = 'Maize';
     DateTime selectedDate = DateTime.now();
     final crops = [
-      'Maize', 'Cassava', 'Tomato', 'Yam', 'Plantain',
-      'Rice', 'Soybean', 'Groundnut', 'Cocoa', 'Oil Palm',
+      'Maize',
+      'Cassava',
+      'Tomato',
+      'Yam',
+      'Plantain',
+      'Rice',
+      'Soybean',
+      'Groundnut',
+      'Cocoa',
+      'Oil Palm',
     ];
 
     showDialog(
@@ -89,12 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today),
-                title: Text(context.l10n.plantedOn(LocaleFormatter.formatMonthDayYear(context, selectedDate))),
+                title: Text(context.l10n.plantedOn(
+                    LocaleFormatter.formatMonthDayYear(context, selectedDate))),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: ctx,
                     initialDate: selectedDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now(),
                   );
                   if (picked != null) setState(() => selectedDate = picked);
@@ -179,8 +189,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: colors.diseaseRed,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                                color: colors.surface, width: 1.5),
+                            border:
+                                Border.all(color: colors.surface, width: 1.5),
                           ),
                           child: Center(
                             child: Text(
@@ -200,8 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: CircleAvatar(
                     radius: 16,
                     backgroundColor: colors.primary,
-                    child: const Icon(Icons.person,
-                        size: 18, color: Colors.white),
+                    child:
+                        const Icon(Icons.person, size: 18, color: Colors.white),
                   ),
                   onPressed: () => context.push('/profile'),
                 ),
@@ -238,312 +248,321 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
             else
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  OfflineBanner(status: provider.connectionStatus),
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    OfflineBanner(status: provider.connectionStatus),
 
-                  // At most one alert, to avoid stacking near-duplicate
-                  // banners that consume the whole fold: the actionable weather
-                  // disease-risk alert takes priority over the informational
-                  // seasonal one.
-                  if (provider.hasDiseaseRisk)
-                    _AlertBanner(
-                        message: provider.diseaseRiskMessage, type: 'risk')
-                  else if (provider.isHighRisk &&
-                      provider.seasonalAlert.isNotEmpty)
-                    _AlertBanner(
-                        message: provider.seasonalAlert, type: 'seasonal'),
+                    // At most one alert, to avoid stacking near-duplicate
+                    // banners that consume the whole fold: the actionable weather
+                    // disease-risk alert takes priority over the informational
+                    // seasonal one.
+                    if (provider.hasDiseaseRisk)
+                      _AlertBanner(
+                          message: provider.diseaseRiskMessage, type: 'risk')
+                    else if (provider.isHighRisk &&
+                        provider.seasonalAlert.isNotEmpty)
+                      _AlertBanner(
+                          message: provider.seasonalAlert, type: 'seasonal'),
 
-                  Padding(
-                    // Extra bottom inset so the scroll content (incl. the
-                    // Recent Scans list / empty state) clears the docked scan
-                    // FAB, which overlays the body above the BottomAppBar.
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Farm Health + Stats row
-                        CropGuardCard(
-                          child: Row(
-                            children: [
-                              FarmHealthRing(
-                                percentage: provider.stats.healthScore,
-                                size: 100,
-                                showStartPrompt: provider.stats.totalScans == 0,
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(context.l10n.farmHealthScore,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall),
-                                    const SizedBox(height: 12),
-                                    _StatRow(
-                                      label: context.l10n.totalScans,
-                                      value: provider.stats.totalScans
-                                          .toString(),
-                                    ),
-                                    _StatRow(
-                                      label: context.l10n.healthy,
-                                      value: provider.stats.healthyScans
-                                          .toString(),
-                                      color: colors.healthy,
-                                    ),
-                                    _StatRow(
-                                      label: context.l10n.diseased,
-                                      value: provider.stats.diseasedScans
-                                          .toString(),
-                                      color: colors.diseaseRed,
-                                    ),
-                                  ],
+                    Padding(
+                      // Extra bottom inset so the scroll content (incl. the
+                      // Recent Scans list / empty state) clears the docked scan
+                      // FAB, which overlays the body above the BottomAppBar.
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Farm Health + Stats row
+                          CropGuardCard(
+                            child: Row(
+                              children: [
+                                FarmHealthRing(
+                                  percentage: provider.stats.healthScore,
+                                  size: 100,
+                                  showStartPrompt:
+                                      provider.stats.totalScans == 0,
                                 ),
+                                const SizedBox(width: 20),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(context.l10n.farmHealthScore,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall),
+                                      const SizedBox(height: 12),
+                                      _StatRow(
+                                        label: context.l10n.totalScans,
+                                        value: provider.stats.totalScans
+                                            .toString(),
+                                      ),
+                                      _StatRow(
+                                        label: context.l10n.healthy,
+                                        value: provider.stats.healthyScans
+                                            .toString(),
+                                        color: colors.healthy,
+                                      ),
+                                      _StatRow(
+                                        label: context.l10n.diseased,
+                                        value: provider.stats.diseasedScans
+                                            .toString(),
+                                        color: colors.diseaseRed,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Empty-state helper: shown only when no scans exist
+                          // so the ring's purpose is clear to new users.
+                          if (provider.stats.totalScans == 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                context.l10n.noScansYetDesc,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: colors.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+
+                          // Quick action — Scan
+                          InkWell(
+                            onTap: () => context.push('/scanner'),
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal:
+                                      DeviceLayout.screenPaddingHorizontal,
+                                  vertical: 18),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [colors.primary, colors.primaryLight],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.camera_alt,
+                                      color: Colors.white, size: 28),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(context.l10n.scanNow,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16)),
+                                        Text(context.l10n.scanNowSubtitle,
+                                            style: TextStyle(
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.8),
+                                                fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_forward_ios,
+                                      color: Colors.white, size: 16),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          SectionLabel(text: context.l10n.explore),
+                          const SizedBox(height: 8),
+                          _QuickActionsRow(
+                            actions: [
+                              _QuickAction(
+                                icon: Icons.people_outline,
+                                label: context.l10n.community,
+                                onTap: () => context.push('/community'),
+                              ),
+                              _QuickAction(
+                                icon: Icons.map_outlined,
+                                label: context.l10n.outbreaks,
+                                onTap: () => context.push('/outbreak_map'),
+                              ),
+                              _QuickAction(
+                                icon: Icons.menu_book_outlined,
+                                label: context.l10n.library,
+                                onTap: () => context.push('/disease_library'),
+                              ),
+                              _QuickAction(
+                                icon: Icons.medical_services_outlined,
+                                label: context.l10n.treatments,
+                                onTap: () => context.push('/treatment_tracker'),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Empty-state helper: shown only when no scans exist
-                        // so the ring's purpose is clear to new users.
-                        if (provider.stats.totalScans == 0)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              context.l10n.noScansYetDesc,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: colors.muted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-
-                        // Quick action — Scan
-                        InkWell(
-                          onTap: () => context.push('/scanner'),
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: DeviceLayout.screenPaddingHorizontal,
-                                vertical: 18),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [colors.primary, colors.primaryLight],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.camera_alt,
-                                    color: Colors.white, size: 28),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(context.l10n.scanNow,
-                                          style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16)),
-                                      Text(context.l10n.scanNowSubtitle,
-                                          style: TextStyle(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.8),
-                                              fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.arrow_forward_ios,
-                                    color: Colors.white, size: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        SectionLabel(text: context.l10n.explore),
-                        const SizedBox(height: 8),
-                        _QuickActionsRow(
-                          actions: [
-                            _QuickAction(
-                              icon: Icons.people_outline,
-                              label: context.l10n.community,
-                              onTap: () => context.push('/community'),
-                            ),
-                            _QuickAction(
-                              icon: Icons.map_outlined,
-                              label: context.l10n.outbreaks,
-                              onTap: () => context.push('/outbreak_map'),
-                            ),
-                            _QuickAction(
-                              icon: Icons.menu_book_outlined,
-                              label: context.l10n.library,
-                              onTap: () => context.push('/disease_library'),
-                            ),
-                            _QuickAction(
-                              icon: Icons.medical_services_outlined,
-                              label: context.l10n.treatments,
-                              onTap: () => context.push('/treatment_tracker'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Climate Intelligence Section
-                        SectionLabel(text: context.l10n.climateIntelligence),
-                        const SizedBox(height: 12),
-                        if (provider.isWeatherLoading)
-                          const Center(child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ))
-                        else if (provider.weather != null)
-                          WeatherForecastWidget(
-                            weather: provider.weather!,
-                            locationName: provider.locationName,
-                          )
-                        else if (provider.weatherError != null)
-                          Text(context.l10n.weatherUnavailable(provider.weatherError ?? ''),
-                            style: TextStyle(color: colors.diseaseRed, fontSize: 12)),
-
-                        const SizedBox(height: 12),
-                        const RiskCard(),
-
-                        // Weather-driven disease-risk outlook (preventive).
-                        if (provider.weather != null) ...[
-                          const SizedBox(height: 12),
-                          DiseaseRiskForecastWidget(
-                            risks: provider.weeklyRisks,
-                          ),
-                        ],
-
-                        const SizedBox(height: 16),
-                        if (provider.plantingStatus.isNotEmpty)
-                          PlantingCalendarWidget(
-                            status: provider.plantingStatus,
-                            action: provider.plantingAction,
-                          ),
-                        
-                        if (provider.trend.isNotEmpty) ...[
                           const SizedBox(height: 24),
-                          SectionLabel(text: context.l10n.scanTrend7Day),
-                          const SizedBox(height: 8),
-                          CropGuardCard(
-                            child: DiseaseTrendChart(trend: provider.trend),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
 
-                        // Daily tip
-                        if (provider.dailyTip.isNotEmpty)
-                          CropGuardCard(
-                            backgroundColor: colors.healthyBg,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(Icons.lightbulb_outline,
-                                    color: colors.healthy, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(context.l10n.tipOfTheDay,
-                                          style: TextStyle(
-                                              color: colors.healthy,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12)),
-                                      const SizedBox(height: 4),
-                                      Text(provider.dailyTip,
-                                          style: TextStyle(
-                                              color: colors.onBackground,
-                                              fontSize: 13)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: 24),
+                          // Climate Intelligence Section
+                          SectionLabel(text: context.l10n.climateIntelligence),
+                          const SizedBox(height: 12),
+                          if (provider.isWeatherLoading)
+                            const Center(
+                                child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ))
+                          else if (provider.weather != null)
+                            WeatherForecastWidget(
+                              weather: provider.weather!,
+                              locationName: provider.locationName,
+                            )
+                          else if (provider.weatherError != null)
+                            Text(
+                                context.l10n.weatherUnavailable(
+                                    provider.weatherError ?? ''),
+                                style: TextStyle(
+                                    color: colors.diseaseRed, fontSize: 12)),
 
-                        // My Crops (planting calendar)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SectionLabel(text: context.l10n.myCrops),
-                            TextButton.icon(
-                              onPressed: () => _showAddCropDialog(context, provider),
-                              icon: const Icon(Icons.add, size: 16),
-                              label: Text(context.l10n.addCrop),
+                          const SizedBox(height: 12),
+                          const RiskCard(),
+
+                          // Weather-driven disease-risk outlook (preventive).
+                          if (provider.weather != null) ...[
+                            const SizedBox(height: 12),
+                            DiseaseRiskForecastWidget(
+                              risks: provider.weeklyRisks,
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (provider.myCrops.isEmpty)
-                          CropGuardCard(
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today_outlined,
-                                    color: colors.muted, size: 28),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    context.l10n.addCropPrompt,
-                                    style: TextStyle(color: colors.muted, fontSize: 13),
-                                  ),
-                                ),
-                              ],
+
+                          const SizedBox(height: 16),
+                          if (provider.plantingStatus.isNotEmpty)
+                            PlantingCalendarWidget(
+                              status: provider.plantingStatus,
+                              action: provider.plantingAction,
                             ),
-                          )
-                        else
-                          ...provider.myCrops.map((crop) => _CropCalendarTile(
-                                crop: crop,
-                                onRemove: () => provider.removeMyCrop(crop.id),
-                              )),
 
-                        const SizedBox(height: 16),
+                          if (provider.trend.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            SectionLabel(text: context.l10n.scanTrend7Day),
+                            const SizedBox(height: 8),
+                            CropGuardCard(
+                              child: DiseaseTrendChart(trend: provider.trend),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            SectionLabel(text: context.l10n.recentScans),
-                            if (provider.recentScans.isNotEmpty)
-                              TextButton(
-                                onPressed: () => context.go('/history'),
-                                child: Text(context.l10n.seeAll),
+                          // Daily tip
+                          if (provider.dailyTip.isNotEmpty)
+                            CropGuardCard(
+                              backgroundColor: colors.healthyBg,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.lightbulb_outline,
+                                      color: colors.healthy, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(context.l10n.tipOfTheDay,
+                                            style: TextStyle(
+                                                color: colors.healthy,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12)),
+                                        const SizedBox(height: 4),
+                                        Text(provider.dailyTip,
+                                            style: TextStyle(
+                                                color: colors.onBackground,
+                                                fontSize: 13)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (provider.isLoading)
-                          const Center(child: CircularProgressIndicator())
-                        else if (provider.recentScans.isEmpty)
-                          _EmptyState(
-                            onScan: () => context.push('/scanner'),
-                          )
-                        else
-                          Column(
-                            children: provider.recentScans
-                                .map((r) => _ScanListTile(
-                                    result: r,
-                                    onTap: () =>
-                                        context.push('/result/${r.id}')))
-                                .toList(),
+                            ),
+                          const SizedBox(height: 24),
+
+                          // My Crops (planting calendar)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SectionLabel(text: context.l10n.myCrops),
+                              TextButton.icon(
+                                onPressed: () =>
+                                    _showAddCropDialog(context, provider),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: Text(context.l10n.addCrop),
+                              ),
+                            ],
                           ),
-                      ],
+                          const SizedBox(height: 8),
+                          if (provider.myCrops.isEmpty)
+                            CropGuardCard(
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_today_outlined,
+                                      color: colors.muted, size: 28),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      context.l10n.addCropPrompt,
+                                      style: TextStyle(
+                                          color: colors.muted, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            ...provider.myCrops.map((crop) => _CropCalendarTile(
+                                  crop: crop,
+                                  onRemove: () =>
+                                      provider.removeMyCrop(crop.id),
+                                )),
+
+                          const SizedBox(height: 16),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              SectionLabel(text: context.l10n.recentScans),
+                              if (provider.recentScans.isNotEmpty)
+                                TextButton(
+                                  onPressed: () => context.go('/history'),
+                                  child: Text(context.l10n.seeAll),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (provider.isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else if (provider.recentScans.isEmpty)
+                            _EmptyState(
+                              onScan: () => context.push('/scanner'),
+                            )
+                          else
+                            Column(
+                              children: provider.recentScans
+                                  .map((r) => _ScanListTile(
+                                      result: r,
+                                      onTap: () =>
+                                          context.push('/result/${r.id}')))
+                                  .toList(),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -561,23 +580,28 @@ class _AlertBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final isRisk = type == 'risk';
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isRisk ? colors.diseaseRed.withValues(alpha: 0.1) : colors.warning.withValues(alpha: 0.15),
+      color: isRisk
+          ? colors.diseaseRed.withValues(alpha: 0.1)
+          : colors.warning.withValues(alpha: 0.15),
       child: Row(
         children: [
           Icon(
-            isRisk ? Icons.notification_important : Icons.warning_amber_rounded, 
-            color: isRisk ? colors.diseaseRed : colors.warning, 
-            size: 18
-          ),
+              isRisk
+                  ? Icons.notification_important
+                  : Icons.warning_amber_rounded,
+              color: isRisk ? colors.diseaseRed : colors.warning,
+              size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(message,
                 style: TextStyle(
-                    color: colors.onBackground, fontSize: 12, fontWeight: isRisk ? FontWeight.bold : FontWeight.normal)),
+                    color: colors.onBackground,
+                    fontSize: 12,
+                    fontWeight: isRisk ? FontWeight.bold : FontWeight.normal)),
           ),
         ],
       ),
@@ -623,11 +647,10 @@ class _ScanListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final date =
-        LocaleFormatter.formatMonthDayHourMinute(
-          context,
-          DateTime.fromMillisecondsSinceEpoch(result.timestamp),
-        );
+    final date = LocaleFormatter.formatMonthDayHourMinute(
+      context,
+      DateTime.fromMillisecondsSinceEpoch(result.timestamp),
+    );
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -645,9 +668,7 @@ class _ScanListTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: result.isHealthy
-                    ? colors.healthyBg
-                    : colors.diseaseBg,
+                color: result.isHealthy ? colors.healthyBg : colors.diseaseBg,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -668,8 +689,7 @@ class _ScanListTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   Text('${result.cropType} • $date',
-                      style: TextStyle(
-                          color: colors.muted, fontSize: 11)),
+                      style: TextStyle(color: colors.muted, fontSize: 11)),
                 ],
               ),
             ),
@@ -829,8 +849,7 @@ class _CropCalendarTile extends StatelessWidget {
                 ),
                 if (nextMilestone != null)
                   Text(nextMilestone,
-                      style:
-                          TextStyle(color: colors.primary, fontSize: 11)),
+                      style: TextStyle(color: colors.primary, fontSize: 11)),
               ],
             ),
           ),
@@ -848,9 +867,15 @@ class _CropCalendarTile extends StatelessWidget {
 
   String? _nextMilestone(BuildContext context, int daysSincePlanting) {
     final l10n = context.l10n;
-    if (daysSincePlanting < 7) return l10n.milestoneFertilizer(7 - daysSincePlanting);
-    if (daysSincePlanting < 30) return l10n.milestoneHealthCheck(30 - daysSincePlanting);
-    if (daysSincePlanting < 60) return l10n.milestoneHarvestWindow(60 - daysSincePlanting);
+    if (daysSincePlanting < 7) {
+      return l10n.milestoneFertilizer(7 - daysSincePlanting);
+    }
+    if (daysSincePlanting < 30) {
+      return l10n.milestoneHealthCheck(30 - daysSincePlanting);
+    }
+    if (daysSincePlanting < 60) {
+      return l10n.milestoneHarvestWindow(60 - daysSincePlanting);
+    }
     return l10n.milestoneHarvestReached;
   }
 }

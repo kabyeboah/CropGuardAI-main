@@ -142,8 +142,8 @@ void main() {
     });
 
     test('getDaysRemaining returns null when plantingDate is null', () {
-      const field = Field(
-          id: '1', name: 'F', cropType: 'Maize', sizeHectares: 1);
+      const field =
+          Field(id: '1', name: 'F', cropType: 'Maize', sizeHectares: 1);
       expect(field.getDaysRemaining(), isNull);
     });
 

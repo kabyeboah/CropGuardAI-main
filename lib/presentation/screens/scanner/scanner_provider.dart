@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../domain/models/detection_result.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
@@ -13,6 +10,7 @@ import '../../../domain/repositories/i_classifier_repository.dart';
 import '../../../domain/usecases/scanner/scan_crop_usecase.dart';
 import '../../../domain/usecases/scanner/scan_batch_usecase.dart';
 import '../../../core/utils/image_quality_analyzer.dart';
+import '../../../core/utils/safe_image_downloader.dart';
 import '../../../core/utils/analytics_service.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../../core/error/failures.dart';
@@ -41,6 +39,7 @@ class ScannerProvider extends ChangeNotifier {
   final IAuthRepository _authRepository;
   final AnalyticsService _analytics;
   final IClassifierRepository _classifierRepository;
+  final SafeImageDownloader _imageDownloader;
 
   ScannerProvider(
     this._scanCropUseCase,
@@ -48,8 +47,11 @@ class ScannerProvider extends ChangeNotifier {
     this._analytics, [
     IClassifierRepository? classifierRepository,
     ScanBatchUseCase? scanBatchUseCase,
+    SafeImageDownloader? imageDownloader,
   ])  : _classifierRepository = classifierRepository ?? _safeGetClassifier(),
-        _scanBatchUseCase = scanBatchUseCase ?? ScanBatchUseCase(_scanCropUseCase);
+        _scanBatchUseCase =
+            scanBatchUseCase ?? ScanBatchUseCase(_scanCropUseCase),
+        _imageDownloader = imageDownloader ?? SafeImageDownloader();
 
   static IClassifierRepository _safeGetClassifier() {
     try {
@@ -90,7 +92,14 @@ class ScannerProvider extends ChangeNotifier {
     _initializing = true;
     try {
       cameras = await availableCameras();
-      if (cameras.isEmpty) return;
+      if (cameras.isEmpty) {
+        // No cameras detected — set error state so the UI shows an error + retry
+        // instead of hanging on the loading spinner (audit #48).
+        errorMessageCode = UiMessage.cameraUnavailable;
+        errorMessage = 'No cameras found on this device. Please try again.';
+        notifyListeners();
+        return;
+      }
 
       final cam = cameras.firstWhere(
         (c) => c.lensDirection == CameraLensDirection.back,
@@ -101,10 +110,9 @@ class ScannerProvider extends ChangeNotifier {
         cam,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup:
-            defaultTargetPlatform == TargetPlatform.iOS
-                ? ImageFormatGroup.bgra8888
-                : ImageFormatGroup.yuv420,
+        imageFormatGroup: defaultTargetPlatform == TargetPlatform.iOS
+            ? ImageFormatGroup.bgra8888
+            : ImageFormatGroup.yuv420,
       );
       await cameraController!.initialize();
       cameraInitialized = true;
@@ -113,7 +121,8 @@ class ScannerProvider extends ChangeNotifier {
     } catch (e, st) {
       AppLogger.e('ScannerProvider.initCamera failed: $e', e, st);
       errorMessageCode = UiMessage.cameraUnavailable;
-      errorMessage = 'Camera unavailable. Please check permissions and try again.';
+      errorMessage =
+          'Camera unavailable. Please check permissions and try again.';
       notifyListeners();
     } finally {
       _initializing = false;
@@ -216,32 +225,39 @@ class ScannerProvider extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      final uri = Uri.parse(url);
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 15));
-      if (response.statusCode != 200) {
-        AppLogger.w('ScannerProvider.downloadFromUrl HTTP error ${response.statusCode}');
-        errorMessageCode = UiMessage.downloadFailed(response.statusCode);
-        errorMessage = 'Could not download image (HTTP ${response.statusCode}).';
-        notifyListeners();
-        return null;
-      }
-      final contentType = response.headers['content-type'] ?? '';
-      if (!contentType.startsWith('image/')) {
-        AppLogger.w('ScannerProvider.downloadFromUrl non-image contentType: $contentType');
-        errorMessageCode = UiMessage.urlNotImage;
-        errorMessage = 'URL does not point to an image.';
-        notifyListeners();
-        return null;
-      }
-      final dir = await getTemporaryDirectory();
-      final ext = contentType.contains('png') ? 'png' : 'jpg';
-      final file = File(
-          '${dir.path}/url_scan_${DateTime.now().millisecondsSinceEpoch}.$ext');
-      await file.writeAsBytes(response.bodyBytes);
+      final file = await _imageDownloader.downloadImage(url);
       capturedImagePath = file.path;
       notifyListeners();
       return file.path;
+    } on ImageSecurityException catch (e) {
+      AppLogger.w('ScannerProvider.downloadFromUrl security blocked: $e');
+      errorMessageCode = UiMessage.urlLoadFailed;
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } on ImageDownloadLimitException catch (e) {
+      AppLogger.w('ScannerProvider.downloadFromUrl size limit exceeded: $e');
+      errorMessageCode = UiMessage.urlLoadFailed;
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } on NonImageException catch (e) {
+      AppLogger.w('ScannerProvider.downloadFromUrl non-image response: $e');
+      errorMessageCode = UiMessage.urlNotImage;
+      errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } on ImageNetworkException catch (e) {
+      AppLogger.w('ScannerProvider.downloadFromUrl network exception: $e');
+      if (e.statusCode != null) {
+        errorMessageCode = UiMessage.downloadFailed(e.statusCode!);
+        errorMessage = 'Could not download image (HTTP ${e.statusCode}).';
+      } else {
+        errorMessageCode = UiMessage.urlLoadFailed;
+        errorMessage = e.message;
+      }
+      notifyListeners();
+      return null;
     } catch (e, st) {
       AppLogger.e('ScannerProvider.downloadFromUrl failed: $e', e, st);
       errorMessageCode = UiMessage.urlLoadFailed;
@@ -282,15 +298,15 @@ class ScannerProvider extends ChangeNotifier {
     notifyListeners();
 
     final userId = _authRepository.currentUser?.id ?? 'guest';
-    final batchResult = await _scanBatchUseCase(List<String>.from(batchImagePaths), userId);
+    final batchResult =
+        await _scanBatchUseCase(List<String>.from(batchImagePaths), userId);
     final results = batchResult.data ?? <DetectionResult>[];
     final failures = batchImagePaths.length - results.length;
 
     isAnalysing = false;
     if (results.isEmpty) {
-      errorMessageCode = failures > 0
-          ? UiMessage.batchAllFailed
-          : UiMessage.noImagesToAnalyse;
+      errorMessageCode =
+          failures > 0 ? UiMessage.batchAllFailed : UiMessage.noImagesToAnalyse;
       errorMessage = failures > 0
           ? 'Batch analysis failed for all images.'
           : 'No images to analyse.';
@@ -368,7 +384,8 @@ class ScannerProvider extends ChangeNotifier {
       );
 
       if (result.isError) {
-        AppLogger.e('ScannerProvider.saveMergedScan error: ${result.failure?.message}');
+        AppLogger.e(
+            'ScannerProvider.saveMergedScan error: ${result.failure?.message}');
         errorMessageCode = UiMessage.genericError;
         errorMessage = result.failure?.message ?? 'Failed to save scan';
         isAnalysing = false;
@@ -411,7 +428,8 @@ class ScannerProvider extends ChangeNotifier {
     errorMessageCode = null;
     errorMessage = null;
     notifyListeners();
-    unawaited(_analytics.logScanStarted(source: mode == ScanMode.gallery ? 'gallery' : 'camera'));
+    unawaited(_analytics.logScanStarted(
+        source: mode == ScanMode.gallery ? 'gallery' : 'camera'));
 
     try {
       final userId = _authRepository.currentUser?.id ?? 'guest';
@@ -422,7 +440,8 @@ class ScannerProvider extends ChangeNotifier {
         if (failure is QualityFailure) {
           errorMessageCode = _getQualityUiMessage(failure.issue);
           errorMessage = _getQualityErrorMessage(failure.issue);
-          unawaited(_analytics.logScanFailed(reason: 'quality_${failure.issue?.name ?? 'unknown'}'));
+          unawaited(_analytics.logScanFailed(
+              reason: 'quality_${failure.issue?.name ?? 'unknown'}'));
         } else {
           errorMessageCode = UiMessage.analysisFailed;
           errorMessage = failure?.message ?? 'Analysis failed';

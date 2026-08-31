@@ -4,7 +4,9 @@ import 'package:cropguard_flutter/data/ml/disease_info.dart';
 
 void main() {
   group('Soft-Voting Ensemble Probability Averaging', () {
-    test('averages probabilities correctly across multiple photo predictions using computeSoftVotingCandidates', () {
+    test(
+        'averages probabilities correctly across multiple photo predictions using computeSoftVotingCandidates',
+        () {
       final photo1Candidates = <TopCandidate>[
         (label: 'Cassava_Mosaic', confidence: 0.60),
         (label: 'Cassava_Green_Mite', confidence: 0.30),
@@ -25,7 +27,8 @@ void main() {
 
       final allPhotos = [photo1Candidates, photo2Candidates, photo3Candidates];
 
-      final averaged = CropDiseaseClassifier.computeSoftVotingCandidates(allPhotos);
+      final averaged =
+          CropDiseaseClassifier.computeSoftVotingCandidates(allPhotos);
 
       expect(averaged[0].label, equals('Cassava_Mosaic'));
       expect(averaged[0].confidence, closeTo(0.70, 0.001));
@@ -37,7 +40,9 @@ void main() {
       expect(averaged[2].confidence, closeTo(0.10, 0.001));
     });
 
-    test('averageResults correctly integrates candidate distributions across angles', () {
+    test(
+        'averageResults correctly integrates candidate distributions across angles',
+        () {
       final r1 = ClassificationResult(
         label: 'Cassava_Mosaic',
         confidence: 0.60,
@@ -88,4 +93,3 @@ void main() {
     });
   });
 }
-

@@ -19,6 +19,9 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
 
+    <!-- Voice dictation (Twi) — required by speech_to_text / speech recognition -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <!-- Reschedule workmanager background tasks after device reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 

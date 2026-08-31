@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockFirebaseStorage extends Mock implements FirebaseStorage {}
+
 class MockReference extends Mock implements Reference {}
 
 void main() {
@@ -31,7 +32,8 @@ void main() {
     service = FirebaseStorageService(storage: mockStorage);
 
     final tempDir = Directory.systemTemp;
-    testFile = File('${tempDir.path}/test_storage_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    testFile = File(
+        '${tempDir.path}/test_storage_${DateTime.now().millisecondsSinceEpoch}.jpg');
     await testFile.writeAsString('test-image-content');
   });
 
@@ -41,15 +43,20 @@ void main() {
     }
   });
 
-  test('throws ServerFailure immediately if local file does not exist', () async {
+  test('throws ServerFailure immediately if local file does not exist',
+      () async {
     expect(
-      () => service.uploadCommunityImage(localPath: '/non/existent/path.jpg', userId: 'user1'),
-      throwsA(isA<ServerFailure>().having((e) => e.message, 'message', contains('Image file not found'))),
+      () => service.uploadCommunityImage(
+          localPath: '/non/existent/path.jpg', userId: 'user1'),
+      throwsA(isA<ServerFailure>().having(
+          (e) => e.message, 'message', contains('Image file not found'))),
     );
     verifyNever(() => mockStorage.ref());
   });
 
-  test('does not retry on permanent FirebaseException (permission-denied, unauthenticated)', () async {
+  test(
+      'does not retry on permanent FirebaseException (permission-denied, unauthenticated)',
+      () async {
     int attempts = 0;
     when(() => mockChildRef.putFile(any())).thenAnswer((_) {
       attempts++;
@@ -61,8 +68,10 @@ void main() {
     });
 
     await expectLater(
-      () => service.uploadCommunityImage(localPath: testFile.path, userId: 'user1'),
-      throwsA(isA<ServerFailure>().having((e) => e.message, 'message', contains('permission-denied'))),
+      () => service.uploadCommunityImage(
+          localPath: testFile.path, userId: 'user1'),
+      throwsA(isA<ServerFailure>()
+          .having((e) => e.message, 'message', contains('permission-denied'))),
     );
 
     // Must fail fast on attempt 1 without retrying
@@ -70,7 +79,8 @@ void main() {
     verify(() => mockChildRef.putFile(any())).called(1);
   });
 
-  test('retries on transient FirebaseException (unavailable) up to maxAttempts', () async {
+  test('retries on transient FirebaseException (unavailable) up to maxAttempts',
+      () async {
     int attempts = 0;
     when(() => mockChildRef.putFile(any())).thenAnswer((_) {
       attempts++;
@@ -82,8 +92,10 @@ void main() {
     });
 
     await expectLater(
-      () => service.uploadCommunityImage(localPath: testFile.path, userId: 'user1'),
-      throwsA(isA<ServerFailure>().having((e) => e.message, 'message', contains('unavailable'))),
+      () => service.uploadCommunityImage(
+          localPath: testFile.path, userId: 'user1'),
+      throwsA(isA<ServerFailure>()
+          .having((e) => e.message, 'message', contains('unavailable'))),
     );
 
     // Retries 3 times before failing
@@ -99,8 +111,10 @@ void main() {
     });
 
     await expectLater(
-      () => service.uploadCommunityImage(localPath: testFile.path, userId: 'user1'),
-      throwsA(isA<ServerFailure>().having((e) => e.message, 'message', contains('Connection reset'))),
+      () => service.uploadCommunityImage(
+          localPath: testFile.path, userId: 'user1'),
+      throwsA(isA<ServerFailure>()
+          .having((e) => e.message, 'message', contains('Connection reset'))),
     );
 
     expect(attempts, equals(3));

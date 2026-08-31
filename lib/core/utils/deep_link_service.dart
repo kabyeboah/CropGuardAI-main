@@ -37,10 +37,12 @@ class DeepLinkService {
     );
   }
 
-  final Map<String, void Function(Uri uri, GoRouter router)> _customHandlers = {};
+  final Map<String, void Function(Uri uri, GoRouter router)> _customHandlers =
+      {};
 
   /// Register custom deep link handler for a given path prefix (e.g., '/outbreak').
-  void registerHandler(String pathPrefix, void Function(Uri uri, GoRouter router) handler) {
+  void registerHandler(
+      String pathPrefix, void Function(Uri uri, GoRouter router) handler) {
     _customHandlers[pathPrefix] = handler;
   }
 

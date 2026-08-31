@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/locale_formatter.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/local/pending_sync_queue.dart';
@@ -51,7 +52,8 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
           items.addAll(expertReqs);
           items.addAll(missingCrops);
         } catch (_) {
-          fetchError = 'Unable to load submissions. Please check your network connection.';
+          fetchError =
+              'Unable to load submissions. Please check your network connection.';
         }
       }
 
@@ -69,7 +71,8 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
               'type': 'expert_request',
               'diseaseName': 'Expert Consultation (Queued)',
               'message': 'Queued offline submission',
-              'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
+              'status':
+                  status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
               'timestamp': DateTime.now(),
             });
           } else if (type == PendingSyncType.cropNotFound.name) {
@@ -77,12 +80,22 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
               'type': 'missing_crop',
               'suggestedCrop': 'Missing Crop Report (Queued)',
               'observedSymptoms': 'Queued offline submission',
-              'status': status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
+              'status':
+                  status == 'abandoned' ? 'delivery_failed' : 'pending_sync',
               'timestamp': DateTime.now(),
             });
           }
         }
-      } catch (_) {}
+      } catch (e, st) {
+        // Intentionally not surfacing this error to the user (audit #49).
+        // The offline queue is best-effort supplementary display — the primary
+        // Firestore submissions list above still loads regardless. Logging at
+        // warning level so it's visible in crash tooling without alarming the user.
+        AppLogger.w(
+            'MySubmissionsScreen: offline queue read failed (non-fatal): $e',
+            e,
+            st);
+      }
 
       // Sort descending by timestamp
       items.sort((a, b) {
@@ -174,7 +187,7 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                           ElevatedButton.icon(
                             onPressed: _loadSubmissions,
                             icon: const Icon(Icons.refresh, size: 18),
-                            label: const Text('Retry'),
+                            label: Text(context.l10n.retry),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colors.primary,
                               foregroundColor: Colors.white,
@@ -205,7 +218,8 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                               Text(
                                 'Your requests for expert consultations and missing crop reports will appear here.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: colors.muted, fontSize: 13),
+                                style: TextStyle(
+                                    color: colors.muted, fontSize: 13),
                               ),
                             ],
                           ),
@@ -215,17 +229,21 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                         onRefresh: _loadSubmissions,
                         child: ListView.separated(
                           padding: const EdgeInsets.all(16),
-                          itemCount: _submissions.length + (_errorMessage != null ? 1 : 0),
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemCount: _submissions.length +
+                              (_errorMessage != null ? 1 : 0),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (_, i) {
                             if (_errorMessage != null && i == 0) {
                               return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: colors.diseaseRed.withValues(alpha: 0.1),
+                                  color:
+                                      colors.diseaseRed.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: colors.diseaseRed.withValues(alpha: 0.3),
+                                    color: colors.diseaseRed
+                                        .withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Row(
@@ -247,7 +265,7 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                                     ),
                                     TextButton(
                                       onPressed: _loadSubmissions,
-                                      child: const Text('Retry'),
+                                      child: Text(context.l10n.retry),
                                     ),
                                   ],
                                 ),
@@ -255,61 +273,65 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
                             }
                             final itemIndex = _errorMessage != null ? i - 1 : i;
                             final item = _submissions[itemIndex];
-                        final isExpert = item['type'] == 'expert_request';
-                        final title = isExpert
-                            ? 'Expert Consultation: ${item['diseaseName'] ?? 'Disease'}'
-                            : 'Missing Crop Report: ${item['suggestedCrop'] ?? 'Crop'}';
-                        final body = isExpert
-                            ? (item['message'] ?? '')
-                            : (item['observedSymptoms'] ?? '');
-                        final dt = _parseDate(item['timestamp']);
-                        final statusStr = item['status']?.toString() ?? 'review_pending';
+                            final isExpert = item['type'] == 'expert_request';
+                            final title = isExpert
+                                ? 'Expert Consultation: ${item['diseaseName'] ?? 'Disease'}'
+                                : 'Missing Crop Report: ${item['suggestedCrop'] ?? 'Crop'}';
+                            final body = isExpert
+                                ? (item['message'] ?? '')
+                                : (item['observedSymptoms'] ?? '');
+                            final dt = _parseDate(item['timestamp']);
+                            final statusStr =
+                                item['status']?.toString() ?? 'review_pending';
 
-                        return CropGuardCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                            return CropGuardCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    isExpert
-                                        ? Icons.contact_support_rounded
-                                        : Icons.nature_people_rounded,
-                                    size: 18,
-                                    color: colors.primary,
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isExpert
+                                            ? Icons.contact_support_rounded
+                                            : Icons.nature_people_rounded,
+                                        size: 18,
+                                        color: colors.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      _StatusBadge(status: statusStr),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      title,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(fontWeight: FontWeight.bold),
+                                  if (body.toString().isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      body.toString(),
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
+                                  ],
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    LocaleFormatter.formatMonthDayYear(
+                                        context, dt),
+                                    style: TextStyle(
+                                        color: colors.muted, fontSize: 11),
                                   ),
-                                  _StatusBadge(status: statusStr),
                                 ],
                               ),
-                              if (body.toString().isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  body.toString(),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                              const SizedBox(height: 8),
-                              Text(
-                                LocaleFormatter.formatMonthDayYear(context, dt),
-                                style: TextStyle(
-                                    color: colors.muted, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                            );
+                          },
+                        ),
+                      ),
       ),
     );
   }

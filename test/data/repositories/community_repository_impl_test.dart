@@ -10,7 +10,9 @@ import 'package:cropguard_flutter/data/local/pending_sync_queue.dart';
 import 'package:cropguard_flutter/core/error/failures.dart';
 
 class MockFirestoreService extends Mock implements FirestoreService {}
+
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
+
 class MockImageUploadService extends Mock implements ImageUploadService {}
 
 Future<Database> _openTestDb() async {
@@ -43,7 +45,8 @@ void main() {
 
     when(() => mockDbHelper.database).thenAnswer((_) async => db);
 
-    repo = CommunityRepositoryImpl(mockFirestore, mockDbHelper, mockImageUpload);
+    repo =
+        CommunityRepositoryImpl(mockFirestore, mockDbHelper, mockImageUpload);
   });
 
   tearDown(() async {
@@ -51,7 +54,8 @@ void main() {
   });
 
   group('CommunityRepositoryImpl.submitOutbreakReport', () {
-    test('rejects unauthenticated report when userId is null or empty', () async {
+    test('rejects unauthenticated report when userId is null or empty',
+        () async {
       final resNull = await repo.submitOutbreakReport({
         'disease': 'Cassava Mosaic Disease',
       });
@@ -83,7 +87,9 @@ void main() {
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
-    test('queues payload in PendingSyncQueue when Firestore throws transient error', () async {
+    test(
+        'queues payload in PendingSyncQueue when Firestore throws transient error',
+        () async {
       when(() => mockFirestore.submitOutbreakReport(any()))
           .thenThrow(const ServerFailure('Network offline'));
 
@@ -137,7 +143,8 @@ void main() {
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
-    test('queues reported post in PendingSyncQueue on transient error', () async {
+    test('queues reported post in PendingSyncQueue on transient error',
+        () async {
       when(() => mockFirestore.reportPost(
             postId: any(named: 'postId'),
             reporterId: any(named: 'reporterId'),

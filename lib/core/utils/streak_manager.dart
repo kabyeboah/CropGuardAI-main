@@ -92,8 +92,8 @@ class StreakManager {
     final lastScan = _prefs.getInt(_keyLastScanDate) ?? 0;
     if (lastScan == 0) return 99; // Never scanned
     final now = await _serverNow();
-    final todayMs = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+    final todayMs =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
     return ((todayMs - lastScan) / (24 * 60 * 60 * 1000)).floor();
   }
 }
-

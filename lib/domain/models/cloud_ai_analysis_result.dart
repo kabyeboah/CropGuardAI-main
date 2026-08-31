@@ -28,24 +28,33 @@ class CloudAiAnalysisResult {
       label: json['label'] as String? ?? 'Unknown Crop Disease',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.85,
       isHealthy: json['isHealthy'] as bool? ?? false,
-      symptoms: (json['symptoms'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      symptoms: (json['symptoms'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       rootCause: json['rootCause'] as String? ?? '',
-      organicRemedies: (json['organicRemedies'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      preventionTips: (json['preventionTips'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      organicRemedies: (json['organicRemedies'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      preventionTips: (json['preventionTips'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       rawReasoning: json['rawReasoning'] as String?,
       isFallback: json['isFallback'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'label': label,
-    'confidence': confidence,
-    'isHealthy': isHealthy,
-    'symptoms': symptoms,
-    'rootCause': rootCause,
-    'organicRemedies': organicRemedies,
-    'preventionTips': preventionTips,
-    'rawReasoning': rawReasoning,
-    'isFallback': isFallback,
-  };
+        'label': label,
+        'confidence': confidence,
+        'isHealthy': isHealthy,
+        'symptoms': symptoms,
+        'rootCause': rootCause,
+        'organicRemedies': organicRemedies,
+        'preventionTips': preventionTips,
+        'rawReasoning': rawReasoning,
+        'isFallback': isFallback,
+      };
 }

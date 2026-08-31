@@ -45,235 +45,232 @@ class ProfileScreen extends StatelessWidget {
         child: Scaffold(
           backgroundColor: colors.background,
           body: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              leading: Navigator.of(context).canPop()
-                  ? BackButton(onPressed: () => Navigator.of(context).pop())
-                  : IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                      onPressed: () => context.go('/home'),
+            slivers: [
+              SliverAppBar(
+                leading: Navigator.of(context).canPop()
+                    ? BackButton(onPressed: () => Navigator.of(context).pop())
+                    : IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        tooltip:
+                            MaterialLocalizations.of(context).backButtonTooltip,
+                        onPressed: () => context.go('/home'),
+                      ),
+                backgroundColor: colors.primary,
+                expandedHeight: 200,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [colors.primaryDark_, colors.primary],
+                      ),
                     ),
-              backgroundColor: colors.primary,
-              expandedHeight: 200,
-              pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [colors.primaryDark_, colors.primary],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Avatar
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundColor: colors.primaryLight,
-                        backgroundImage: _avatarImage(provider),
-                        child: _avatarImage(provider) == null
-                            ? const Icon(Icons.person,
-                                size: 40, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        provider.userName,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18),
-                      ),
-                      Text(
-                        provider.userEmail,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 13),
-                      ),
-                      const SizedBox(height: 6),
-                      if (provider.isPro)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.4)),
+                    child: SafeArea(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Avatar
+                          CircleAvatar(
+                            radius: 36,
+                            backgroundColor: colors.primaryLight,
+                            backgroundImage: _avatarImage(provider),
+                            child: _avatarImage(provider) == null
+                                ? const Icon(Icons.person,
+                                    size: 40, color: Colors.white)
+                                : null,
                           ),
-                          child: Text(context.l10n.proFarmer,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1)),
-                        ),
-                    ],
+                          const SizedBox(height: 10),
+                          Text(
+                            provider.userName,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18),
+                          ),
+                          Text(
+                            provider.userEmail,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          if (provider.isPro)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.4)),
+                              ),
+                              child: Text(context.l10n.proFarmer,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1)),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                OfflineBanner(status: provider.connectionStatus),
-
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Stats row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    OfflineBanner(status: provider.connectionStatus),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
                         children: [
-                          _StatCell(
-                              label: context.l10n.totalScans,
-                              value: provider.stats.totalScans.toString()),
-                          _StatCell(
-                              label: context.l10n.healthScore,
-                              value:
-                                  '${(provider.stats.healthScore * 100).toInt()}%'),
-                          _StatCell(
-                              label: context.l10n.diseases,
-                              value: provider.stats.diseasesCaught
-                                  .toString()),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Reporter Trust & Reputation Card
-                      _ReporterTrustCard(provider: provider),
-                      const SizedBox(height: 16),
-
-                      // Account options
-                      CropGuardCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SectionLabel(
-                                text: context.l10n.accountSection,
-                                padding:
-                                    const EdgeInsets.only(bottom: 8)),
-                            _ProfileRow(
-                              icon: Icons.edit_outlined,
-                              label: context.l10n.editProfile,
-                              onTap: () => _showEditProfileSheet(context),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.settings_outlined,
-                              label: context.l10n.settings,
-                              onTap: () => context.push('/settings'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.privacy_tip_outlined,
-                              label: context.l10n.privacyPolicy,
-                              onTap: () => context.push('/privacy_policy'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.book_outlined,
-                              label: context.l10n.diseaseLibrary,
-                              onTap: () =>
-                                  context.push('/disease_library'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.people_outline,
-                              label: context.l10n.community,
-                              onTap: () => context.push('/community'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.map_outlined,
-                              label: context.l10n.outbreakMap,
-                              onTap: () => context.push('/outbreak_map'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.medical_services_outlined,
-                              label: context.l10n.treatmentTracker,
-                              onTap: () => context.push('/treatment_tracker'),
-                            ),
-                            _ProfileRow(
-                              icon: Icons.assignment_turned_in_outlined,
-                              label: 'My Submissions',
-                              onTap: () => context.push('/submissions'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Preferences
-                      CropGuardCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SectionLabel(
-                                text: context.l10n.preferencesSection,
-                                padding:
-                                    const EdgeInsets.only(bottom: 8)),
-                            _PrefToggle(
-                              icon: Icons.notifications_outlined,
-                              label: context.l10n.diseaseAlerts,
-                              value: provider.alertsEnabled,
-                              onChanged: provider.setAlertsEnabled,
-                            ),
-                            _PrefToggle(
-                              icon: Icons.high_quality_outlined,
-                              label: context.l10n.highQualityScans,
-                              value: provider.highQualityScans,
-                              onChanged: provider.setHighQualityScans,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Sign out
-                      InkWell(
-                        onTap: () => provider.signOut(
-                            () => context.go('/login')),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                                color: colors.error.withValues(alpha: 0.3)),
-                            borderRadius: BorderRadius.circular(10),
-                            color: colors.diseaseBg,
-                          ),
-                          child: Row(
+                          // Stats row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Icon(Icons.logout,
-                                  color: colors.error, size: 20),
-                              const SizedBox(width: 12),
-                              Text(context.l10n.signOut,
-                                  style: TextStyle(
-                                      color: colors.error,
-                                      fontWeight: FontWeight.w600)),
+                              _StatCell(
+                                  label: context.l10n.totalScans,
+                                  value: provider.stats.totalScans.toString()),
+                              _StatCell(
+                                  label: context.l10n.healthScore,
+                                  value:
+                                      '${(provider.stats.healthScore * 100).toInt()}%'),
+                              _StatCell(
+                                  label: context.l10n.diseases,
+                                  value:
+                                      provider.stats.diseasesCaught.toString()),
                             ],
                           ),
-                        ),
-                      ),
+                          const SizedBox(height: 16),
 
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                          // Reporter Trust & Reputation Card
+                          _ReporterTrustCard(provider: provider),
+                          const SizedBox(height: 16),
+
+                          // Account options
+                          CropGuardCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SectionLabel(
+                                    text: context.l10n.accountSection,
+                                    padding: const EdgeInsets.only(bottom: 8)),
+                                _ProfileRow(
+                                  icon: Icons.edit_outlined,
+                                  label: context.l10n.editProfile,
+                                  onTap: () => _showEditProfileSheet(context),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.settings_outlined,
+                                  label: context.l10n.settings,
+                                  onTap: () => context.push('/settings'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.privacy_tip_outlined,
+                                  label: context.l10n.privacyPolicy,
+                                  onTap: () => context.push('/privacy_policy'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.book_outlined,
+                                  label: context.l10n.diseaseLibrary,
+                                  onTap: () => context.push('/disease_library'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.people_outline,
+                                  label: context.l10n.community,
+                                  onTap: () => context.push('/community'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.map_outlined,
+                                  label: context.l10n.outbreakMap,
+                                  onTap: () => context.push('/outbreak_map'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.medical_services_outlined,
+                                  label: context.l10n.treatmentTracker,
+                                  onTap: () =>
+                                      context.push('/treatment_tracker'),
+                                ),
+                                _ProfileRow(
+                                  icon: Icons.assignment_turned_in_outlined,
+                                  label: 'My Submissions',
+                                  onTap: () => context.push('/submissions'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Preferences
+                          CropGuardCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SectionLabel(
+                                    text: context.l10n.preferencesSection,
+                                    padding: const EdgeInsets.only(bottom: 8)),
+                                _PrefToggle(
+                                  icon: Icons.notifications_outlined,
+                                  label: context.l10n.diseaseAlerts,
+                                  value: provider.alertsEnabled,
+                                  onChanged: provider.setAlertsEnabled,
+                                ),
+                                _PrefToggle(
+                                  icon: Icons.high_quality_outlined,
+                                  label: context.l10n.highQualityScans,
+                                  value: provider.highQualityScans,
+                                  onChanged: provider.setHighQualityScans,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Sign out
+                          InkWell(
+                            onTap: () =>
+                                provider.signOut(() => context.go('/login')),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                    color: colors.error.withValues(alpha: 0.3)),
+                                borderRadius: BorderRadius.circular(10),
+                                color: colors.diseaseBg,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout,
+                                      color: colors.error, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(context.l10n.signOut,
+                                      style: TextStyle(
+                                          color: colors.error,
+                                          fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   void _showEditProfileSheet(BuildContext context) {
     final provider = context.read<ProfileProvider>();
@@ -357,8 +354,8 @@ class ProfileScreen extends StatelessWidget {
                                   Navigator.pop(context);
                                   messenger.showSnackBar(
                                     SnackBar(
-                                        content: Text(
-                                            context.l10n.profileUpdated)),
+                                        content:
+                                            Text(context.l10n.profileUpdated)),
                                   );
                                 }
                               },
@@ -391,8 +388,7 @@ class _StatCell extends StatelessWidget {
                 color: colors.greenXL,
                 fontSize: 20,
                 fontWeight: FontWeight.bold)),
-        Text(label,
-            style: TextStyle(color: colors.muted, fontSize: 11)),
+        Text(label, style: TextStyle(color: colors.muted, fontSize: 11)),
       ],
     );
   }
@@ -426,11 +422,9 @@ class _ProfileRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(label,
-                  style: Theme.of(context).textTheme.bodyMedium),
+              child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
             ),
-            Icon(Icons.arrow_forward_ios,
-                size: 14, color: colors.muted),
+            Icon(Icons.arrow_forward_ios, size: 14, color: colors.muted),
           ],
         ),
       ),
@@ -489,8 +483,7 @@ class _AvatarPicker extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.primary,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color: colors.surface, width: 2),
+                      border: Border.all(color: colors.surface, width: 2),
                     ),
                     child: const Icon(Icons.camera_alt,
                         size: 14, color: Colors.white),
@@ -555,8 +548,7 @@ class _PrefToggle extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child:
-                Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           Switch(value: value, onChanged: onChanged),
         ],
@@ -587,21 +579,25 @@ class _ReporterTrustCard extends StatelessWidget {
                   color: colors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.shield_outlined, color: colors.primary, size: 20),
+                child: Icon(Icons.shield_outlined,
+                    color: colors.primary, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   context.l10n.reporterTrustTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: colors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: colors.primary.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   trust.reputationBadgeTitle,

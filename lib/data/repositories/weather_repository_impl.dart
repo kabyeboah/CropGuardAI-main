@@ -6,7 +6,8 @@ import '../../domain/repositories/i_weather_repository.dart';
 class WeatherRepositoryImpl implements IWeatherRepository {
   final http.Client client;
 
-  WeatherRepositoryImpl({http.Client? client}) : client = client ?? http.Client();
+  WeatherRepositoryImpl({http.Client? client})
+      : client = client ?? http.Client();
 
   @override
   Future<WeatherForecast> getWeatherForecast({

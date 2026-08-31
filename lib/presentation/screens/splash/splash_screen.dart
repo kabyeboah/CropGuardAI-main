@@ -56,10 +56,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Minimum splash duration (matches SplashViewModel 1500ms delay)
     await Future.delayed(const Duration(milliseconds: 1500));
     final prefs = sl<SharedPreferences>();
-    final onboardingDone =
-        prefs.getBool('onboarding_complete') ?? false;
+    final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
     if (!mounted) return;
-    
+
     final isRooted = await RootDetectionHelper.isRooted();
     if (isRooted) {
       AppLogger.w('Device is rooted/jailbroken. Prompting soft warning.');
@@ -68,7 +67,8 @@ class _SplashScreenState extends State<SplashScreen>
           context: context,
           barrierDismissible: false,
           builder: (dialogCtx) => AlertDialog(
-            icon: const Icon(Icons.security_update_warning, color: Colors.orange, size: 40),
+            icon: const Icon(Icons.security_update_warning,
+                color: Colors.orange, size: 40),
             title: Text(context.l10n.securityWarningTitle),
             content: Text(context.l10n.securityWarningBody),
             actions: [
@@ -101,7 +101,8 @@ class _SplashScreenState extends State<SplashScreen>
         builder: (ctx) => PopScope(
           canPop: false,
           child: AlertDialog(
-            icon: const Icon(Icons.system_update, size: 40, color: Color(0xFF16A34A)),
+            icon: const Icon(Icons.system_update,
+                size: 40, color: Color(0xFF16A34A)),
             title: Text(
               context.l10n.updateRequiredTitle,
               textAlign: TextAlign.center,
@@ -130,6 +131,11 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     if (!mounted) return;
+
+    // If the router was already directed elsewhere (e.g. cold-start deep link to /reset_password),
+    // do not overwrite the deep link destination.
+    final currentLoc = GoRouterState.of(context).matchedLocation;
+    if (currentLoc != '/splash') return;
 
     if (FirebaseAuth.instance.currentUser != null) {
       context.go('/home');

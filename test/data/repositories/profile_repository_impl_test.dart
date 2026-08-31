@@ -7,8 +7,11 @@ import 'package:cropguard_flutter/data/repositories/profile_repository_impl.dart
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockFirestoreService extends Mock implements FirestoreService {}
+
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
+
 class MockSharedPreferences extends Mock implements SharedPreferences {}
 
 void main() {

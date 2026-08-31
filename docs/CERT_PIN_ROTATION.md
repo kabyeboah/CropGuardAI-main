@@ -1,9 +1,9 @@
 # Certificate Pinning Rotation Plan (Planned Production Security Control)
 
-> [!NOTE]
-> **Status**: Future Work / Planned Security Runbook. Certificate pinning is currently un-wired in P0 client builds to avoid bricking offline pilot deployments; this runbook specifies the operational process for enabling pinning in production release builds.
+> [!NOTE] [CURRENT]
+> **Status**: Future Work / Planned Security Runbook. [PLANNED] [PLANNED] Certificate pinning is currently un-wired in P0 client builds to avoid bricking offline pilot deployments; this runbook specifies the operational process for enabling pinning in production release builds. [CURRENT]
 
-Network pinning for production hosts must use **real** SHA-256 SPKI hashes from your TLS certificates. Placeholder pins break connectivity or provide no security benefit.
+Network pinning for production hosts must use **real** SHA-256 SPKI hashes from your TLS certificates. [CURRENT] [CURRENT] Placeholder pins break connectivity or provide no security benefit. [HISTORICAL]
 
 ## When to rotate
 
@@ -13,7 +13,7 @@ Network pinning for production hosts must use **real** SHA-256 SPKI hashes from 
 
 ## Obtain a pin digest
 
-From a desktop with OpenSSL, after connecting to your API host:
+From a desktop with OpenSSL, after connecting to your API host: [CURRENT]
 
 ```bash
 echo | openssl s_client -servername api.example.com -connect api.example.com:443 2>/dev/null \
@@ -23,11 +23,11 @@ echo | openssl s_client -servername api.example.com -connect api.example.com:443
   | openssl enc -base64
 ```
 
-Repeat for **at least one backup pin** (e.g. issuer intermediate or a second leaf) so you can roll certificates without bricking the app.
+Repeat for **at least one backup pin** (e.g. [CURRENT] [CURRENT] issuer intermediate or a second leaf) so you can roll certificates without bricking the app. [CURRENT]
 
 ## Android `network_security_config`
 
-Add pins under a `<domain-config>` for each pinned host:
+Add pins under a `<domain-config>` for each pinned host: [CURRENT]
 
 ```xml
 <pin-set expiration="2027-12-31">
@@ -36,8 +36,8 @@ Add pins under a `<domain-config>` for each pinned host:
 </pin-set>
 ```
 
-Ship an app update **before** `expiration` with refreshed pins, or remove the old pin after the new certificate is live everywhere.
+Ship an app update **before** `expiration` with refreshed pins, or remove the old pin after the new certificate is live everywhere. [HISTORICAL] [HISTORICAL]
 
 ## OkHttp CertificatePinner (optional)
 
-If you add OkHttp pinning in code, keep the same digests in sync with `network_security_config.xml` and document both in release notes.
+If you add OkHttp pinning in code, keep the same digests in sync with `network_security_config.xml` and document both in release notes. [CURRENT] [CURRENT]

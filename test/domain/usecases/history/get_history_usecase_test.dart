@@ -101,16 +101,17 @@ void main() {
 
     test('returns failure when repository fails', () async {
       when(() => mockRepository.getHistory(
-            userId: any(named: 'userId'),
-            limit: any(named: 'limit'),
-            offset: any(named: 'offset'),
-            isHealthy: any(named: 'isHealthy'),
-            cropTypes: any(named: 'cropTypes'),
-            dateFrom: any(named: 'dateFrom'),
-            dateTo: any(named: 'dateTo'),
-            searchQuery: any(named: 'searchQuery'),
-            orderBy: any(named: 'orderBy'),
-          )).thenAnswer(
+                userId: any(named: 'userId'),
+                limit: any(named: 'limit'),
+                offset: any(named: 'offset'),
+                isHealthy: any(named: 'isHealthy'),
+                cropTypes: any(named: 'cropTypes'),
+                dateFrom: any(named: 'dateFrom'),
+                dateTo: any(named: 'dateTo'),
+                searchQuery: any(named: 'searchQuery'),
+                orderBy: any(named: 'orderBy'),
+              ))
+          .thenAnswer(
               (_) async => Result.error(const CacheFailure('database error')));
 
       final result = await useCase(userId: 'user_1');

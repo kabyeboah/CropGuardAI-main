@@ -6,10 +6,12 @@ import 'package:cropguard_flutter/core/utils/background_tasks.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  final List<String> registeredOneOffTasks = [];
   final List<String> registeredPeriodicTasks = [];
   final List<String> cancelledTasks = [];
 
   setUp(() async {
+    registeredOneOffTasks.clear();
     registeredPeriodicTasks.clear();
     cancelledTasks.clear();
 
@@ -21,6 +23,17 @@ void main() {
     sl.registerSingleton<SharedPreferences>(prefs);
 
     BackgroundTaskHelper.isAndroidOverride = true;
+
+    BackgroundTaskHelper.registerOneOffTaskFn = (
+      uniqueName,
+      taskName, {
+      existingWorkPolicy,
+      initialDelay,
+      constraints,
+      inputData,
+    }) async {
+      registeredOneOffTasks.add('$uniqueName:$taskName');
+    };
 
     BackgroundTaskHelper.registerPeriodicTaskFn = (
       uniqueName,
@@ -39,7 +52,28 @@ void main() {
     };
   });
 
-  test('scheduleOutbreakAlerts registers periodic task and sets preference', () async {
+  test('scheduleSync registers one-off sync_scans task on Android', () async {
+    await BackgroundTaskHelper.scheduleSync();
+    expect(registeredOneOffTasks.contains('sync_task:sync_scans'), isTrue);
+  });
+
+  test('scheduleSync is no-op when isAndroidOverride is false', () async {
+    BackgroundTaskHelper.isAndroidOverride = false;
+    await BackgroundTaskHelper.scheduleSync();
+    expect(registeredOneOffTasks.isEmpty, isTrue);
+  });
+
+  test('scheduleReminder registers one-off treatment_reminder task', () async {
+    await BackgroundTaskHelper.scheduleReminder(
+        'Cassava Mosaic', 3, const Duration(days: 3));
+    expect(
+        registeredOneOffTasks
+            .contains('reminder_Cassava Mosaic_3:treatment_reminder'),
+        isTrue);
+  });
+
+  test('scheduleOutbreakAlerts registers periodic task and sets preference',
+      () async {
     await BackgroundTaskHelper.scheduleOutbreakAlerts();
 
     expect(registeredPeriodicTasks.contains('outbreak_alert_task'), isTrue);
@@ -48,7 +82,8 @@ void main() {
     expect(prefs.getBool('outbreak_alerts_scheduled'), isTrue);
   });
 
-  test('scheduleOutbreakAlerts does not re-register if already scheduled', () async {
+  test('scheduleOutbreakAlerts does not re-register if already scheduled',
+      () async {
     final prefs = sl<SharedPreferences>();
     await prefs.setBool('outbreak_alerts_scheduled', true);
 
@@ -57,7 +92,9 @@ void main() {
     expect(registeredPeriodicTasks.contains('outbreak_alert_task'), isFalse);
   });
 
-  test('scheduleOutbreakAlerts cancels alerts if notifications are disabled in settings', () async {
+  test(
+      'scheduleOutbreakAlerts cancels alerts if notifications are disabled in settings',
+      () async {
     final prefs = sl<SharedPreferences>();
     await prefs.setBool('notifications_enabled', false);
     await prefs.setBool('outbreak_alerts_scheduled', true);
@@ -68,7 +105,8 @@ void main() {
     expect(prefs.getBool('outbreak_alerts_scheduled'), isFalse);
   });
 
-  test('cancelOutbreakAlerts cancels the task and updates preference', () async {
+  test('cancelOutbreakAlerts cancels the task and updates preference',
+      () async {
     final prefs = sl<SharedPreferences>();
     await prefs.setBool('outbreak_alerts_scheduled', true);
 
@@ -81,19 +119,22 @@ void main() {
   // ─── iOS BGAppRefreshTask ──────────────────────────────────────────────────
 
   test('kIosBgTaskId matches the declared Info.plist identifier', () {
-    // Keeps the Dart constant and the native plist value in sync.
-    // If either changes, this test fails and forces the developer to update both.
     expect(BackgroundTaskHelper.kIosBgTaskId, 'com.cropguard.ai.sync');
   });
 
-  test('scheduleIosBGAppRefresh is a no-op on non-iOS (MissingPluginException swallowed)', () async {
-    // On the test host (Android/Linux/macOS CI), Platform.isIOS is false so
-    // the method returns immediately without invoking the channel.
-    // This verifies the guard does not throw.
+  test(
+      'scheduleIosBGAppRefresh is a no-op on non-iOS (MissingPluginException swallowed)',
+      () async {
     await expectLater(
       BackgroundTaskHelper.scheduleIosBGAppRefresh(),
       completes,
     );
   });
-}
 
+  test('scheduleIosForegroundSync completes safely without errors', () async {
+    await expectLater(
+      BackgroundTaskHelper.scheduleIosForegroundSync(),
+      completes,
+    );
+  });
+}

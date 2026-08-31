@@ -117,8 +117,7 @@ class _LoginBodyState extends State<_LoginBody> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.push(
-                      '/forgot_password',
+                  onPressed: () => context.push('/forgot_password',
                       extra: _emailController.text),
                   child: Text(context.l10n.forgotPassword,
                       style: TextStyle(color: colors.primary, fontSize: 13)),
@@ -153,8 +152,7 @@ class _LoginBodyState extends State<_LoginBody> {
                         text: 'Sign In',
                         isLoading: status == LoginStatus.loading,
                         onPressed: () {
-                          final provider =
-                              context.read<LoginProvider>();
+                          final provider = context.read<LoginProvider>();
                           provider.signIn(
                             _emailController.text,
                             _passwordController.text,
@@ -213,18 +211,17 @@ class _LoginBodyState extends State<_LoginBody> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(context.l10n.dontHaveAccount,
-                        style:
-                            TextStyle(color: colors.muted, fontSize: 14)),
+                        style: TextStyle(color: colors.muted, fontSize: 14)),
                     Semantics(
                       button: true,
                       child: GestureDetector(
-                      onTap: () => context.go('/register'),
-                      child: Text(context.l10n.register,
-                          style: TextStyle(
-                              color: colors.greenXL,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold)),
-                    ),
+                        onTap: () => context.go('/register'),
+                        child: Text(context.l10n.register,
+                            style: TextStyle(
+                                color: colors.greenXL,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold)),
+                      ),
                     ),
                   ],
                 ),

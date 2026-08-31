@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationHelper {
@@ -42,6 +43,9 @@ class NotificationHelper {
       (DateTime.now().millisecondsSinceEpoch + (_notificationCounter++)) &
       0x7FFFFFFF;
 
+  @visibleForTesting
+  static int generateUniqueId() => _uniqueId();
+
   static const _androidDetails = AndroidNotificationDetails(
     _channelId,
     _channelName,
@@ -55,24 +59,37 @@ class NotificationHelper {
     iOS: _iosDetails,
   );
 
+  static Future<void> Function({required String title, required String message})
+      showRiskAlertFn = _show;
+
+  static Future<void> Function({required String title, required String message})
+      showScanReminderFn = _show;
+
   static Future<void> _show({
     required String title,
     required String message,
-  }) =>
-      _notificationsPlugin.show(
+  }) async {
+    try {
+      await _notificationsPlugin.show(
         id: _uniqueId(),
         title: title,
         body: message,
         notificationDetails: _notificationDetails,
       );
+    } catch (_) {
+      // Avoid unhandled errors if platform channels are unavailable in unit tests
+    }
+  }
 
   static Future<void> showRiskAlert({
     required String title,
     required String message,
-  }) => _show(title: title, message: message);
+  }) =>
+      showRiskAlertFn(title: title, message: message);
 
   static Future<void> showScanReminder({
     required String title,
     required String message,
-  }) => _show(title: title, message: message);
+  }) =>
+      showScanReminderFn(title: title, message: message);
 }

@@ -11,10 +11,12 @@ class LoginUseCase {
 
   Future<Result<AppUser>> call(String email, String password) {
     if (email.trim().isEmpty || password.isEmpty) {
-      return Future.value(Result.error(const AuthFailure('Please fill in all fields.')));
+      return Future.value(
+          Result.error(const AuthFailure('Please fill in all fields.')));
     }
     if (!EmailValidator.isValid(email)) {
-      return Future.value(Result.error(const AuthFailure('Please enter a valid email address.')));
+      return Future.value(Result.error(
+          const AuthFailure('Please enter a valid email address.')));
     }
     return _repository.signIn(email: email, password: password);
   }

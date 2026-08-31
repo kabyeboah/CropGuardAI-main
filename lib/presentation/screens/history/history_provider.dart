@@ -7,7 +7,13 @@ import '../../../domain/repositories/i_auth_repository.dart';
 
 enum HistoryFilter { all, healthy, diseased }
 
-enum HistorySort { dateNewest, dateOldest, confidenceDesc, confidenceAsc, cropType }
+enum HistorySort {
+  dateNewest,
+  dateOldest,
+  confidenceDesc,
+  confidenceAsc,
+  cropType
+}
 
 /// Refactored HistoryProvider using Clean Architecture and pagination
 class HistoryProvider extends ChangeNotifier {
@@ -149,7 +155,8 @@ class HistoryProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    final isHealthy = filter == HistoryFilter.all ? null : (filter == HistoryFilter.healthy);
+    final isHealthy =
+        filter == HistoryFilter.all ? null : (filter == HistoryFilter.healthy);
     final String orderBy;
     switch (sort) {
       case HistorySort.dateOldest:
@@ -188,7 +195,8 @@ class HistoryProvider extends ChangeNotifier {
     }
 
     // Load distinct crop types
-    final cropsResult = await _getHistoryUseCase.getDistinctCropTypes(userId: _userId);
+    final cropsResult =
+        await _getHistoryUseCase.getDistinctCropTypes(userId: _userId);
     if (cropsResult.isSuccess) {
       _distinctCropTypes = cropsResult.data ?? [];
     }

@@ -14,32 +14,58 @@ import '../treatment_tracker/treatment_tracker_provider.dart';
 // One representative Wikipedia Commons image per crop type.
 // Special:FilePath redirects to the actual file without needing the hash path.
 const Map<String, String> _kCropImages = {
-  'Apple':     'https://commons.wikimedia.org/wiki/Special:FilePath/Red_Apple.jpg?width=120',
-  'Banana':    'https://commons.wikimedia.org/wiki/Special:FilePath/Banana_and_cross_section.jpg?width=120',
-  'Blueberry': 'https://commons.wikimedia.org/wiki/Special:FilePath/Dish_of_blueberries.jpg?width=120',
-  'Cashew':    'https://commons.wikimedia.org/wiki/Special:FilePath/Cashew_apple_with_nut_-_Caju.jpg?width=120',
-  'Cassava':   'https://commons.wikimedia.org/wiki/Special:FilePath/PeeLawPeeNam_Cassava_root_Yuca_Manioc.jpg?width=120',
-  'Cherry':    'https://commons.wikimedia.org/wiki/Special:FilePath/Cherry_Stella444.jpg?width=120',
-  'Cocoa':     'https://commons.wikimedia.org/wiki/Special:FilePath/St_Lucia_Cocoa_Cocao_Theobroma_seed_pod_0864.jpg?width=120',
-  'Cowpea':    'https://commons.wikimedia.org/wiki/Special:FilePath/5_%E0%AE%95%E0%AE%BE%E0%AE%B0%E0%AE%BE%E0%AE%AE%E0%AE%A3%E0%AE%BF-Vigna_unguiculata.jpg?width=120',
-  'Grape':     'https://commons.wikimedia.org/wiki/Special:FilePath/Table_grapes_on_white.jpg?width=120',
-  'Groundnut': 'https://commons.wikimedia.org/wiki/Special:FilePath/Peanuts_%28dried_pods_marketed%29.jpg?width=120',
-  'Maize':     'https://commons.wikimedia.org/wiki/Special:FilePath/Corn_on_the_cob.jpg?width=120',
-  'Millet':    'https://commons.wikimedia.org/wiki/Special:FilePath/Pearl_millet_-_Pennisetum_glaucum.jpg?width=120',
-  'Oil Palm':  'https://commons.wikimedia.org/wiki/Special:FilePath/Elaeis_guineensis_oil_palm_fruit_Portoviejo_Ecuador.jpg?width=120',
-  'Orange':    'https://commons.wikimedia.org/wiki/Special:FilePath/Oranges_and_orange_juice.jpg?width=120',
-  'Peach':     'https://commons.wikimedia.org/wiki/Special:FilePath/Autumn_Red_peaches.jpg?width=120',
-  'Pepper':    'https://commons.wikimedia.org/wiki/Special:FilePath/Capsicum_annuum.jpg?width=120',
-  'Plantain':  'https://commons.wikimedia.org/wiki/Special:FilePath/An_entire_cluster_of_plantains.jpg?width=120',
-  'Potato':    'https://commons.wikimedia.org/wiki/Special:FilePath/Potato_and_cross_section.jpg?width=120',
-  'Raspberry': 'https://commons.wikimedia.org/wiki/Special:FilePath/Raspberries_%28Rubus_Idaeus%29.jpg?width=120',
-  'Rice':      'https://commons.wikimedia.org/wiki/Special:FilePath/Oryza_sativa_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-232.jpg?width=120',
-  'Sorghum':   'https://commons.wikimedia.org/wiki/Special:FilePath/Sorghum_bicolor_%28s._lat.%29_p._p._sl34.jpg?width=120',
-  'Soybean':   'https://commons.wikimedia.org/wiki/Special:FilePath/Soybean.USDA.jpg?width=120',
-  'Squash':    'https://commons.wikimedia.org/wiki/Special:FilePath/Cucurbita_pepo_Summer_Squash_varieties_-_straightneck%2C_round_zucchini_%28summer_pumpkin%29%2C_zucchini.jpg?width=120',
-  'Strawberry':'https://commons.wikimedia.org/wiki/Special:FilePath/Strawberry_BNC.jpg?width=120',
-  'Tomato':    'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato_je.jpg?width=120',
-  'Yam':       'https://commons.wikimedia.org/wiki/Special:FilePath/Dioscorea_alata.jpg?width=120',
+  'Apple':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Red_Apple.jpg?width=120',
+  'Banana':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Banana_and_cross_section.jpg?width=120',
+  'Blueberry':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Dish_of_blueberries.jpg?width=120',
+  'Cashew':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cashew_apple_with_nut_-_Caju.jpg?width=120',
+  'Cassava':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/PeeLawPeeNam_Cassava_root_Yuca_Manioc.jpg?width=120',
+  'Cherry':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cherry_Stella444.jpg?width=120',
+  'Cocoa':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/St_Lucia_Cocoa_Cocao_Theobroma_seed_pod_0864.jpg?width=120',
+  'Cowpea':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/5_%E0%AE%95%E0%AE%BE%E0%AE%B0%E0%AE%BE%E0%AE%AE%E0%AE%A3%E0%AE%BF-Vigna_unguiculata.jpg?width=120',
+  'Grape':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Table_grapes_on_white.jpg?width=120',
+  'Groundnut':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Peanuts_%28dried_pods_marketed%29.jpg?width=120',
+  'Maize':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Corn_on_the_cob.jpg?width=120',
+  'Millet':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Pearl_millet_-_Pennisetum_glaucum.jpg?width=120',
+  'Oil Palm':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Elaeis_guineensis_oil_palm_fruit_Portoviejo_Ecuador.jpg?width=120',
+  'Orange':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Oranges_and_orange_juice.jpg?width=120',
+  'Peach':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Autumn_Red_peaches.jpg?width=120',
+  'Pepper':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Capsicum_annuum.jpg?width=120',
+  'Plantain':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/An_entire_cluster_of_plantains.jpg?width=120',
+  'Potato':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Potato_and_cross_section.jpg?width=120',
+  'Raspberry':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Raspberries_%28Rubus_Idaeus%29.jpg?width=120',
+  'Rice':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Oryza_sativa_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-232.jpg?width=120',
+  'Sorghum':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Sorghum_bicolor_%28s._lat.%29_p._p._sl34.jpg?width=120',
+  'Soybean':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Soybean.USDA.jpg?width=120',
+  'Squash':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Cucurbita_pepo_Summer_Squash_varieties_-_straightneck%2C_round_zucchini_%28summer_pumpkin%29%2C_zucchini.jpg?width=120',
+  'Strawberry':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Strawberry_BNC.jpg?width=120',
+  'Tomato':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Tomato_je.jpg?width=120',
+  'Yam':
+      'https://commons.wikimedia.org/wiki/Special:FilePath/Dioscorea_alata.jpg?width=120',
 };
 
 // Disease-specific images keyed by the model label, verified to load from
@@ -340,7 +366,8 @@ String? _diseaseNetworkUrl(DiseaseInfoEntry e) =>
 /// asset (correct + offline) → verified disease network photo → crop photo.
 /// Pass [banner] for the larger detail-sheet size. Returns null when nothing
 /// is available (callers show a placeholder).
-ImageProvider? _diseaseImageProvider(DiseaseInfoEntry e, {bool banner = false}) {
+ImageProvider? _diseaseImageProvider(DiseaseInfoEntry e,
+    {bool banner = false}) {
   if (_kDiseaseAssetLabels.contains(e.label)) {
     return AssetImage('assets/diseases/${_slugifyLabel(e.label)}.jpg');
   }
@@ -546,19 +573,24 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.volume_up_rounded, color: colors.primary),
+                        icon: Icon(Icons.volume_up_rounded,
+                            color: colors.primary),
                         tooltip: 'Listen to Disease Info',
                         onPressed: () {
-                          final langCode = Localizations.localeOf(context).languageCode;
+                          final langCode =
+                              Localizations.localeOf(context).languageCode;
                           final speakText = StringBuffer()
-                            ..write('${info.displayName}. ${info.cropType} disease. ');
+                            ..write(
+                                '${info.displayName}. ${info.cropType} disease. ');
                           if (info.cause.isNotEmpty) {
                             speakText.write('Cause: ${info.cause}. ');
                           }
                           if (info.treatments.isNotEmpty) {
-                            speakText.write('Treatments: ${info.treatments.join('. ')}');
+                            speakText.write(
+                                'Treatments: ${info.treatments.join('. ')}');
                           }
-                          TtsManager().speak(speakText.toString(), languageCode: langCode);
+                          TtsManager().speak(speakText.toString(),
+                              languageCode: langCode);
                         },
                       ),
                       SeverityBadge(severity: info.severity),
@@ -592,16 +624,82 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('• ',
-                                style: TextStyle(color: colors.primary)),
+                            Text('• ', style: TextStyle(color: colors.primary)),
                             Expanded(
                               child: Text(t,
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall),
+                                  style: Theme.of(context).textTheme.bodySmall),
                             ),
                           ],
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.verified_outlined,
+                              size: 14, color: colors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Source / Basis: ${info.sourceBasis}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: colors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!info.isHealthy && info.safetyPrecautions != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.health_and_safety_outlined,
+                              size: 14, color: colors.warning),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              info.safetyPrecautions!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.onBackgroundSecondary,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: colors.muted),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            context.l10n.treatmentAdvisoryDisclaimer,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.muted,
+                              fontStyle: FontStyle.italic,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -629,140 +727,139 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
       },
       child: Scaffold(
         backgroundColor: colors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.arrow_back, size: 16, color: colors.muted),
-                        const SizedBox(width: 4),
-                        Text(context.l10n.backLabel,
-                            style: TextStyle(color: colors.muted, fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(context.l10n.diseaseLibrary,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                  Text(
-                      context.l10n.diseaseLibrarySubtitle,
-                      style: TextStyle(color: colors.muted, fontSize: 13)),
-                  const SizedBox(height: 12),
-                  TextField(
-                    onChanged: (v) => setState(() => _query = v),
-                    decoration: InputDecoration(
-                      hintText: context.l10n.searchCropOrDisease,
-                      prefixIcon: Icon(Icons.search, color: colors.muted),
-                      filled: true,
-                      fillColor: colors.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colors.border),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/home');
+                        }
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back, size: 16, color: colors.muted),
+                          const SizedBox(width: 4),
+                          Text(context.l10n.backLabel,
+                              style:
+                                  TextStyle(color: colors.muted, fontSize: 14)),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(context.l10n.diseaseLibrary,
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(context.l10n.diseaseLibrarySubtitle,
+                        style: TextStyle(color: colors.muted, fontSize: 13)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.searchCropOrDisease,
+                        prefixIcon: Icon(Icons.search, color: colors.muted),
+                        filled: true,
+                        fillColor: colors.surface,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: sorted.isEmpty
-                  ? Center(
-                      child: Text(
-                        context.l10n.noDiseasesMatchSearch,
-                        style: TextStyle(color: colors.muted),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      itemCount: sorted.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (_, i) {
-                        final entry = sorted[i];
-                        return CropGuardCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.eco,
-                                      color: colors.primary, size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(entry.key,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              ...entry.value.map((d) {
-                                    return InkWell(
-                                      onTap: () => _showDiseaseDetail(d),
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 6, horizontal: 4),
-                                        child: Row(
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                              child: _DiseaseThumb(entry: d),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                d.displayName,
-                                                style: TextStyle(
-                                                  color: colors.onSurface,
-                                                  fontSize: 14,
-                                                ),
+              Expanded(
+                child: sorted.isEmpty
+                    ? Center(
+                        child: Text(
+                          context.l10n.noDiseasesMatchSearch,
+                          style: TextStyle(color: colors.muted),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        itemCount: sorted.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) {
+                          final entry = sorted[i];
+                          return CropGuardCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.eco,
+                                        color: colors.primary, size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(entry.key,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ...entry.value.map((d) {
+                                  return InkWell(
+                                    onTap: () => _showDiseaseDetail(d),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 6, horizontal: 4),
+                                      child: Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            child: _DiseaseThumb(entry: d),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              d.displayName,
+                                              style: TextStyle(
+                                                color: colors.onSurface,
+                                                fontSize: 14,
                                               ),
                                             ),
-                                            Icon(Icons.chevron_right,
-                                                size: 18, color: colors.muted),
-                                          ],
-                                        ),
+                                          ),
+                                          Icon(Icons.chevron_right,
+                                              size: 18, color: colors.muted),
+                                        ],
                                       ),
-                                    );
-                                  }),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 /// Action buttons at the bottom of the disease detail sheet: a primary

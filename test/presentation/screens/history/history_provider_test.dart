@@ -11,6 +11,7 @@ import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
 import 'package:cropguard_flutter/presentation/screens/history/history_provider.dart';
 
 class _MockDetectionRepo extends Mock implements IDetectionRepository {}
+
 class _MockAuthRepo extends Mock implements IAuthRepository {}
 
 DetectionResult _result({
@@ -101,14 +102,16 @@ void main() {
     });
 
     when(() => repo.getDistinctCropTypes(userId: any(named: 'userId')))
-        .thenAnswer((_) async => Result.success(items.map((e) => e.cropType).toSet().toList()));
+        .thenAnswer((_) async =>
+            Result.success(items.map((e) => e.cropType).toSet().toList()));
 
     when(() => repo.deleteDetection(any()))
         .thenAnswer((_) async => Result.success(null));
     when(() => repo.saveDetection(any()))
         .thenAnswer((_) async => Result.success(99));
 
-    return HistoryProvider(getHistory, deleteDetection, restoreDetection, authRepo);
+    return HistoryProvider(
+        getHistory, deleteDetection, restoreDetection, authRepo);
   }
 
   group('HistoryProvider — filtering', () {

@@ -2,47 +2,89 @@
   "@@locale": "tw",
   "appTitle": "CropGuard AI",
   "outbreakConfirm": "Confirm",
-  "@outbreakConfirm": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakConfirm": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakFlagIncorrect": "Flag Incorrect",
-  "@outbreakFlagIncorrect": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakFlagIncorrect": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakZoomToOutbreak": "Zoom to outbreak",
-  "@outbreakZoomToOutbreak": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakZoomToOutbreak": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakNearbyDetectedTitle": "Nearby Outbreak Detected",
-  "@outbreakNearbyDetectedTitle": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakNearbyDetectedTitle": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakSubmitAnyway": "Submit Anyway",
-  "@outbreakSubmitAnyway": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakSubmitAnyway": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakConfirmExisting": "Confirm Existing",
-  "@outbreakConfirmExisting": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakConfirmExisting": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakRetryMap": "Retry Map",
-  "@outbreakRetryMap": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakRetryMap": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "reportToOutbreakMap": "Report to Outbreak Map",
-  "@reportToOutbreakMap": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@reportToOutbreakMap": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "postToCommunity": "Post to Community",
-  "@postToCommunity": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@postToCommunity": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "scanEngineUnavailable": "Scan Engine Unavailable",
-  "@scanEngineUnavailable": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@scanEngineUnavailable": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "askCommunity": "Ask Community",
-  "@askCommunity": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@askCommunity": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "outbreakAddPhoto": "Add Photo",
-  "@outbreakAddPhoto": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@outbreakAddPhoto": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "securityWarningTitle": "Security Warning",
-  "@securityWarningTitle": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@securityWarningTitle": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "securityWarningBody": "CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.",
-  "@securityWarningBody": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@securityWarningBody": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "proceedAnyway": "Proceed Anyway",
   "showPasswordTooltip": "Show password",
-  "@showPasswordTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@showPasswordTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "hidePasswordTooltip": "Hide password",
-  "@hidePasswordTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@hidePasswordTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "torchOnTooltip": "Turn flashlight on",
-  "@torchOnTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@torchOnTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "torchOffTooltip": "Turn flashlight off",
-  "@torchOffTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@torchOffTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "batchModeOnTooltip": "Turn on batch scanning",
-  "@batchModeOnTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@batchModeOnTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "batchModeOffTooltip": "Turn off batch scanning",
-  "@batchModeOffTooltip": {"description": "NEEDS TRANSLATION - placeholder English text"},
-  "@proceedAnyway": {"description": "NEEDS TRANSLATION - placeholder English text"},
+  "@batchModeOffTooltip": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
+  "@proceedAnyway": {
+    "description": "NEEDS TRANSLATION - placeholder English text"
+  },
   "home": "Home",
   "scan": "Scan",
   "history": "History",
@@ -204,6 +246,7 @@
   "imageUnavailable": "Image no longer available",
   "cropCareTips": "Crop Care Tips",
   "treatmentSteps": "Treatment Steps",
+  "treatmentAdvisoryDisclaimer": "Ayaresa afotu yi yɛ afotu kɛkɛ na ɛnnsi kuayɛ panyin (extension officer) afotu ananmu.",
   "bestSprayWindow": "Best Spray Window",
   "requestExpertHelp": "Request Expert Help",
   "scanAnotherCrop": "Scan Another Crop",
@@ -312,9 +355,9 @@
   "diseaseRiskWeekTitle": "Disease Risk This Week",
   "diseaseRiskWeekSubtitle": "Weather-based outlook — inspect early.",
   "diseaseRiskLowMessage": "Low disease risk this week based on the forecast. Keep up routine scouting.",
-  "riskLevelHigh": "HIGH",
-  "riskLevelModerate": "MODERATE",
-  "riskLevelLow": "LOW",
+  "riskLevelHigh": "Asianee Kɛseɛ",
+  "riskLevelModerate": "Asianee Mfinimfini",
+  "riskLevelLow": "Asianee Ketewa",
   "cropTomato": "Tomato",
   "cropCocoa": "Cocoa",
   "cropMaize": "Maize",
@@ -576,15 +619,15 @@
   "badgeMapReporterTitle": "Map Reporter",
   "badgeMapReporterDesc": "Submit 3 outbreak reports",
   "privacySection1Title": "1. Information We Collect",
-  "privacySection1Body": "CropGuard AI collects the following information: account email and display name, crop scan images processed locally on your device, and aggregate usage analytics (no personal data). We do not sell your data.",
+  "privacySection1Body": "CropGuard AI collects: account email and display name (if signed in), crop images processed on-device, coarsened location coordinates (~1.1 km grid) to deliver microclimate weather and regional outbreak alerts without exposing exact farm boundaries, and aggregate usage telemetry. We do not sell your personal data.",
   "privacySection2Title": "2. How We Use Your Data",
-  "privacySection2Body": "Your data is used to provide the disease detection service, improve model accuracy through anonymised feedback, and deliver expert consultation requests. Scan images are never transmitted to external servers without your explicit consent.",
-  "privacySection3Title": "3. Data Storage",
-  "privacySection3Body": "Scan results are stored locally on your device using SQLite. Cloud sync is optional and gated behind authentication. You can delete all local data at any time from Settings → Clear Scan History.",
+  "privacySection2Body": "Your data is used to provide on-device disease diagnosis, localized spray and weather advisories, community outbreak mapping, and expert consultation. Scan images and exact farm locations are never shared publicly.",
+  "privacySection3Title": "3. Data Storage & Retention",
+  "privacySection3Body": "Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.",
   "privacySection4Title": "4. Third-Party Services",
-  "privacySection4Body": "We use Firebase for authentication and optional cloud sync (governed by Google's Privacy Policy). We do not share data with any other third parties.",
+  "privacySection4Body": "We use Firebase for secure authentication and optional sync (governed by Google's Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.",
   "privacySection5Title": "5. Contact",
-  "privacySection5Body": "For privacy enquiries, contact privacy@cropguardai.com.",
+  "privacySection5Body": "For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.",
   "termsSection1Title": "1. Acceptance of Terms",
   "termsSection1Body": "By using CropGuard AI, you agree to these Terms of Service. If you disagree with any part, please do not use the application.",
   "termsSection2Title": "2. Medical / Agronomical Disclaimer",
@@ -714,9 +757,6 @@
   "riskForecastSubtitle": "Mantam yareɛ asiane firi ewiemu ne nkɔsoɔ mu",
   "riskForecastLoading": "Rebu mantam yareɛ asiane no...",
   "riskLevelNone": "Asianee Biara Nni Hɔ",
-  "riskLevelLow": "Asianee Ketewa",
-  "riskLevelModerate": "Asianee Mfinimfini",
-  "riskLevelHigh": "Asianee Kɛseɛ",
   "confidenceLabel": "Gye Die",
   "confidenceInsufficientData": "Nkyerɛkyerɛmu Nsoɔ",
   "confidenceLow": "Gye Die Ketewa",
@@ -730,66 +770,125 @@
   "verificationsGivenLabel": "Nsi Sika a Wɔama",
   "trustScoreLabel": "Ahotosoɔ Nsɔaeɛ",
   "reporterTrustExplanation": "Wo mpɔtam yareɛ amanneɛbɔ ne nsidua bata mantam yareɛ asiane afiri ho pɔtee.",
-
   "addAnotherAngle": "Fa Dawere Bio",
-  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "@addAnotherAngle": {
+    "description": "Button to add a second photo from a different angle on the low-confidence screen"
+  },
   "addAngle": "Fa Dawere {current} wɔ {total} Mu",
   "@addAngle": {
     "description": "Button label showing which angle is being captured",
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "anglesCapturePill": "Woatwe {captured} wɔ {total} dawere no",
   "@anglesCapturePill": {
     "description": "Small pill inside the confidence card showing multi-angle progress",
     "placeholders": {
-      "captured": {"type": "int"},
-      "total": {"type": "int"}
+      "captured": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "topGuesses": "Atwerɛ a Edi Wɔso",
-  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "@topGuesses": {
+    "description": "Section header for the top-3 model predictions card"
+  },
   "viewMySubmissions": "Hwɛ me nsɛntwerɛ no",
-  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "@viewMySubmissions": {
+    "description": "Link shown after a crop-not-found report is submitted"
+  },
   "mySubmissions": "Me Nsɛntwerɛ",
-  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "@mySubmissions": {
+    "description": "Title for the My Submissions tile in the More screen"
+  },
   "mySubmissionsSubtitle": "Hwɛ w'adwumayɛ ne asɛm a woɔman no mu",
   "deleteTreatmentPlanTitle": "Pepa Saa Ayaresa Nhyehyɛe Yi?",
-  "@deleteTreatmentPlanTitle": {"description": "Title for delete treatment plan confirmation dialog"},
+  "@deleteTreatmentPlanTitle": {
+    "description": "Title for delete treatment plan confirmation dialog"
+  },
   "deleteTreatmentPlanBody": "Eyi bɛpepa ayaresa nhyehyɛe a ɛfa \"{planName}\" ne ne nnammu nyinaa korakora.",
   "@deleteTreatmentPlanBody": {
     "description": "Body message for delete treatment plan confirmation dialog",
     "placeholders": {
-      "planName": {"type": "String"}
+      "planName": {
+        "type": "String"
+      }
     }
   },
   "deleteTreatmentStepTitle": "Pepa Saa Ayaresa Anammɔn Yi?",
-  "@deleteTreatmentStepTitle": {"description": "Title for delete treatment step confirmation dialog"},
+  "@deleteTreatmentStepTitle": {
+    "description": "Title for delete treatment step confirmation dialog"
+  },
   "deleteTreatmentStepBody": "Eyi bɛpepa anammɔn \"{stepName}\" no korakora.",
   "@deleteTreatmentStepBody": {
     "description": "Body message for delete treatment step confirmation dialog",
     "placeholders": {
-      "stepName": {"type": "String"}
+      "stepName": {
+        "type": "String"
+      }
     }
   },
   "syncPending": "Retwɛn",
-  "@syncPending": {"description": "Sync badge status label for pending sync"},
+  "@syncPending": {
+    "description": "Sync badge status label for pending sync"
+  },
   "syncSyncing": "Resync",
-  "@syncSyncing": {"description": "Sync badge status label for ongoing sync"},
+  "@syncSyncing": {
+    "description": "Sync badge status label for ongoing sync"
+  },
   "syncFailed": "Anyɛ yie",
-  "@syncFailed": {"description": "Sync badge status label for failed sync"},
+  "@syncFailed": {
+    "description": "Sync badge status label for failed sync"
+  },
   "syncDeliveryFailed": "Anyɛ yie koraa",
-  "@syncDeliveryFailed": {"description": "Sync badge status label for abandoned sync after max retries"},
+  "@syncDeliveryFailed": {
+    "description": "Sync badge status label for abandoned sync after max retries"
+  },
   "syncSynced": "Async",
-  "@syncSynced": {"description": "Sync badge status label for successfully synced item"},
+  "@syncSynced": {
+    "description": "Sync badge status label for successfully synced item"
+  },
   "updateRequiredTitle": "Ehia sɛ Wohyɛ Foforo",
-  "@updateRequiredTitle": {"description": "Title for force-update dialog"},
+  "@updateRequiredTitle": {
+    "description": "Title for force-update dialog"
+  },
   "updateRequiredBody": "CropGuard AI foforo bi aba a ɛsɛ sɛ wode yɛ adwuma na woatumi atoaso. Yɛsrɛ wo, kɔ store no mu na kɔhyɛ foforo.",
-  "@updateRequiredBody": {"description": "Body text for force-update dialog"},
+  "@updateRequiredBody": {
+    "description": "Body text for force-update dialog"
+  },
   "updateNow": "Hyɛ Foforo Seesei",
-  "@updateNow": {"description": "Button label to open app store for update"},
+  "@updateNow": {
+    "description": "Button label to open app store for update"
+  },
   "scanEngineUnavailableDesc": "Scan mfiri no antumi anyɛ adwuma wɔ fon yi so. Wubetumi abisa mmoa afi akuafo kuw no hɔ.",
-  "@scanEngineUnavailableDesc": {"description": "Description in scan engine unavailable dialog"}
+  "@scanEngineUnavailableDesc": {
+    "description": "Description in scan engine unavailable dialog"
+  },
+  "statusAtRisk": "Asianee Mu",
+  "gpsDisabledWarning": "Mfiri no beaeɛ nhyehyɛeɛ adum. Yɛsrɛ sɛ sɔ GPS wɔ mfiri no nhyehyɛeɛ mu.",
+  "outbreakVerifiedSuccess": "Wɔahwɛ yareɛ no mu yie.",
+  "outbreakVerifyFailed": "Antumi anhwɛ yareɛ no mu.",
+  "outbreakFlaggedSuccess": "Wɔahyɛ agyirae sɛ yareɛ no nyɛ nokware.",
+  "outbreakFlagFailed": "Antumi anhyɛ yareɛ no agyirae.",
+  "signInRequiredToReport": "Ɛwɔ sɛ wowura mu ansa na woatumi de amanneɛbɔ ato gua.",
+  "locationUnavailable": "Beaeɛ no nni hɔ.",
+  "sortMostCases": "Hyehyɛ: Yareɛ Dodoɔ",
+  "sortMostRecent": "Hyehyɛ: Nea Ɛba Foforɔ",
+  "sortClosest": "Hyehyɛ: Nea Ɛbɛn Paa",
+  "communityReportPostReason": "Bɔ spam, haw, anaa afotu a ɛnyɛ nokware amanneɛ",
+  "communityBlockUserReason": "Fie nsaano ne daakye nsɛm nyinaa firi saa odwumayɛni yi hɔ",
+  "block": "Si Kwan",
+  "galleryPermissionError": "Antumi ankɔ mfoni bea. Hwɛ mfoni kwan a wɔama wɔ Nhyehyɛeɛ mu.",
+  "voiceDictationTwiOnly": "Nne mu nsɛm gyina Twi (tw) so seesei. Sesa kasa wɔ Nhyehyɛeɛ mu.",
+  "voiceDictationTranscribed": "Wɔakyerɛw ({lang}):",
+  "loading": "Ɛrekɔ so..."
 }

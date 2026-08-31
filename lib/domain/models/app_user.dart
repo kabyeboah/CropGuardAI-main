@@ -55,4 +55,3 @@ class AppUser {
       photoUrl.hashCode ^
       isAnonymous.hashCode;
 }
-

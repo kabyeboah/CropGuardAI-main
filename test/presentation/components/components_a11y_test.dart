@@ -36,7 +36,11 @@ void main() {
 
     expect(
       tester.getSemantics(find.bySemanticsLabel('Scan now')),
-      matchesSemantics(label: 'Scan now', isButton: true, hasEnabledState: true, isEnabled: true),
+      matchesSemantics(
+          label: 'Scan now',
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true),
     );
     handle.dispose();
   });

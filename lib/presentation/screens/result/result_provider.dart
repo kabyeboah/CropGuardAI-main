@@ -16,7 +16,8 @@ class ResultProvider extends ChangeNotifier {
   final ICommunityRepository _communityRepo;
   final GetWeatherUseCase _getWeatherUseCase;
 
-  ResultProvider(this._detectionRepo, this._communityRepo, this._getWeatherUseCase);
+  ResultProvider(
+      this._detectionRepo, this._communityRepo, this._getWeatherUseCase);
 
   // This provider is route-scoped (created/disposed on each /result visit), so
   // async work can complete after the user navigates away. Guard all state

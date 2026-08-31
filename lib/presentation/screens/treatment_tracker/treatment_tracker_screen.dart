@@ -155,7 +155,8 @@ class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
                                     padding: const EdgeInsets.fromLTRB(
                                         16, 4, 16, 96),
                                     children: [
-                                      if (_selectedFilter == _PlanFilter.all) ...[
+                                      if (_selectedFilter ==
+                                          _PlanFilter.all) ...[
                                         if (activeGroups.isNotEmpty) ...[
                                           _SectionHeader(
                                             title: 'Active Treatment Plans',
@@ -206,7 +207,8 @@ class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
                                             title: 'No Completed Plans Yet',
                                             subtitle:
                                                 'Complete all steps in a treatment plan to compile it here.',
-                                            icon: Icons.assignment_turned_in_outlined,
+                                            icon: Icons
+                                                .assignment_turned_in_outlined,
                                           )
                                         else
                                           for (final group in completedGroups)
@@ -217,8 +219,8 @@ class _TreatmentTrackerScreenState extends State<TreatmentTrackerScreen> {
                                       ],
                                       if (provider.isLoadingMore)
                                         const Padding(
-                                          padding:
-                                              EdgeInsets.symmetric(vertical: 16),
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 16),
                                           child: Center(
                                             child: CircularProgressIndicator(),
                                           ),
@@ -395,12 +397,10 @@ class _TreatmentPlanCardState extends State<_TreatmentPlanCard> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: CropGuardCard(
-        backgroundColor: isDone
-            ? colors.healthyBg.withValues(alpha: 0.35)
-            : colors.surface,
-        borderColor: isDone
-            ? colors.healthy.withValues(alpha: 0.4)
-            : colors.border,
+        backgroundColor:
+            isDone ? colors.healthyBg.withValues(alpha: 0.35) : colors.surface,
+        borderColor:
+            isDone ? colors.healthy.withValues(alpha: 0.4) : colors.border,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -420,9 +420,7 @@ class _TreatmentPlanCardState extends State<_TreatmentPlanCard> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      isDone
-                          ? Icons.check_circle_rounded
-                          : Icons.eco_rounded,
+                      isDone ? Icons.check_circle_rounded : Icons.eco_rounded,
                       color: isDone ? colors.healthy : colors.primary,
                       size: 22,
                     ),
@@ -503,6 +501,25 @@ class _TreatmentPlanCardState extends State<_TreatmentPlanCard> {
                       step: step,
                       key: ValueKey(step.id),
                     ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline, size: 13, color: colors.muted),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          context.l10n.treatmentAdvisoryDisclaimer,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: colors.muted,
+                            fontStyle: FontStyle.italic,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -519,7 +536,8 @@ class _TreatmentPlanCardState extends State<_TreatmentPlanCard> {
       builder: (ctx) => AlertDialog(
         title: Text(context.l10n.deleteTreatmentPlanTitle),
         content: Text(
-          context.l10n.deleteTreatmentPlanBody('${group.cropType} — ${group.diseaseName}'),
+          context.l10n.deleteTreatmentPlanBody(
+              '${group.cropType} — ${group.diseaseName}'),
         ),
         actions: [
           TextButton(
@@ -566,27 +584,28 @@ class _StepItemTile extends StatelessWidget {
       ),
       confirmDismiss: (direction) async {
         return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(context.l10n.deleteTreatmentStepTitle),
-            content: Text(
-              context.l10n.deleteTreatmentStepBody(step.step),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(context.l10n.cancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  context.l10n.delete,
-                  style: TextStyle(color: colors.diseaseRed),
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text(context.l10n.deleteTreatmentStepTitle),
+                content: Text(
+                  context.l10n.deleteTreatmentStepBody(step.step),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(context.l10n.cancel),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(
+                      context.l10n.delete,
+                      style: TextStyle(color: colors.diseaseRed),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ) ?? false;
+            ) ??
+            false;
       },
       onDismissed: (_) => provider.deletePlan(step.id),
       child: Padding(
@@ -627,7 +646,8 @@ class _StepItemTile extends StatelessWidget {
                   Text(
                     step.step,
                     style: TextStyle(
-                      color: step.completed ? colors.muted : colors.onBackground,
+                      color:
+                          step.completed ? colors.muted : colors.onBackground,
                       decoration:
                           step.completed ? TextDecoration.lineThrough : null,
                       fontSize: 13,
@@ -652,7 +672,8 @@ class _StepItemTile extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon: Icon(Icons.volume_up_rounded, size: 18, color: colors.primary),
+              icon: Icon(Icons.volume_up_rounded,
+                  size: 18, color: colors.primary),
               tooltip: 'Listen to Step',
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               padding: EdgeInsets.zero,

@@ -49,7 +49,8 @@ void main() {
     expect(c.isLocked, isFalse);
   });
 
-  test('resuming from inactive state after grace period locks the app', () async {
+  test('resuming from inactive state after grace period locks the app',
+      () async {
     final c = await build(enabled: true, grace: Duration.zero);
     c.unlock();
     c.didChangeAppLifecycleState(AppLifecycleState.inactive);

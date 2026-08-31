@@ -40,8 +40,8 @@ class FirebaseStorageService {
     }
     final ext = localPath.contains('.') ? localPath.split('.').last : 'jpg';
     final ref = _storage.ref().child(
-      'community_posts/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext',
-    );
+          'community_posts/$userId/${DateTime.now().millisecondsSinceEpoch}.$ext',
+        );
 
     try {
       return await RetryUtils.retry(
@@ -58,4 +58,3 @@ class FirebaseStorageService {
     }
   }
 }
-

@@ -1,6 +1,8 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'app_logger.dart';
+import 'diagnostic_sanitizer.dart';
 
 /// Thin wrapper around Firebase Analytics for product funnel tracking.
 ///
@@ -9,31 +11,49 @@ import 'app_logger.dart';
 /// The matching navigator observer ([observer]) is wired in `app.dart` to log
 /// `screen_view` automatically for go_router routes.
 class AnalyticsService {
-  AnalyticsService([FirebaseAnalytics? analytics])
-      : _analytics = analytics ?? FirebaseAnalytics.instance;
+  AnalyticsService([
+    FirebaseAnalytics? analytics,
+    FirebaseCrashlytics? crashlytics,
+  ])  : _analytics = analytics ?? FirebaseAnalytics.instance,
+        _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
 
   final FirebaseAnalytics _analytics;
+  final FirebaseCrashlytics _crashlytics;
 
   /// User-controlled consent (Settings → "Share usage analytics"). When false,
   /// no events are sent and Firebase collection is disabled at the SDK level.
-  bool _enabled = true;
+  /// Strict opt-in default: false until user grants consent.
+  bool _enabled = false;
+
+  bool get isEnabled => _enabled;
 
   FirebaseAnalyticsObserver get observer =>
       FirebaseAnalyticsObserver(analytics: _analytics);
 
-  /// Applies the user's analytics consent. Persisted by SettingsProvider and
-  /// re-applied on startup.
+  /// Applies the user's analytics consent across Analytics, Crashlytics, and AppLogger.
+  /// Persisted by SettingsProvider and re-applied on startup.
   Future<void> setEnabled(bool enabled) async {
     _enabled = enabled;
+    AppLogger.setCrashlyticsEnabled(enabled);
+
     try {
       await _analytics.setAnalyticsCollectionEnabled(enabled);
+    } catch (_) {/* best-effort */}
+
+    try {
+      await _crashlytics.setCrashlyticsCollectionEnabled(enabled);
+      if (!enabled) {
+        await _crashlytics.setUserIdentifier('');
+      }
     } catch (_) {/* best-effort */}
   }
 
   Future<void> _log(String name, [Map<String, Object>? params]) async {
     if (!_enabled) return;
     try {
-      await _analytics.logEvent(name: name, parameters: params);
+      final cleanParams =
+          params != null ? DiagnosticSanitizer.sanitizeMap(params) : null;
+      await _analytics.logEvent(name: name, parameters: cleanParams);
     } catch (e, s) {
       AppLogger.e('Analytics event "$name" failed', e, s);
     }
@@ -65,7 +85,9 @@ class AnalyticsService {
         'is_healthy': isHealthy.toString(),
         if (modelVersion != null) 'model_version': modelVersion,
         if (topCandidates.isNotEmpty)
-          'top_candidates': topCandidates.map((c) => '${c.label}:${(c.confidence * 100).round()}').join(','),
+          'top_candidates': topCandidates
+              .map((c) => '${c.label}:${(c.confidence * 100).round()}')
+              .join(','),
       });
 
   Future<void> logLowConfidence({

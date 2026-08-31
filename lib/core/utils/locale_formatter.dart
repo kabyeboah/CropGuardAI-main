@@ -17,13 +17,15 @@ class LocaleFormatter {
     return formatter.format(dateTime);
   }
 
-  static String formatMonthDayYearHourMinute(BuildContext context, DateTime dateTime) {
+  static String formatMonthDayYearHourMinute(
+      BuildContext context, DateTime dateTime) {
     final locale = Localizations.localeOf(context).toString();
     final formatter = _getSafeDateFormat('MMM d, yyyy HH:mm', locale);
     return formatter.format(dateTime);
   }
 
-  static String formatMonthDayHourMinute(BuildContext context, DateTime dateTime) {
+  static String formatMonthDayHourMinute(
+      BuildContext context, DateTime dateTime) {
     final locale = Localizations.localeOf(context).toString();
     final formatter = _getSafeDateFormat('MMM d, HH:mm', locale);
     return formatter.format(dateTime);

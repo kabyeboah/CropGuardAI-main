@@ -21,7 +21,7 @@ class InputSanitizer {
       RegExp(r'javascript:', caseSensitive: false),
       '',
     );
-    
+
     final withoutTags = output.replaceAll(RegExp(r'<.*?>'), '');
     return withoutTags.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
@@ -37,6 +37,11 @@ class InputSanitizer {
   }
 
   static const int communityPostMax = 500;
+  static const int authorNameMax = 50;
+  static const int outbreakNotesMax = 500;
+  static const int diseaseNameMax = 80;
+  static const int reportReasonMax = 200;
+  static const int feedbackMax = 1000;
 
   /// Sanitizes and truncates text to a maximum length.
   static String plainText(String input, int maxLength) {
@@ -47,5 +52,4 @@ class InputSanitizer {
       return sanitized;
     }
   }
-
 }

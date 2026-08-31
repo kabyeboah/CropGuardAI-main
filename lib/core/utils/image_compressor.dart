@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 
 import 'app_logger.dart';
+import 'image_safety_utils.dart';
 
 /// Utility to compress camera and gallery images before network upload.
 /// Resizes image so long edge is ~1080px at ~80% JPEG quality.
@@ -22,7 +23,7 @@ class ImageCompressor {
       final bytes = await file.readAsBytes();
       if (bytes.isEmpty) return file;
 
-      final decoded = img.decodeImage(bytes);
+      final decoded = ImageSafetyUtils.safeDecodeAndOrient(bytes);
       if (decoded == null) {
         AppLogger.w('ImageCompressor: Unable to decode image at ${file.path}');
         return file;
@@ -54,7 +55,8 @@ class ImageCompressor {
       );
       return compressedFile;
     } catch (e) {
-      AppLogger.w('ImageCompressor: Compression failed ($e), using original file');
+      AppLogger.w(
+          'ImageCompressor: Compression failed ($e), using original file');
       return file;
     }
   }
@@ -73,15 +75,18 @@ class ImageCompressor {
           final fileName = entity.uri.pathSegments.isNotEmpty
               ? entity.uri.pathSegments.last
               : entity.path;
-          if (fileName.startsWith(tempFilePrefix) && fileName.endsWith('.jpg')) {
+          if (fileName.startsWith(tempFilePrefix) &&
+              fileName.endsWith('.jpg')) {
             try {
               final stat = await entity.stat();
               if (now.difference(stat.modified) > maxAge) {
                 await entity.delete();
-                AppLogger.d('ImageCompressor: Cleaned up orphaned temp file: ${entity.path}');
+                AppLogger.d(
+                    'ImageCompressor: Cleaned up orphaned temp file: ${entity.path}');
               }
             } catch (e) {
-              AppLogger.w('ImageCompressor: Failed to delete old file ${entity.path}: $e');
+              AppLogger.w(
+                  'ImageCompressor: Failed to delete old file ${entity.path}: $e');
             }
           }
         }

@@ -183,7 +183,9 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     try {
       final userFields = await _db.getFields(userId: _userId);
       userField = userFields.firstWhere(
-        (f) => f.cropType.trim().toLowerCase() == crop.trim().toLowerCase() && f.plantingDate != null,
+        (f) =>
+            f.cropType.trim().toLowerCase() == crop.trim().toLowerCase() &&
+            f.plantingDate != null,
       );
     } catch (_) {}
 
@@ -193,11 +195,13 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
     for (var i = 0; i < planSteps.length; i++) {
       final dueDate = now.add(Duration(days: dueDays[i]));
-      
+
       String stepText = planSteps[i];
       if (plantingDt != null) {
-        final postPlantingDay = dueDate.difference(plantingDt).inDays.clamp(0, 999);
-        final fieldName = userField?.name.isNotEmpty == true ? userField!.name : crop;
+        final postPlantingDay =
+            dueDate.difference(plantingDt).inDays.clamp(0, 999);
+        final fieldName =
+            userField?.name.isNotEmpty == true ? userField!.name : crop;
         stepText = 'Day $postPlantingDay post-planting ($fieldName): $stepText';
       }
 
@@ -238,7 +242,9 @@ class TreatmentTrackerProvider extends ChangeNotifier {
   Future<void> _syncAddTreatment(Map<String, dynamic> payload) async {
     if (_isGuest) return;
     try {
-      await _firestore.addTreatment(payload).timeout(const Duration(seconds: 4));
+      await _firestore
+          .addTreatment(payload)
+          .timeout(const Duration(seconds: 4));
     } catch (e) {
       try {
         final db = await _db.database;
@@ -253,10 +259,13 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncUpdateTreatment(String id, Map<String, dynamic> updateData) async {
+  Future<void> _syncUpdateTreatment(
+      String id, Map<String, dynamic> updateData) async {
     if (_isGuest) return;
     try {
-      await _firestore.updateTreatment(id, updateData).timeout(const Duration(seconds: 4));
+      await _firestore
+          .updateTreatment(id, updateData)
+          .timeout(const Duration(seconds: 4));
     } catch (e) {
       try {
         final db = await _db.database;
@@ -346,7 +355,6 @@ class TreatmentTrackerProvider extends ChangeNotifier {
     return groups;
   }
 
-
   List<TreatmentPlanGroup> get activeGroups =>
       planGroups.where((g) => !g.isCompleted).toList();
 
@@ -397,4 +405,3 @@ class TreatmentTrackerProvider extends ChangeNotifier {
 
   Future<void> loadMore() => _load(reset: false);
 }
-

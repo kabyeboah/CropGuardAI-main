@@ -48,7 +48,8 @@ class SettingsProvider extends ChangeNotifier {
 
   bool largeTextMode = false;
   bool showConfidence = true;
-  bool analyticsEnabled = false; // Task 0.13: Default to opt-in (false until user explicitly enables)
+  bool analyticsEnabled =
+      false; // Task 0.13: Default to opt-in (false until user explicitly enables)
   bool biometricLockEnabled = false;
   bool notificationsEnabled = true;
   // Whether the device can do biometric / device-credential auth — gates the
@@ -158,6 +159,9 @@ class SettingsProvider extends ChangeNotifier {
         await _prefs.setBool('notifications_enabled', true);
         await BackgroundTaskHelper.scheduleOutbreakAlerts();
       } else {
+        if (status.isPermanentlyDenied || status.isRestricted) {
+          await openAppSettings();
+        }
         notificationsEnabled = false;
         await _prefs.setBool('notifications_enabled', false);
         await BackgroundTaskHelper.cancelOutbreakAlerts();
@@ -251,7 +255,7 @@ class SettingsProvider extends ChangeNotifier {
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
       final ver = map['version']?.toString() ?? '2026.08.28';
       _rawModelVersion = ver;
-      final classes = map['num_classes_verified'] ?? map['num_classes'] ?? 51;
+      final classes = map['num_classes'] ?? 51;
       modelVersionLabel = 'v$ver ($classes classes)';
       notifyListeners();
     } catch (_) {
@@ -272,9 +276,11 @@ class SettingsProvider extends ChangeNotifier {
     await _loadModelVersion();
 
     try {
-      final hasUpdate = await VersionCheckService.isModelUpdateAvailable(_rawModelVersion);
+      final hasUpdate =
+          await VersionCheckService.isModelUpdateAvailable(_rawModelVersion);
       if (hasUpdate) {
-        updateMessageCode = UiMessage((l) => 'A newer model version is available. Update the app to get the latest model.');
+        updateMessageCode = UiMessage((l) =>
+            'A newer model version is available. Update the app to get the latest model.');
       } else {
         updateMessageCode = UiMessage.modelUpToDate;
       }

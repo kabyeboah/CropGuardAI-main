@@ -40,7 +40,8 @@ void main() {
         (_) async => http.Response(jsonResponse, 200),
       );
 
-      final forecast = await repository.getWeatherForecast(latitude: lat, longitude: lon);
+      final forecast =
+          await repository.getWeatherForecast(latitude: lat, longitude: lon);
 
       expect(forecast.latitude, 6.6);
       expect(forecast.longitude, -1.6);

@@ -111,7 +111,8 @@ void main() {
   // ── getDistinctDiseaseCount ───────────────────────────────────────────────
 
   group('getDistinctDiseaseCount', () {
-    test('counts unique disease labels across all diseased detections', () async {
+    test('counts unique disease labels across all diseased detections',
+        () async {
       await db.insertDetection(
           detection(userId: 'alice', disease: 'blight', isHealthy: false));
       await db.insertDetection(
@@ -275,7 +276,8 @@ void main() {
   // ── Unsynced Detections & Sync Tracking ─────────────────────────────────
 
   group('Unsynced Detections & Sync Tracking', () {
-    test('insertDetection defaults isSynced to false and syncedAt to null', () async {
+    test('insertDetection defaults isSynced to false and syncedAt to null',
+        () async {
       final id = await db.insertDetection(detection(userId: 'alice'));
       final saved = await db.getDetectionById(id);
 
@@ -284,7 +286,8 @@ void main() {
       expect(saved.syncedAt, isNull);
     });
 
-    test('getUnsyncedDetections returns only unsynced scans for the user', () async {
+    test('getUnsyncedDetections returns only unsynced scans for the user',
+        () async {
       final id1 = await db.insertDetection(detection(userId: 'alice'));
       final id2 = await db.insertDetection(detection(userId: 'alice'));
       await db.insertDetection(detection(userId: 'bob'));
@@ -310,7 +313,8 @@ void main() {
       expect(unsynced.length, 1);
       expect(unsynced.first.id, id3);
 
-      final syncedDetections = await db.getAllDetections(userId: 'alice', isSynced: true);
+      final syncedDetections =
+          await db.getAllDetections(userId: 'alice', isSynced: true);
       expect(syncedDetections.length, 2);
       expect(syncedDetections.map((d) => d.id), containsAll([id1, id2]));
       expect(syncedDetections.every((d) => d.syncedAt != null), isTrue);

@@ -1,9 +1,9 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:developer' as dev;
 
 import '../config/app_secrets.dart';
+import 'app_logger.dart';
 import 'image_compressor.dart';
 
 class AppBootstrap {
@@ -11,19 +11,19 @@ class AppBootstrap {
     try {
       await _initRemoteConfig();
     } catch (e) {
-      dev.log("Remote Config fetch failed: $e");
+      AppLogger.w("Remote Config fetch failed: $e");
     }
 
     try {
       await _initAppCheck();
     } catch (e) {
-      dev.log("App Check install failed: $e");
+      AppLogger.w("App Check install failed: $e");
     }
 
     try {
       await ImageCompressor.cleanOldCompressedImages();
     } catch (e) {
-      dev.log("Old compressed images cleanup failed: $e");
+      AppLogger.w("Old compressed images cleanup failed: $e");
     }
   }
 
@@ -49,6 +49,11 @@ class AppBootstrap {
       AppSecrets.setGhanaNlpSubscriptionKey(ghanaNlpKey);
     }
 
+    final geminiKey = remoteConfig.getString('gemini_api_key');
+    if (geminiKey.isNotEmpty) {
+      AppSecrets.setGeminiApiKey(geminiKey);
+    }
+
     // Cloudinary config also resolves via Remote Config so it need not ship in
     // a bundled .env (community image uploads).
     AppSecrets.setCloudinaryConfig(
@@ -61,7 +66,9 @@ class AppBootstrap {
     final resetUrl = remoteConfig.getString('password_reset_continue_url');
     final androidPkg = remoteConfig.getString('android_package_name');
     final iosBundleId = remoteConfig.getString('ios_bundle_id');
-    if (resetUrl.isNotEmpty || androidPkg.isNotEmpty || iosBundleId.isNotEmpty) {
+    if (resetUrl.isNotEmpty ||
+        androidPkg.isNotEmpty ||
+        iosBundleId.isNotEmpty) {
       AppSecrets.setPasswordResetConfig(
         continueUrl: resetUrl.isNotEmpty ? resetUrl : null,
         androidPackage: androidPkg.isNotEmpty ? androidPkg : null,

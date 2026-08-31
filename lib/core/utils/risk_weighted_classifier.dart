@@ -5,21 +5,25 @@ import '../../domain/models/disease_risk.dart';
 /// and weather risk assessments to boost confidence scores of ambiguous ML disease predictions
 /// using additive weighting factors and re-normalization.
 class RiskWeightedClassifier {
-
   /// Maps DiseaseRiskType enum to common class label substrings.
   static bool _matchesDiseaseType(String label, DiseaseRiskType type) {
     final normalized = label.toLowerCase().replaceAll('_', ' ');
     switch (type) {
       case DiseaseRiskType.blackPod:
-        return normalized.contains('black pod') || normalized.contains('phytophthora');
+        return normalized.contains('black pod') ||
+            normalized.contains('phytophthora');
       case DiseaseRiskType.lateBlight:
-        return normalized.contains('late blight') || normalized.contains('phytophthora infestans');
+        return normalized.contains('late blight') ||
+            normalized.contains('phytophthora infestans');
       case DiseaseRiskType.earlyBlight:
-        return normalized.contains('early blight') || normalized.contains('alternaria');
+        return normalized.contains('early blight') ||
+            normalized.contains('alternaria');
       case DiseaseRiskType.leafBlightRust:
-        return normalized.contains('rust') || normalized.contains('leaf blight');
+        return normalized.contains('rust') ||
+            normalized.contains('leaf blight');
       case DiseaseRiskType.riceBlast:
-        return normalized.contains('blast') || normalized.contains('magnaporthe');
+        return normalized.contains('blast') ||
+            normalized.contains('magnaporthe');
     }
   }
 

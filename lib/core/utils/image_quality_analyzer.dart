@@ -7,12 +7,16 @@ import 'package:image/image.dart' as img;
 
 class ImageQualityAnalyzer {
   static const int _analysisMaxSide = 320;
-  static const int _minShortSidePx = 120; // lowered from 160 to support smaller document-extracted images (146px+)
-  static double minLaplacianVariance = 10.0; // lowered from 18 to reduce false rejections on compressed gallery & document photos
-  static const double _minMeanLuminance = 0.05; // lowered from 0.08 for better low-light tolerance
+  static const int _minShortSidePx =
+      120; // lowered from 160 to support smaller document-extracted images (146px+)
+  static double minLaplacianVariance =
+      10.0; // lowered from 18 to reduce false rejections on compressed gallery & document photos
+  static const double _minMeanLuminance =
+      0.05; // lowered from 0.08 for better low-light tolerance
   static const double _maxMeanLuminance = 0.98; // raised from 0.95
 
-  static Future<ImageQualityResult?> analyzeFile(String imagePath, {double? minBlurThreshold}) async {
+  static Future<ImageQualityResult?> analyzeFile(String imagePath,
+      {double? minBlurThreshold}) async {
     return compute((args) {
       final path = args['path'] as String;
       final threshold = args['threshold'] as double?;
@@ -25,7 +29,8 @@ class ImageQualityAnalyzer {
     }, {'path': imagePath, 'threshold': minBlurThreshold});
   }
 
-  static ImageQualityResult analyze(img.Image image, {double? minBlurThreshold}) {
+  static ImageQualityResult analyze(img.Image image,
+      {double? minBlurThreshold}) {
     final shortSide = min(image.width, image.height);
     if (shortSide < _minShortSidePx) {
       return const ImageQualityResult(false, ImageQualityIssue.tooSmall);
@@ -168,9 +173,8 @@ class ImageQualityAnalyzer {
           final b = bytes[index];
           final g = bytes[index + 1];
           final r = bytes[index + 2];
-          gray[oy][ox] = ((0.299 * r) + (0.587 * g) + (0.114 * b))
-              .round()
-              .clamp(0, 255);
+          gray[oy][ox] =
+              ((0.299 * r) + (0.587 * g) + (0.114 * b)).round().clamp(0, 255);
         }
       }
       return gray;

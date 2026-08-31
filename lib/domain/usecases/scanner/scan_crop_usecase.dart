@@ -24,7 +24,8 @@ class ScanCropUseCase {
   ]);
 
   Future<Result<DetectionResult>> call(String imagePath, String userId) async {
-    final classificationResult = await _classifierRepository.classifyFromPath(imagePath);
+    final classificationResult =
+        await _classifierRepository.classifyFromPath(imagePath);
 
     if (classificationResult.isError) {
       return Result.error(classificationResult.failure!);
@@ -32,7 +33,8 @@ class ScanCropUseCase {
 
     final classification = classificationResult.data;
     if (classification == null) {
-      return Result.error(const MLFailure('Classification failed to return a result'));
+      return Result.error(
+          const MLFailure('Classification failed to return a result'));
     }
 
     return saveResolvedScan(

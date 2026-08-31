@@ -219,8 +219,7 @@ class _RegisterBodyState extends State<_RegisterBody> {
                               name: _nameController.text,
                               email: _emailController.text,
                               password: _passwordController.text,
-                              confirmPassword:
-                                  _confirmPasswordController.text,
+                              confirmPassword: _confirmPasswordController.text,
                               termsAccepted: _termsAccepted,
                               onSuccess: () => context.go('/home'),
                               onMigrationNeeded: (count) =>
@@ -241,8 +240,7 @@ class _RegisterBodyState extends State<_RegisterBody> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text('${context.l10n.hasAccountPrompt} ',
-                          style:
-                              TextStyle(color: colors.muted, fontSize: 14)),
+                          style: TextStyle(color: colors.muted, fontSize: 14)),
                       GestureDetector(
                         onTap: () => context.go('/login'),
                         child: Text(context.l10n.signIn,
@@ -301,7 +299,12 @@ class _PasswordStrengthBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final labels = ['', 'Weak', 'Fair', 'Strong', 'Very Strong'];
-    final segColors = [colors.error, colors.warning, colors.healthy, colors.primary];
+    final segColors = [
+      colors.error,
+      colors.warning,
+      colors.healthy,
+      colors.primary
+    ];
 
     if (strength == 0) return const SizedBox.shrink();
     return Column(
@@ -316,7 +319,8 @@ class _PasswordStrengthBar extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   color: filled
-                      ? segColors[i < segColors.length ? i : segColors.length - 1]
+                      ? segColors[
+                          i < segColors.length ? i : segColors.length - 1]
                       : colors.border,
                   borderRadius: BorderRadius.circular(99),
                 ),

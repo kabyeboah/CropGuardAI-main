@@ -35,7 +35,10 @@ class RegisterProvider extends ChangeNotifier {
     required VoidCallback onSuccess,
     void Function(int count)? onMigrationNeeded,
   }) async {
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       errorMessage = 'Please fill in all fields.';
       notifyListeners();
       return;
@@ -64,16 +67,15 @@ class RegisterProvider extends ChangeNotifier {
     // Capture anonymous state before Firebase replaces the current user.
     final wasAnonymous = _auth.isAnonymous;
     final anonUid = wasAnonymous ? _auth.currentUserId : null;
-    final anonCount = (anonUid != null)
-        ? await _db.countDetectionsForUser(anonUid)
-        : 0;
+    final anonCount =
+        (anonUid != null) ? await _db.countDetectionsForUser(anonUid) : 0;
 
     status = RegisterStatus.loading;
     errorMessage = null;
     notifyListeners();
 
-    final result = await _registerUseCase(
-        email: email, password: password, name: name);
+    final result =
+        await _registerUseCase(email: email, password: password, name: name);
 
     if (result.isSuccess) {
       status = RegisterStatus.success;
@@ -112,9 +114,15 @@ class RegisterProvider extends ChangeNotifier {
   }
 
   String _mapError(String e) {
-    if (e.contains('email-already-in-use')) return 'An account already exists with that email.';
-    if (e.contains('weak-password')) return 'Password is too weak.';
-    if (e.contains('network-request-failed')) return 'No internet connection.';
+    if (e.contains('email-already-in-use')) {
+      return 'An account already exists with that email.';
+    }
+    if (e.contains('weak-password')) {
+      return 'Password is too weak.';
+    }
+    if (e.contains('network-request-failed')) {
+      return 'No internet connection.';
+    }
     return 'Registration failed. Please try again.';
   }
 }

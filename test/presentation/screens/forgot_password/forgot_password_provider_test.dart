@@ -39,8 +39,8 @@ void main() {
     });
 
     test('sets error status when repository fails', () async {
-      when(() => repo.sendPasswordReset(any()))
-          .thenAnswer((_) async => Result.error(const AuthFailure('user-not-found')));
+      when(() => repo.sendPasswordReset(any())).thenAnswer(
+          (_) async => Result.error(const AuthFailure('user-not-found')));
 
       await provider.send('unknown@example.com');
 
@@ -49,9 +49,8 @@ void main() {
     });
 
     test('maps too-many-requests to rate-limit message', () async {
-      when(() => repo.sendPasswordReset(any()))
-          .thenAnswer((_) async =>
-              Result.error(const AuthFailure('too-many-requests')));
+      when(() => repo.sendPasswordReset(any())).thenAnswer(
+          (_) async => Result.error(const AuthFailure('too-many-requests')));
 
       await provider.send('farmer@example.com');
 
@@ -59,9 +58,8 @@ void main() {
     });
 
     test('maps network failure to connection message', () async {
-      when(() => repo.sendPasswordReset(any()))
-          .thenAnswer((_) async =>
-              Result.error(const AuthFailure('network-request-failed')));
+      when(() => repo.sendPasswordReset(any())).thenAnswer((_) async =>
+          Result.error(const AuthFailure('network-request-failed')));
 
       await provider.send('farmer@example.com');
 

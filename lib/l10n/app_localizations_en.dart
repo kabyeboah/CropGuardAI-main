@@ -512,6 +512,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get treatmentSteps => 'Treatment Steps';
 
   @override
+  String get treatmentAdvisoryDisclaimer =>
+      'Treatment recommendations are advisory and not a substitute for an agricultural extension officer\'s guidance.';
+
+  @override
   String get bestSprayWindow => 'Best Spray Window';
 
   @override
@@ -1256,35 +1260,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacySection1Body =>
-      'CropGuard AI collects the following information: account email and display name, crop scan images processed locally on your device, and aggregate usage analytics (no personal data). We do not sell your data.';
+      'CropGuard AI collects: account email and display name (if signed in), crop images processed on-device, coarsened location coordinates (~1.1 km grid) to deliver microclimate weather and regional outbreak alerts without exposing exact farm boundaries, and aggregate usage telemetry. We do not sell your personal data.';
 
   @override
   String get privacySection2Title => '2. How We Use Your Data';
 
   @override
   String get privacySection2Body =>
-      'Your data is used to provide the disease detection service, improve model accuracy through anonymised feedback, and deliver expert consultation requests. Scan images are never transmitted to external servers without your explicit consent.';
+      'Your data is used to provide on-device disease diagnosis, localized spray and weather advisories, community outbreak mapping, and expert consultation. Scan images and exact farm locations are never shared publicly.';
 
   @override
-  String get privacySection3Title => '3. Data Storage';
+  String get privacySection3Title => '3. Data Storage & Retention';
 
   @override
   String get privacySection3Body =>
-      'Scan results are stored locally on your device using SQLite. Cloud sync is optional and gated behind authentication. You can delete all local data at any time from Settings → Clear Scan History.';
+      'Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.';
 
   @override
   String get privacySection4Title => '4. Third-Party Services';
 
   @override
   String get privacySection4Body =>
-      'We use Firebase for authentication and optional cloud sync (governed by Google\'s Privacy Policy). We do not share data with any other third parties.';
+      'We use Firebase for secure authentication and optional sync (governed by Google\'s Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.';
 
   @override
   String get privacySection5Title => '5. Contact';
 
   @override
   String get privacySection5Body =>
-      'For privacy enquiries, contact privacy@cropguardai.com.';
+      'For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.';
 
   @override
   String get termsSection1Title => '1. Acceptance of Terms';
@@ -1621,4 +1625,66 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scanEngineUnavailableDesc =>
       'The scan engine couldn\'t start on this device. You can ask the farming community for disease identification.';
+
+  @override
+  String get statusAtRisk => 'At Risk';
+
+  @override
+  String get gpsDisabledWarning =>
+      'Device location service is turned off. Please enable GPS in device settings.';
+
+  @override
+  String get outbreakVerifiedSuccess => 'Outbreak verified successfully.';
+
+  @override
+  String get outbreakVerifyFailed => 'Failed to verify outbreak.';
+
+  @override
+  String get outbreakFlaggedSuccess => 'Outbreak flagged as incorrect.';
+
+  @override
+  String get outbreakFlagFailed => 'Failed to flag outbreak.';
+
+  @override
+  String get signInRequiredToReport =>
+      'You must be signed in to submit a report.';
+
+  @override
+  String get locationUnavailable => 'Location unavailable.';
+
+  @override
+  String get sortMostCases => 'Sort: Most Cases';
+
+  @override
+  String get sortMostRecent => 'Sort: Most Recent';
+
+  @override
+  String get sortClosest => 'Sort: Closest';
+
+  @override
+  String get communityReportPostReason =>
+      'Report spam, harassment, or inaccurate farming advice';
+
+  @override
+  String get communityBlockUserReason =>
+      'Hide all current and future posts from this user';
+
+  @override
+  String get block => 'Block';
+
+  @override
+  String get galleryPermissionError =>
+      'Failed to access gallery. Check photo permissions in Settings.';
+
+  @override
+  String get voiceDictationTwiOnly =>
+      'Voice dictation currently supports Twi (tw). Switch language in Settings.';
+
+  @override
+  String voiceDictationTranscribed(String lang) {
+    return 'Transcribed ($lang):';
+  }
+
+  @override
+  String get loading => 'Loading...';
 }

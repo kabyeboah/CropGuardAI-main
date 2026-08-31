@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/error/failures.dart';
+import '../../core/utils/push_notification_service.dart';
 import '../../core/utils/result.dart';
 import '../../domain/models/reporter_trust_stats.dart';
 import '../../domain/repositories/i_community_repository.dart';
@@ -37,7 +38,8 @@ class ProfileRepositoryImpl implements IProfileRepository {
   }
 
   @override
-  Future<Result<ReporterTrustStats>> getReporterTrustStats(String userId) async {
+  Future<Result<ReporterTrustStats>> getReporterTrustStats(
+      String userId) async {
     try {
       final statsMap = await _firestore.getReporterTrustStats(userId);
       final trustStats = ReporterTrustStats.calculate(
@@ -55,6 +57,13 @@ class ProfileRepositoryImpl implements IProfileRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
+      final uid = _auth.currentUserIdOrNull;
+      if (uid != null) {
+        try {
+          await PushNotificationService.clearFcmToken(uid)
+              .timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      }
       try {
         if (sl.isRegistered<ICommunityRepository>()) {
           final repo = sl<ICommunityRepository>();
@@ -76,21 +85,25 @@ class ProfileRepositoryImpl implements IProfileRepository {
   bool getAlertsEnabled() => _prefs.getBool('alerts_enabled') ?? true;
 
   @override
-  Future<void> setAlertsEnabled(bool enabled) => _prefs.setBool('alerts_enabled', enabled);
+  Future<void> setAlertsEnabled(bool enabled) =>
+      _prefs.setBool('alerts_enabled', enabled);
 
   @override
   bool getHighQualityScans() => _prefs.getBool('high_quality_scans') ?? true;
 
   @override
-  Future<void> setHighQualityScans(bool enabled) => _prefs.setBool('high_quality_scans', enabled);
+  Future<void> setHighQualityScans(bool enabled) =>
+      _prefs.setBool('high_quality_scans', enabled);
 
   @override
   Future<String> saveLocalProfilePhoto(String sourcePath) async {
     final dir = await getApplicationDocumentsDirectory();
-    final ext = p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
+    final ext =
+        p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
     // Versioned filename so the in-memory image cache always sees a new path
     // and refreshes (overwriting the same file would keep a stale cached image).
-    final dest = p.join(dir.path, 'profile_${DateTime.now().millisecondsSinceEpoch}$ext');
+    final dest = p.join(
+        dir.path, 'profile_${DateTime.now().millisecondsSinceEpoch}$ext');
 
     final copied = await File(sourcePath).copy(dest);
 

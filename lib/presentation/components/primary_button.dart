@@ -25,41 +25,47 @@ class PrimaryButton extends StatelessWidget {
     final buttonHeight = height == DeviceLayout.primaryButtonHeight
         ? context.primaryButtonHeight
         : height;
-    return SizedBox(
-      width: double.infinity,
-      height: buttonHeight,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: colors.primary.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+    return Semantics(
+      button: true,
+      enabled: !isLoading && onPressed != null,
+      label: isLoading ? '$text (${context.l10n.loading})' : text,
+      child: SizedBox(
+        width: double.infinity,
+        height: buttonHeight,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colors.primary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: colors.primary.withValues(alpha: 0.5),
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+            ),
+            minimumSize: Size(double.infinity, buttonHeight),
           ),
-          minimumSize: Size(double.infinity, buttonHeight),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 18),
-                    const SizedBox(width: 8),
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, size: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(text,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            )),
                   ],
-                  Text(text,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          )),
-                ],
-              ),
+                ),
+        ),
       ),
     );
   }
@@ -81,23 +87,29 @@ class SecondaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return SizedBox(
-      width: double.infinity,
-      height: height,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: colors.primary,
-          side: BorderSide(color: colors.primary),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      label: text,
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.primary,
+            side: BorderSide(color: colors.primary),
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+            ),
+            minimumSize: Size(double.infinity, height),
           ),
-          minimumSize: Size(double.infinity, height),
+          child: Text(text,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: colors.primary,
+                  )),
         ),
-        child: Text(text,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colors.primary,
-                )),
       ),
     );
   }
@@ -127,9 +139,9 @@ class LimeButton extends StatelessWidget {
         child: Container(
           height: context.primaryButtonHeight,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-                colors: [colors.accent, colors.limeDark]),
-            borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+            gradient: LinearGradient(colors: [colors.accent, colors.limeDark]),
+            borderRadius:
+                BorderRadius.circular(DeviceLayout.buttonCornerRadius),
           ),
           alignment: Alignment.center,
           child: Text(

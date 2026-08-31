@@ -1074,6 +1074,12 @@ abstract class AppLocalizations {
   /// **'Treatment Steps'**
   String get treatmentSteps;
 
+  /// Advisory disclaimer displayed alongside treatment and pesticide recommendations
+  ///
+  /// In en, this message translates to:
+  /// **'Treatment recommendations are advisory and not a substitute for an agricultural extension officer\'s guidance.'**
+  String get treatmentAdvisoryDisclaimer;
+
   /// No description provided for @bestSprayWindow.
   ///
   /// In en, this message translates to:
@@ -2439,7 +2445,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacySection1Body.
   ///
   /// In en, this message translates to:
-  /// **'CropGuard AI collects the following information: account email and display name, crop scan images processed locally on your device, and aggregate usage analytics (no personal data). We do not sell your data.'**
+  /// **'CropGuard AI collects: account email and display name (if signed in), crop images processed on-device, coarsened location coordinates (~1.1 km grid) to deliver microclimate weather and regional outbreak alerts without exposing exact farm boundaries, and aggregate usage telemetry. We do not sell your personal data.'**
   String get privacySection1Body;
 
   /// No description provided for @privacySection2Title.
@@ -2451,19 +2457,19 @@ abstract class AppLocalizations {
   /// No description provided for @privacySection2Body.
   ///
   /// In en, this message translates to:
-  /// **'Your data is used to provide the disease detection service, improve model accuracy through anonymised feedback, and deliver expert consultation requests. Scan images are never transmitted to external servers without your explicit consent.'**
+  /// **'Your data is used to provide on-device disease diagnosis, localized spray and weather advisories, community outbreak mapping, and expert consultation. Scan images and exact farm locations are never shared publicly.'**
   String get privacySection2Body;
 
   /// No description provided for @privacySection3Title.
   ///
   /// In en, this message translates to:
-  /// **'3. Data Storage'**
+  /// **'3. Data Storage & Retention'**
   String get privacySection3Title;
 
   /// No description provided for @privacySection3Body.
   ///
   /// In en, this message translates to:
-  /// **'Scan results are stored locally on your device using SQLite. Cloud sync is optional and gated behind authentication. You can delete all local data at any time from Settings → Clear Scan History.'**
+  /// **'Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.'**
   String get privacySection3Body;
 
   /// No description provided for @privacySection4Title.
@@ -2475,7 +2481,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacySection4Body.
   ///
   /// In en, this message translates to:
-  /// **'We use Firebase for authentication and optional cloud sync (governed by Google\'s Privacy Policy). We do not share data with any other third parties.'**
+  /// **'We use Firebase for secure authentication and optional sync (governed by Google\'s Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.'**
   String get privacySection4Body;
 
   /// No description provided for @privacySection5Title.
@@ -2487,7 +2493,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacySection5Body.
   ///
   /// In en, this message translates to:
-  /// **'For privacy enquiries, contact privacy@cropguardai.com.'**
+  /// **'For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.'**
   String get privacySection5Body;
 
   /// No description provided for @termsSection1Title.
@@ -3077,6 +3083,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The scan engine couldn\'t start on this device. You can ask the farming community for disease identification.'**
   String get scanEngineUnavailableDesc;
+
+  /// No description provided for @statusAtRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'At Risk'**
+  String get statusAtRisk;
+
+  /// No description provided for @gpsDisabledWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Device location service is turned off. Please enable GPS in device settings.'**
+  String get gpsDisabledWarning;
+
+  /// No description provided for @outbreakVerifiedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbreak verified successfully.'**
+  String get outbreakVerifiedSuccess;
+
+  /// No description provided for @outbreakVerifyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to verify outbreak.'**
+  String get outbreakVerifyFailed;
+
+  /// No description provided for @outbreakFlaggedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbreak flagged as incorrect.'**
+  String get outbreakFlaggedSuccess;
+
+  /// No description provided for @outbreakFlagFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to flag outbreak.'**
+  String get outbreakFlagFailed;
+
+  /// No description provided for @signInRequiredToReport.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be signed in to submit a report.'**
+  String get signInRequiredToReport;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable.'**
+  String get locationUnavailable;
+
+  /// No description provided for @sortMostCases.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort: Most Cases'**
+  String get sortMostCases;
+
+  /// No description provided for @sortMostRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort: Most Recent'**
+  String get sortMostRecent;
+
+  /// No description provided for @sortClosest.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort: Closest'**
+  String get sortClosest;
+
+  /// No description provided for @communityReportPostReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Report spam, harassment, or inaccurate farming advice'**
+  String get communityReportPostReason;
+
+  /// No description provided for @communityBlockUserReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide all current and future posts from this user'**
+  String get communityBlockUserReason;
+
+  /// No description provided for @block.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get block;
+
+  /// No description provided for @galleryPermissionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to access gallery. Check photo permissions in Settings.'**
+  String get galleryPermissionError;
+
+  /// No description provided for @voiceDictationTwiOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice dictation currently supports Twi (tw). Switch language in Settings.'**
+  String get voiceDictationTwiOnly;
+
+  /// Label for voice transcribed text with language tag
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribed ({lang}):'**
+  String voiceDictationTranscribed(String lang);
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
 }
 
 class _AppLocalizationsDelegate

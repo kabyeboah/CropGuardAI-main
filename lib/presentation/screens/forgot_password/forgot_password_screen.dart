@@ -66,9 +66,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: isSuccess
                     ? _SuccessView(
                         email: context.read<ForgotPasswordProvider>().sentEmail,
-                        cooldown: context
-                            .select<ForgotPasswordProvider, int>(
-                                (p) => p.resendCooldown),
+                        cooldown: context.select<ForgotPasswordProvider, int>(
+                            (p) => p.resendCooldown),
                         onResend: () => context
                             .read<ForgotPasswordProvider>()
                             .send(_emailController.text),
@@ -103,8 +102,8 @@ class _FormView extends StatelessWidget {
             color: colors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.lock_reset_outlined,
-              size: 28, color: colors.primary),
+          child:
+              Icon(Icons.lock_reset_outlined, size: 28, color: colors.primary),
         ),
         const SizedBox(height: 20),
         Text(
@@ -145,8 +144,8 @@ class _FormView extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: colors.diseaseBg,
                       borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: colors.error.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: colors.error.withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       error,
@@ -234,8 +233,7 @@ class _SuccessView extends StatelessWidget {
               TextSpan(
                 text: email,
                 style: TextStyle(
-                    color: colors.onBackground,
-                    fontWeight: FontWeight.w600),
+                    color: colors.onBackground, fontWeight: FontWeight.w600),
               ),
               const TextSpan(
                   text: ". Check your spam folder if you don't see it."),

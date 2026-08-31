@@ -9,8 +9,11 @@ import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_provider.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
+
 class MockIAuthRepository extends Mock implements IAuthRepository {}
+
 class MockFirestoreService extends Mock implements FirestoreService {}
+
 class FakeTreatmentPlan extends Fake implements TreatmentPlan {}
 
 void main() {
@@ -118,7 +121,9 @@ void main() {
   });
 
   group('TreatmentTrackerProvider grouping', () {
-    test('groups raw steps by detectionId and separates active vs completed groups', () async {
+    test(
+        'groups raw steps by detectionId and separates active vs completed groups',
+        () async {
       final now = DateTime.now();
 
       final step1 = TreatmentPlan(
@@ -165,7 +170,8 @@ void main() {
       when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
           .thenAnswer((_) async => 2);
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      final provider =
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       expect(provider.planGroups.length, 2);
@@ -210,7 +216,8 @@ void main() {
           .thenAnswer((_) async => 0);
       when(() => mockDb.deleteTreatment('s1')).thenAnswer((_) async {});
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      final provider =
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       when(() => mockDb.getAllTreatments(
@@ -227,7 +234,9 @@ void main() {
       expect(provider.planGroups, isEmpty);
     });
 
-    test('does not throw when currentUser is null and skips firestore sync in guest mode', () async {
+    test(
+        'does not throw when currentUser is null and skips firestore sync in guest mode',
+        () async {
       when(() => mockAuthRepo.currentUser).thenReturn(null);
       when(() => mockDb.getAllTreatments(
             userId: 'guest',
@@ -238,12 +247,11 @@ void main() {
           .thenAnswer((_) async => 0);
       when(() => mockDb.getCompletedTreatmentsCount(userId: 'guest'))
           .thenAnswer((_) async => 0);
-      when(() => mockDb.getFields(userId: 'guest'))
-          .thenAnswer((_) async => []);
-      when(() => mockDb.insertTreatment(any()))
-          .thenAnswer((_) async => '1');
+      when(() => mockDb.getFields(userId: 'guest')).thenAnswer((_) async => []);
+      when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      final provider =
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -274,10 +282,10 @@ void main() {
           .thenAnswer((_) async => 0);
       when(() => mockDb.getFields(userId: 'anon_12345'))
           .thenAnswer((_) async => []);
-      when(() => mockDb.insertTreatment(any()))
-          .thenAnswer((_) async => '1');
+      when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      final provider =
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -289,7 +297,8 @@ void main() {
       verifyNever(() => mockFirestore.addTreatment(any()));
     });
 
-    test('syncs to firestore when authenticated user is not anonymous', () async {
+    test('syncs to firestore when authenticated user is not anonymous',
+        () async {
       final realUser = AppUser(
         id: 'user_real_999',
         email: 'farmer@example.com',
@@ -308,12 +317,12 @@ void main() {
           .thenAnswer((_) async => 0);
       when(() => mockDb.getFields(userId: 'user_real_999'))
           .thenAnswer((_) async => []);
-      when(() => mockDb.insertTreatment(any()))
-          .thenAnswer((_) async => '1');
+      when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
       when(() => mockFirestore.addTreatment(any()))
           .thenAnswer((_) async => 'cloud_id_1');
 
-      final provider = TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+      final provider =
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -322,7 +331,8 @@ void main() {
         steps: ['Apply bio-fungicide'],
       );
 
-      verify(() => mockFirestore.addTreatment(any())).called(greaterThanOrEqualTo(1));
+      verify(() => mockFirestore.addTreatment(any()))
+          .called(greaterThanOrEqualTo(1));
     });
   });
 }

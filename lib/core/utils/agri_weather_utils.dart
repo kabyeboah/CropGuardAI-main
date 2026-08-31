@@ -6,8 +6,8 @@ class AgriWeatherUtils {
   /// Humidity > 80% and Temperature between 20-30°C
   static bool isFungalRisk(DailyForecast forecast) {
     return forecast.humidity > 80 &&
-           forecast.maxTemp >= 20 &&
-           forecast.maxTemp <= 30;
+        forecast.maxTemp >= 20 &&
+        forecast.maxTemp <= 30;
   }
 
   /// Produces a short, prioritised disease-risk outlook for the next few days
@@ -24,32 +24,39 @@ class AgriWeatherUtils {
     if (daily.isEmpty) return const [];
 
     // Parse active, verified regional outbreaks reported in the last 14 days
-    final activeDiseases = outbreaks.where((o) {
-      final oReg = (o['region'] as String?)?.toLowerCase();
-      if (oReg == null || oReg != region.toLowerCase()) return false;
-      
-      final verifiedBy = (o['verifiedBy'] as List?) ?? [];
-      final refutedBy = (o['refutedBy'] as List?) ?? [];
-      if (verifiedBy.length < 3 || refutedBy.length > verifiedBy.length) return false;
+    final activeDiseases = outbreaks
+        .where((o) {
+          final oReg = (o['region'] as String?)?.toLowerCase();
+          if (oReg == null || oReg != region.toLowerCase()) return false;
 
-      final ts = o['timestamp'] ?? o['date'];
-      DateTime? dt;
-      if (ts is DateTime) {
-        dt = ts;
-      } else if (ts is int) {
-        dt = DateTime.fromMillisecondsSinceEpoch(ts);
-      } else if (ts != null) {
-        try {
-          dt = ts.toDate() as DateTime?;
-        } catch (_) {}
-      }
-      
-      if (dt != null) {
-        final diff = DateTime.now().difference(dt);
-        if (diff.inDays <= 14) return true;
-      }
-      return false;
-    }).map((o) => (o['disease'] as String? ?? o['diseaseName'] as String? ?? '').toLowerCase()).toSet();
+          final verifiedBy = (o['verifiedBy'] as List?) ?? [];
+          final refutedBy = (o['refutedBy'] as List?) ?? [];
+          if (verifiedBy.length < 3 || refutedBy.length > verifiedBy.length) {
+            return false;
+          }
+
+          final ts = o['timestamp'] ?? o['date'];
+          DateTime? dt;
+          if (ts is DateTime) {
+            dt = ts;
+          } else if (ts is int) {
+            dt = DateTime.fromMillisecondsSinceEpoch(ts);
+          } else if (ts != null) {
+            try {
+              dt = ts.toDate() as DateTime?;
+            } catch (_) {}
+          }
+
+          if (dt != null) {
+            final diff = DateTime.now().difference(dt);
+            if (diff.inDays <= 14) return true;
+          }
+          return false;
+        })
+        .map((o) =>
+            (o['disease'] as String? ?? o['diseaseName'] as String? ?? '')
+                .toLowerCase())
+        .toSet();
 
     bool hasOutbreak(DiseaseRiskType type) {
       final keyword = switch (type) {
@@ -59,10 +66,14 @@ class AgriWeatherUtils {
         DiseaseRiskType.leafBlightRust => 'rust',
         DiseaseRiskType.riceBlast => 'blast',
       };
-      
+
       for (final d in activeDiseases) {
         if (d.contains(keyword)) return true;
-        if (type == DiseaseRiskType.leafBlightRust && d.contains('blight') && d.contains('maize')) return true;
+        if (type == DiseaseRiskType.leafBlightRust &&
+            d.contains('blight') &&
+            d.contains('maize')) {
+          return true;
+        }
       }
       return false;
     }
@@ -169,17 +180,58 @@ class AgriWeatherUtils {
     final month = now.month;
 
     if (region == 'North') {
-      if (month >= 5 && month <= 6) return {"status": "Planting Season", "action": "Ideal for Maize, Millet, and Yam."};
-      if (month >= 7 && month <= 9) return {"status": "Growing Season", "action": "Monitor for Fall Armyworm."};
-      if (month >= 10 && month <= 11) return {"status": "Harvesting", "action": "Dry grains properly to avoid Aflatoxins."};
-      return {"status": "Dry Season", "action": "Prepare land for May planting."};
+      if (month >= 5 && month <= 6) {
+        return {
+          "status": "Planting Season",
+          "action": "Ideal for Maize, Millet, and Yam."
+        };
+      }
+      if (month >= 7 && month <= 9) {
+        return {
+          "status": "Growing Season",
+          "action": "Monitor for Fall Armyworm."
+        };
+      }
+      if (month >= 10 && month <= 11) {
+        return {
+          "status": "Harvesting",
+          "action": "Dry grains properly to avoid Aflatoxins."
+        };
+      }
+      return {
+        "status": "Dry Season",
+        "action": "Prepare land for May planting."
+      };
     } else {
       // South
-      if (month >= 3 && month <= 4) return {"status": "Major Season Planting", "action": "Plant Maize and Cassava now."};
-      if (month >= 5 && month <= 6) return {"status": "Major Growing Season", "action": "High humidity risk for Fungal diseases."};
-      if (month >= 9 && month <= 10) return {"status": "Minor Season Planting", "action": "Short-duration crops recommended."};
-      if (month == 11 || month == 12) return {"status": "Minor Harvesting", "action": "Prepare for Harmattan dry spells."};
-      return {"status": "Off-season", "action": "Ideal for irrigation farming / vegetables."};
+      if (month >= 3 && month <= 4) {
+        return {
+          "status": "Major Season Planting",
+          "action": "Plant Maize and Cassava now."
+        };
+      }
+      if (month >= 5 && month <= 6) {
+        return {
+          "status": "Major Growing Season",
+          "action": "High humidity risk for Fungal diseases."
+        };
+      }
+      if (month >= 9 && month <= 10) {
+        return {
+          "status": "Minor Season Planting",
+          "action": "Short-duration crops recommended."
+        };
+      }
+      if (month == 11 || month == 12) {
+        return {
+          "status": "Minor Harvesting",
+          "action": "Prepare for Harmattan dry spells."
+        };
+      }
+      return {
+        "status": "Off-season",
+        "action": "Ideal for irrigation farming / vegetables."
+      };
     }
   }
 }

@@ -32,7 +32,8 @@ class PushNotificationService {
   /// Callback when user taps a push notification payload
   static void Function(String? payload)? _onNotificationTap;
 
-  static Future<void> init({void Function(String? payload)? onNotificationTap}) async {
+  static Future<void> init(
+      {void Function(String? payload)? onNotificationTap}) async {
     _onNotificationTap = onNotificationTap;
 
     // Register background handler
@@ -98,8 +99,12 @@ class PushNotificationService {
     }
   }
 
-  static Future<void> _saveTokenToFirestore(String token, {String? userId}) async {
-    final uid = userId ?? FirebaseAuth.instance.currentUser?.uid;
+  static Future<void> _saveTokenToFirestore(String token,
+      {String? userId}) async {
+    String? uid = userId;
+    try {
+      uid ??= FirebaseAuth.instance.currentUser?.uid;
+    } catch (_) {}
     if (uid == null) return;
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -113,11 +118,35 @@ class PushNotificationService {
     }
   }
 
+  /// Clears the device's FCM token from Firestore and resets FCM instance on sign-out.
+  /// Prevents delivering notifications to stale accounts or shared devices.
+  static Future<void> clearFcmToken([String? userId]) async {
+    String? uid = userId;
+    try {
+      uid ??= FirebaseAuth.instance.currentUser?.uid;
+    } catch (_) {}
+    try {
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'fcmToken': FieldValue.delete(),
+          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+        });
+        AppLogger.d('FCM Token cleared from Firestore for user $uid');
+      }
+      await _fcm.deleteToken();
+    } catch (e) {
+      AppLogger.w('Failed to clear FCM token: $e');
+    }
+  }
+
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     AppLogger.d('FCM Foreground message received: ${message.data}');
 
-    final title = message.notification?.title ?? message.data['title'] ?? 'Disease Alert';
-    final body = message.notification?.body ?? message.data['body'] ?? 'A new risk update is available for your region.';
+    final title =
+        message.notification?.title ?? message.data['title'] ?? 'Disease Alert';
+    final body = message.notification?.body ??
+        message.data['body'] ??
+        'A new risk update is available for your region.';
     final type = message.data['type'] ?? 'outbreak_alert';
 
     // Show local notification banner
@@ -133,7 +162,8 @@ class PushNotificationService {
         final db = sl<DatabaseHelper>();
         await db.insertNotification(
           AppNotification(
-            id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            id: message.messageId ??
+                DateTime.now().millisecondsSinceEpoch.toString(),
             title: title,
             body: body,
             type: type,
@@ -151,5 +181,20 @@ class PushNotificationService {
     AppLogger.d('FCM Push notification clicked: ${message.data}');
     final route = message.data['route'] ?? '/outbreak_map';
     _onNotificationTap?.call(route);
+  }
+
+  @visibleForTesting
+  static Future<void> handleForegroundMessageForTesting(
+          RemoteMessage message) =>
+      _handleForegroundMessage(message);
+
+  @visibleForTesting
+  static void handleMessageClickForTesting(RemoteMessage message) =>
+      _handleMessageClick(message);
+
+  @visibleForTesting
+  static void setOnNotificationTapForTesting(
+      void Function(String? payload)? callback) {
+    _onNotificationTap = callback;
   }
 }

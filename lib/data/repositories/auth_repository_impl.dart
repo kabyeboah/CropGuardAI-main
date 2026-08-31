@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../core/di/service_locator.dart';
 import '../../core/error/failures.dart';
+import '../../core/utils/push_notification_service.dart';
 import '../../core/utils/result.dart';
 import '../../domain/models/app_user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
@@ -14,7 +15,8 @@ class AuthRepositoryImpl implements IAuthRepository {
   AuthRepositoryImpl(this._authService);
 
   @override
-  Stream<AppUser?> get authStateChanges => _authService.authStateChanges.map(_mapFirebaseUser);
+  Stream<AppUser?> get authStateChanges =>
+      _authService.authStateChanges.map(_mapFirebaseUser);
 
   @override
   AppUser? get currentUser => _mapFirebaseUser(_authService.currentUser);
@@ -26,9 +28,11 @@ class AuthRepositoryImpl implements IAuthRepository {
   bool get isAnonymous => _authService.isAnonymous;
 
   @override
-  Future<Result<AppUser>> signIn({required String email, required String password}) async {
+  Future<Result<AppUser>> signIn(
+      {required String email, required String password}) async {
     try {
-      final credential = await _authService.signIn(email: email, password: password);
+      final credential =
+          await _authService.signIn(email: email, password: password);
       final user = _mapFirebaseUser(credential.user);
       if (user != null) {
         return Result.success(user);
@@ -42,17 +46,24 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
-  Future<Result<AppUser>> register({required String email, required String password, required String name}) async {
+  Future<Result<AppUser>> register(
+      {required String email,
+      required String password,
+      required String name}) async {
     try {
-      final credential = await _authService.register(email: email, password: password, name: name);
+      final credential = await _authService.register(
+          email: email, password: password, name: name);
       final user = _mapFirebaseUser(credential.user);
       if (user != null) {
-        final effectiveUser = (user.displayName.isEmpty || user.displayName == 'Farmer') && name.trim().isNotEmpty
-            ? user.copyWith(displayName: name.trim())
-            : user;
+        final effectiveUser =
+            (user.displayName.isEmpty || user.displayName == 'Farmer') &&
+                    name.trim().isNotEmpty
+                ? user.copyWith(displayName: name.trim())
+                : user;
         return Result.success(effectiveUser);
       } else {
-        return Result.error(const AuthFailure('Registration failed: User is null'));
+        return Result.error(
+            const AuthFailure('Registration failed: User is null'));
       }
     } catch (e) {
       if (e is Failure) return Result.error(e);
@@ -85,6 +96,13 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
+      final uid = _authService.currentUserIdOrNull;
+      if (uid != null) {
+        try {
+          await PushNotificationService.clearFcmToken(uid)
+              .timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      }
       try {
         if (sl.isRegistered<ICommunityRepository>()) {
           final repo = sl<ICommunityRepository>();
@@ -106,6 +124,13 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<Result<void>> deleteAccount() async {
     try {
+      final uid = _authService.currentUserIdOrNull;
+      if (uid != null) {
+        try {
+          await PushNotificationService.clearFcmToken(uid)
+              .timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      }
       await _authService.deleteAccount();
       return Result.success(null);
     } catch (e) {
@@ -166,6 +191,34 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<Result<void>> updatePhotoUrl(String url) async {
     try {
       await _authService.updatePhotoUrl(url);
+      return Result.success(null);
+    } catch (e) {
+      if (e is Failure) return Result.error(e);
+      return Result.error(AuthFailure(e.toString()));
+    }
+  }
+
+  @override
+  bool get hasPasswordProvider => _authService.hasPasswordProvider;
+
+  @override
+  bool get hasGoogleProvider => _authService.hasGoogleProvider;
+
+  @override
+  Future<Result<void>> reauthenticateWithPassword(String password) async {
+    try {
+      await _authService.reauthenticateWithPassword(password);
+      return Result.success(null);
+    } catch (e) {
+      if (e is Failure) return Result.error(e);
+      return Result.error(AuthFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void>> reauthenticateWithGoogle() async {
+    try {
+      await _authService.reauthenticateWithGoogle();
       return Result.success(null);
     } catch (e) {
       if (e is Failure) return Result.error(e);

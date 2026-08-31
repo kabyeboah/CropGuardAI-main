@@ -512,6 +512,10 @@ class AppLocalizationsTw extends AppLocalizations {
   String get treatmentSteps => 'Treatment Steps';
 
   @override
+  String get treatmentAdvisoryDisclaimer =>
+      'Ayaresa afotu yi yɛ afotu kɛkɛ na ɛnnsi kuayɛ panyin (extension officer) afotu ananmu.';
+
+  @override
   String get bestSprayWindow => 'Best Spray Window';
 
   @override
@@ -1256,35 +1260,35 @@ class AppLocalizationsTw extends AppLocalizations {
 
   @override
   String get privacySection1Body =>
-      'CropGuard AI collects the following information: account email and display name, crop scan images processed locally on your device, and aggregate usage analytics (no personal data). We do not sell your data.';
+      'CropGuard AI collects: account email and display name (if signed in), crop images processed on-device, coarsened location coordinates (~1.1 km grid) to deliver microclimate weather and regional outbreak alerts without exposing exact farm boundaries, and aggregate usage telemetry. We do not sell your personal data.';
 
   @override
   String get privacySection2Title => '2. How We Use Your Data';
 
   @override
   String get privacySection2Body =>
-      'Your data is used to provide the disease detection service, improve model accuracy through anonymised feedback, and deliver expert consultation requests. Scan images are never transmitted to external servers without your explicit consent.';
+      'Your data is used to provide on-device disease diagnosis, localized spray and weather advisories, community outbreak mapping, and expert consultation. Scan images and exact farm locations are never shared publicly.';
 
   @override
-  String get privacySection3Title => '3. Data Storage';
+  String get privacySection3Title => '3. Data Storage & Retention';
 
   @override
   String get privacySection3Body =>
-      'Scan results are stored locally on your device using SQLite. Cloud sync is optional and gated behind authentication. You can delete all local data at any time from Settings → Clear Scan History.';
+      'Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.';
 
   @override
   String get privacySection4Title => '4. Third-Party Services';
 
   @override
   String get privacySection4Body =>
-      'We use Firebase for authentication and optional cloud sync (governed by Google\'s Privacy Policy). We do not share data with any other third parties.';
+      'We use Firebase for secure authentication and optional sync (governed by Google\'s Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.';
 
   @override
   String get privacySection5Title => '5. Contact';
 
   @override
   String get privacySection5Body =>
-      'For privacy enquiries, contact privacy@cropguardai.com.';
+      'For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.';
 
   @override
   String get termsSection1Title => '1. Acceptance of Terms';
@@ -1620,4 +1624,67 @@ class AppLocalizationsTw extends AppLocalizations {
   @override
   String get scanEngineUnavailableDesc =>
       'Scan mfiri no antumi anyɛ adwuma wɔ fon yi so. Wubetumi abisa mmoa afi akuafo kuw no hɔ.';
+
+  @override
+  String get statusAtRisk => 'Asianee Mu';
+
+  @override
+  String get gpsDisabledWarning =>
+      'Mfiri no beaeɛ nhyehyɛeɛ adum. Yɛsrɛ sɛ sɔ GPS wɔ mfiri no nhyehyɛeɛ mu.';
+
+  @override
+  String get outbreakVerifiedSuccess => 'Wɔahwɛ yareɛ no mu yie.';
+
+  @override
+  String get outbreakVerifyFailed => 'Antumi anhwɛ yareɛ no mu.';
+
+  @override
+  String get outbreakFlaggedSuccess =>
+      'Wɔahyɛ agyirae sɛ yareɛ no nyɛ nokware.';
+
+  @override
+  String get outbreakFlagFailed => 'Antumi anhyɛ yareɛ no agyirae.';
+
+  @override
+  String get signInRequiredToReport =>
+      'Ɛwɔ sɛ wowura mu ansa na woatumi de amanneɛbɔ ato gua.';
+
+  @override
+  String get locationUnavailable => 'Beaeɛ no nni hɔ.';
+
+  @override
+  String get sortMostCases => 'Hyehyɛ: Yareɛ Dodoɔ';
+
+  @override
+  String get sortMostRecent => 'Hyehyɛ: Nea Ɛba Foforɔ';
+
+  @override
+  String get sortClosest => 'Hyehyɛ: Nea Ɛbɛn Paa';
+
+  @override
+  String get communityReportPostReason =>
+      'Bɔ spam, haw, anaa afotu a ɛnyɛ nokware amanneɛ';
+
+  @override
+  String get communityBlockUserReason =>
+      'Fie nsaano ne daakye nsɛm nyinaa firi saa odwumayɛni yi hɔ';
+
+  @override
+  String get block => 'Si Kwan';
+
+  @override
+  String get galleryPermissionError =>
+      'Antumi ankɔ mfoni bea. Hwɛ mfoni kwan a wɔama wɔ Nhyehyɛeɛ mu.';
+
+  @override
+  String get voiceDictationTwiOnly =>
+      'Nne mu nsɛm gyina Twi (tw) so seesei. Sesa kasa wɔ Nhyehyɛeɛ mu.';
+
+  @override
+  String voiceDictationTranscribed(String lang) {
+    return 'Wɔakyerɛw ($lang):';
+  }
+
+  @override
+  String get loading => 'Ɛrekɔ so...';
 }

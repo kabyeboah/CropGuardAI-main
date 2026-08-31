@@ -15,18 +15,25 @@ enum PendingSyncType {
   outbreakReport,
   feedbackCorrection,
   expertRequest,
+
   /// A "crop not found" report (missing crop / novel disease submission).
   cropNotFound,
+
   /// Upload scan history result to Cloud Firestore.
   scanUpload,
+
   /// Add treatment plan to Cloud Firestore.
   treatmentAdd,
+
   /// Update treatment plan in Cloud Firestore.
   treatmentUpdate,
+
   /// Delete treatment plan from Cloud Firestore.
   treatmentDelete,
+
   /// Low confidence scan captured as training candidate for active learning.
   trainingCandidate,
+
   /// Flagged/reported community post submitted for moderation.
   reportedPost,
 }
@@ -133,21 +140,27 @@ class PendingSyncQueue {
   /// return `false` to keep it for a future retry.
   static Future<void> drain(
     Database db, {
-    required Future<bool> Function(int id, PendingSyncType type, Map<String, dynamic> payload) handler,
+    required Future<bool> Function(
+            int id, PendingSyncType type, Map<String, dynamic> payload)
+        handler,
   }) async {
     if (_isDraining) {
-      AppLogger.i('PendingSyncQueue: drain is already in progress, skipping concurrent run');
+      AppLogger.i(
+          'PendingSyncQueue: drain is already in progress, skipping concurrent run');
       return;
     }
     _isDraining = true;
     try {
-      final rows = await db.query(_table, where: "status != 'abandoned'", orderBy: 'created ASC');
+      final rows = await db.query(_table,
+          where: "status != 'abandoned'", orderBy: 'created ASC');
       if (rows.isEmpty) return;
 
-      AppLogger.i('PendingSyncQueue: draining ${rows.length} pending operation(s)');
+      AppLogger.i(
+          'PendingSyncQueue: draining ${rows.length} pending operation(s)');
       try {
         if (sl.isRegistered<AnalyticsService>()) {
-          unawaited(sl<AnalyticsService>().logOfflineQueueDrain(count: rows.length));
+          unawaited(
+              sl<AnalyticsService>().logOfflineQueueDrain(count: rows.length));
         }
       } catch (_) {}
 
@@ -155,7 +168,9 @@ class PendingSyncQueue {
         final id = row['id'] as int;
         final currentRetries = (row['retry_count'] as int?) ?? 0;
         final typeString = row['type'] as String?;
-        final type = PendingSyncType.values.where((e) => e.name == typeString).firstOrNull;
+        final type = PendingSyncType.values
+            .where((e) => e.name == typeString)
+            .firstOrNull;
 
         if (type == null) {
           await db.update(
@@ -164,29 +179,35 @@ class PendingSyncQueue {
             where: 'id = ?',
             whereArgs: [id],
           );
-          AppLogger.e('PendingSyncQueue: unrecognized operation type "$typeString" for row #$id, marked as abandoned');
+          AppLogger.e(
+              'PendingSyncQueue: unrecognized operation type "$typeString" for row #$id, marked as abandoned');
           continue;
         }
-        final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+        final payload =
+            jsonDecode(row['payload'] as String) as Map<String, dynamic>;
 
         // Update status to syncing
-        await db.update(_table, {'status': 'syncing'}, where: 'id = ?', whereArgs: [id]);
+        await db.update(_table, {'status': 'syncing'},
+            where: 'id = ?', whereArgs: [id]);
 
         try {
           final success = await handler(id, type, payload);
           if (success) {
             await db.delete(_table, where: 'id = ?', whereArgs: [id]);
-            AppLogger.i('PendingSyncQueue: replayed and removed ${type.name}#$id');
+            AppLogger.i(
+                'PendingSyncQueue: replayed and removed ${type.name}#$id');
           } else {
             final nextRetries = currentRetries + 1;
-            final newStatus = nextRetries >= maxRetries ? 'abandoned' : 'failed';
+            final newStatus =
+                nextRetries >= maxRetries ? 'abandoned' : 'failed';
             await db.update(
               _table,
               {'status': newStatus, 'retry_count': nextRetries},
               where: 'id = ?',
               whereArgs: [id],
             );
-            AppLogger.w('PendingSyncQueue: handler returned false for ${type.name}#$id (retries: $nextRetries, status: $newStatus)');
+            AppLogger.w(
+                'PendingSyncQueue: handler returned false for ${type.name}#$id (retries: $nextRetries, status: $newStatus)');
           }
         } catch (e) {
           final nextRetries = currentRetries + 1;
@@ -197,7 +218,8 @@ class PendingSyncQueue {
             where: 'id = ?',
             whereArgs: [id],
           );
-          AppLogger.w('PendingSyncQueue: replay failed for ${type.name}#$id: $e (retries: $nextRetries, status: $newStatus)');
+          AppLogger.w(
+              'PendingSyncQueue: replay failed for ${type.name}#$id: $e (retries: $nextRetries, status: $newStatus)');
         }
       }
     } finally {
@@ -273,7 +295,8 @@ class PendingSyncQueue {
       final idsToDelete = <int>[];
       for (final row in rows) {
         try {
-          final payload = jsonDecode(row['payload'] as String) as Map<String, dynamic>;
+          final payload =
+              jsonDecode(row['payload'] as String) as Map<String, dynamic>;
           if (payload['userId'] == userId || payload['authorId'] == userId) {
             idsToDelete.add(row['id'] as int);
           }
@@ -299,7 +322,9 @@ class PendingSyncQueue {
   /// (e.g. before sign-out or app teardown) before removing completed items.
   static Future<void> drainWithTimeout(
     Database db, {
-    required Future<bool> Function(int id, PendingSyncType type, Map<String, dynamic> payload) handler,
+    required Future<bool> Function(
+            int id, PendingSyncType type, Map<String, dynamic> payload)
+        handler,
     Duration timeout = const Duration(seconds: 4),
   }) async {
     try {

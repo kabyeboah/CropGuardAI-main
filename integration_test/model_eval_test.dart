@@ -11,7 +11,7 @@
 // USAGE
 //   1. Build a held-out test set the model has NEVER trained on. Lay it out
 //      ImageNet-style — one sub-folder per class, named EXACTLY as the labels
-//      in assets/labels_verified.txt:
+//      in assets/labels.txt:
 //        test_set/
 //          Tomato___Late_blight/img1.jpg ...
 //          Tomato___healthy/imgA.jpg ...

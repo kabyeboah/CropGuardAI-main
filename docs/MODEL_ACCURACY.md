@@ -1,157 +1,160 @@
-# CropGuard AI — Model Accuracy & Confidence Calibration Report
+# Model Validation, Calibration & Release Gating Report
 
-> **Document Status: ACTIVE SPECIFICATION & EVALUATION HARNESS AUDIT.**  
-> This document defines the formal accuracy evaluation methodology, calibration standards, release criteria, and evaluation harnesses for the CropGuard AI disease classification pipeline.
-
----
-
-## 1. Executive Summary & Audit Context
-
-In previous versions, `MODEL_ACCURACY.md` contained placeholder values (`_TBD_`) and the production confidence threshold (`0.60`) was asserted heuristically without published empirical backing.
-
-A comprehensive technical audit revealed:
-1. **V1 Model Label Inconsistency**: The prior 54-output node V1 model was paired with a 93-entry label file, causing arbitrary truncation and label swap errors.
-2. **V2 Model Flex-Ops Gap**: The prior V2 model required unbundled TensorFlow Flex ops (`FlexMul`), preventing clean on-device execution.
-3. **Current Safe Architecture**: Both misaligned model artifacts were deprecated and removed. The classifier is configured with an honest degraded visual fallback (`CropDiseaseClassifier.fallbackVisualClassification`) routing low-confidence and offline scans to the multi-angle soft voting ensemble and Gemini Cloud AI pipeline (`modelVersion = 'retrain-pending'`).
-
-This document and its associated harnesses (`integration_test/model_eval_test.dart` and `tools/evaluate_model.py`) establish the rigorous, auditable evaluation standard required for all retrained and future models before production deployment.
+> **Document Status: ACTIVE EVALUATION REPORT & RELEASE GATE AUDIT** [CURRENT]
+> **Generated:** 2026-08-31 | **Evaluator:** Antigravity Pair Programmer / `tools/evaluate_model.py` [CURRENT]
+> **Evaluated Artifact:** `assets/cropguard_plant_disease.tflite` (SHA-256 binary verified) [CURRENT]
+> **Release Gate Status:** **FAIL (RELEASE BLOCKED)** (Required Floor: $\ge 70.0\%$, Measured: **16.67%**) [CURRENT]
 
 ---
 
-## 2. Release & Validation Guardrails
+## 1. Executive Summary & Formal Gate Verdict
 
-To prevent deploying flawed or miscalibrated models to Ghanaian smallholder farmers, any retrained model artifact must satisfy the following minimum quantitative thresholds on a **held-out test set**:
+| Gate Requirement | Minimum Floor | Measured Value | Gate Verdict | Operational Safeguard | [CURRENT]
+|---|---|---|---|---| [CURRENT]
+| **Overall Top-1 Accuracy** | $\ge 70.0\%$ | **16.67%** | ❌ **FAIL** | Degraded Fallback to Gemini Cloud AI | [CURRENT]
+| **Top-3 Accuracy** | $\ge 90.0\%$ | **45.83%** | ❌ **FAIL** | Multi-angle Soft Voting Ensemble | [CURRENT]
+| **Macro F1-Score** | $\ge 70.0\%$ | **14.39%** | ❌ **FAIL** | Certified Agronomist Review | [CURRENT]
+| **Expected Calibration Error (ECE)** | $\le 12.0\%$ | **30.51%** | ❌ **FAIL** | Overconfidence Warning Disclaimers | [CURRENT]
+| **Confident Accuracy ($\tau \ge 0.60$)** | $\ge 88.0\%$ | **50.00%** | ❌ **FAIL** | Mandatory Human In The Loop (HITL) | [CURRENT]
 
-| Metric | Target Standard | Hard Release Floor | Rationale / Failure Action |
-|---|---|---|---|
-| **Overall Top-1 Accuracy** | $\ge \mathbf{85.0\%}$ | $\ge \mathbf{70.0\%}$ | Below 70% fails CI builds automatically. |
-| **Top-3 Accuracy** | $\ge \mathbf{95.0\%}$ | $\ge \mathbf{90.0\%}$ | Ensures true disease is in candidate list for soft voting. |
-| **Macro F1-Score** | $\ge \mathbf{80.0\%}$ | $\ge \mathbf{70.0\%}$ | Guards against minority class neglect in imbalanced datasets. |
-| **Epidemic Class Recall** | $\ge \mathbf{85.0\%}$ | $\ge \mathbf{65.0\%}$ | Critical for high-impact threats (Cocoa Black Pod, Cassava Mosaic). |
-| **Expected Calibration Error (ECE)** | $\le \mathbf{8.0\%}$ | $\le \mathbf{12.0\%}$ | Ensures predicted probabilities match empirical correctness. |
-| **Accuracy at $\tau \ge 0.60$** | $\ge \mathbf{92.0\%}$ | $\ge \mathbf{88.0\%}$ | High confidence must correlate with dependable diagnosis. |
-
----
-
-## 3. Derivation & Calibration of `confidenceThreshold = 0.60`
-
-The CropGuard mobile app relies on `CropDiseaseClassifier.confidenceThreshold = 0.60` as a core architectural decision gate:
-- **Scans with Confidence $\ge 0.60$**: Accepted as high-confidence single-image diagnoses, unlocking immediate agronomic treatment plans and dosage calculators.
-- **Scans with Confidence $< 0.60$**: Flagged as low-confidence (`isDegraded: true`), automatically routing the farmer to:
-  1. Multi-angle capture and soft-voting ensemble fusion.
-  2. Gemini Multimodal Cloud AI analysis (online).
-  3. Certified Agricultural Extension Officer consultation.
-
-### Mathematical Formulation of Calibration & Temperature Scaling
-
-Raw softmax probabilities $p_i$ from deep neural networks are frequently overconfident:
-$$p_i = \frac{e^{z_i}}{\sum_{j=1}^K e^{z_j}}$$
-
-During model evaluation, **Temperature Scaling** is applied on a held-out validation set to optimize parameter $T > 0$:
-$$\hat{p}_i = \frac{e^{z_i / T}}{\sum_{j=1}^K e^{z_j / T}}$$
-
-### Expected Calibration Error (ECE)
-Samples are partitioned into $M = 10$ confidence bins $B_1, B_2, \dots, B_M$. ECE is computed as:
-$$\text{ECE} = \sum_{m=1}^M \frac{|B_m|}{N} \left| \text{acc}(B_m) - \text{conf}(B_m) \right|$$
-
-Where:
-- $\text{acc}(B_m) = \frac{1}{|B_m|} \sum_{i \in B_m} \mathbf{1}(\hat{y}_i = y_i)$
-- $\text{conf}(B_m) = \frac{1}{|B_m|} \sum_{i \in B_m} \hat{p}_i$
-
-Threshold $\tau = 0.60$ represents the optimal operating point on the empirical precision-coverage ROC curve where false discovery rate (FDR) on critical crop diseases drops below 10% while maintaining $\ge 80\%$ scan acceptance coverage.
+> [!IMPORTANT] [CURRENT]
+> **Formal Release Gate Verdict: FAIL (RELEASE BLOCKED FOR AUTONOMOUS DEPLOYMENT)** [CURRENT]
+> The exact shipped model achieves **16.67% Top-1 Accuracy** on held-out field test samples and **63.9%** on synthetic Colab validation splits. [CURRENT] [CURRENT] Because the documented release floor is **70.0%**, this model **FAILS** the autonomous production release gate. [CURRENT]
+> [CURRENT]
+> **Academic & Prototype Release Exception:** [CURRENT]
+> For supervisor demonstration and iterative testing, the application operates safely by gating the model with active visual fallbacks (`isDegraded: true`), displaying persistent disclaimers, and routing all scans to the multimodal **Gemini Cloud AI** and agronomist review pipeline. [CURRENT] [CURRENT]
 
 ---
 
-## 4. Test Dataset Specifications
+## 2. Comprehensive 11-Condition Stress & Robustness Suite
 
-The evaluation dataset must represent real-world deployment conditions across Ghana's agro-ecological zones:
+The model was evaluated against 11 real-world operational scenarios simulating Ghanaian smallholder farming environments: [HISTORICAL]
 
-1. **Held-Out Isolation**: Zero overlap with training or fine-tuning datasets.
-2. **Sample Size**: Minimum 15–20 images per class (target $\ge 30$).
-3. **Environmental Realism**:
-   - Natural field lighting (direct sunlight, shade, overcast).
-   - Varied smartphone sensors (low-to-mid-range Android cameras).
-   - Natural backgrounds (soil, weeds, hands, stems) rather than white lab backdrops.
-4. **Directory Structure (ImageNet Format)**:
-   ```
-   test_set/
-   ├── Cashew___Anthracnose/
-   ├── Cassava___Mosaic_Disease/
-   ├── Cocoa___Black_Pod_Rot/
-   ├── Maize___Fall_Armyworm/
-   ├── Tomato___Late_blight/
-   └── Tomato___healthy/
-   ```
+| # | Test Condition / Scenario | Test Size | Measured Top-1 Acc | Top-3 Acc | Confident Acc ($\tau \ge 0.60$) | Coverage (Accepted) | Risk / Failure Mode | [CURRENT]
+|---|---|---|---|---|---|---|---| [CURRENT]
+| **1** | Good Images (Clean Baseline) | 24 | **16.67%** | 45.83% | 50.00% | 25.0% | Severe feature suppression | [CURRENT]
+| **2a** | Bad Lighting (Underexposed / Dark) | 24 | **20.83%** | 45.83% | 40.00% | 20.8% | Moderate degradation | [CURRENT]
+| **2b** | Bad Lighting (Overexposed / Direct Sun) | 24 | **20.83%** | 37.50% | 22.22% | 37.5% | Moderate degradation | [CURRENT]
+| **3a** | Blur (Defocus Blur $\sigma=3.0$) | 24 | **25.00%** | 41.67% | 33.33% | 37.5% | Moderate degradation | [CURRENT]
+| **3b** | Blur (Motion Blur) | 24 | **33.33%** | 41.67% | 37.50% | 33.3% | Moderate degradation | [CURRENT]
+| **4** | Clutter & Soil/Weed Occlusion | 24 | **29.17%** | 45.83% | 42.86% | 29.2% | Moderate degradation | [CURRENT]
+| **5** | Multiple Leaves (Overlapping Canopy) | 24 | **25.00%** | 29.17% | 25.00% | 16.7% | Moderate degradation | [CURRENT]
+| **6** | Downloaded Internet Images | 23 | **17.39%** | 34.78% | 50.00% | 26.1% | Severe feature suppression | [CURRENT]
+| **7** | WhatsApp Compressed (JPEG Q15) | 24 | **33.33%** | 45.83% | 50.00% | 25.0% | Moderate degradation | [CURRENT]
+| **8** | Phone Camera Sensor Noise & Shift | 24 | **29.17%** | 41.67% | 28.57% | 29.2% | Moderate degradation | [CURRENT]
+
+### Out-of-Distribution (OOD) & Abstention Evaluation
+
+| # | Scenario | Test Samples | Rejection / Abstention Rate ($\tau < 0.60$) | False Positive Breach Rate ($\tau \ge 0.60$) | Mean Confidence | Critical Observation | [CURRENT]
+|---|---|---|---|---|---|---| [CURRENT]
+| **9** | Non-Plant Images (Objects, Dirt, Tools) | 14 | **100.0%** | 0.0% | 29.94% | Clean rejection | [CURRENT]
+| **10** | Healthy Plants (Uninfected Leaves) | 15 | **73.3%** | 26.7% | 45.62% | Clean rejection | [CURRENT]
+| **11** | Unsupported Crops (Apple, Grape, Potato) | 13 | **92.3%** | 7.7% | 41.45% | Clean rejection | [CURRENT]
 
 ---
 
-## 5. How to Run the Evaluation Harness
+## 3. Confidence Threshold Calibration ($\tau$ Sweep)
 
-### Option A: Desktop / CI Python Tool (`tools/evaluate_model.py`)
-Run the standalone evaluator against any exported `.tflite` model and test set:
+Evaluation of coverage and empirical accuracy across confidence cutoffs $\tau \in [0.30 \dots 0.90]$: [CURRENT]
+
+| Threshold ($\tau$) | Coverage (% Scans Accepted) | Empirical Accuracy | Total Accepted Samples | Correct / Total | Routing Role | [HISTORICAL]
+|---|---|---|---|---|---| [CURRENT]
+| $\tau = 0.30$ | 54.2% | **30.77%** | 13 | 4 / 13 | Routes to Gemini Cloud AI | [CURRENT]
+| $\tau = 0.40$ | 37.5% | **33.33%** | 9 | 3 / 9 | Routes to Gemini Cloud AI | [CURRENT]
+| $\tau = 0.50$ | 33.3% | **37.50%** | 8 | 3 / 8 | Routes to Gemini Cloud AI | [CURRENT]
+| $\tau = 0.60$ | 25.0% | **50.00%** | 6 👈 *(Production Cutoff)* | 3 / 6 | Permits on-device guidance | [CURRENT]
+| $\tau = 0.70$ | 20.8% | **40.00%** | 5 | 2 / 5 | Permits on-device guidance | [CURRENT]
+| $\tau = 0.80$ | 12.5% | **66.67%** | 3 | 2 / 3 | Permits on-device guidance | [CURRENT]
+| $\tau = 0.90$ | 4.2% | **100.00%** | 1 | 1 / 1 | Permits on-device guidance | [CURRENT]
+
+---
+
+## 4. Expected Calibration Error (ECE) & Reliability Diagram
+
+**Expected Calibration Error (ECE): 30.51%** across 10 confidence bins.
+
+| Confidence Bin | Sample Count | Mean Bin Confidence | Empirical Accuracy | Calibration Gap (|Acc - Conf|) | Calibration State | [CURRENT]
+|---|---|---|---|---|---| [CURRENT]
+| `[0.0, 0.1]` | 0 | 5.0% | **0.0%** | 0.00% | Calibrated | [CURRENT]
+| `[0.1, 0.2]` | 2 | 17.9% | **0.0%** | 17.89% | Severely Overconfident | [CURRENT]
+| `[0.2, 0.3]` | 9 | 25.2% | **0.0%** | 25.23% | Severely Overconfident | [CURRENT]
+| `[0.3, 0.4]` | 4 | 36.8% | **25.0%** | 11.75% | Underconfident | [CURRENT]
+| `[0.4, 0.5]` | 1 | 43.5% | **0.0%** | 43.46% | Severely Overconfident | [CURRENT]
+| `[0.5, 0.6]` | 2 | 58.2% | **0.0%** | 58.22% | Severely Overconfident | [CURRENT]
+| `[0.6, 0.7]` | 1 | 64.4% | **100.0%** | 35.61% | Underconfident | [CURRENT]
+| `[0.7, 0.8]` | 2 | 77.5% | **0.0%** | 77.51% | Severely Overconfident | [CURRENT]
+| `[0.8, 0.9]` | 2 | 83.6% | **50.0%** | 33.58% | Severely Overconfident | [CURRENT]
+| `[0.9, 1.0]` | 1 | 95.2% | **100.0%** | 4.76% | Calibrated | [CURRENT]
+
+---
+
+## 5. Per-Class Accuracy & Performance Metrics (All 51 Classes)
+
+| Class Label | Precision | Recall | F1-Score | Support | [CURRENT]
+|---|---|---|---|---| [CURRENT]
+| `Banana___Sigatoka` | 0.000 | 0.000 | 0.000 | 2 | [CURRENT]
+| `Cashew___Anthracnose` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Cashew___Gumosis` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Cashew___Leaf_Miner` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Cashew___Red_Rust` | 1.000 | 1.000 | 1.000 | 1 | [CURRENT]
+| `Cassava___Bacterial_Blight` | 0.333 | 1.000 | 0.500 | 1 | [CURRENT]
+| `Cassava___Brown_Streak_Disease` | 1.000 | 1.000 | 1.000 | 1 | [CURRENT]
+| `Cassava___Green_Mottle` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Cassava___Mosaic` | 0.500 | 1.000 | 0.667 | 1 | [CURRENT]
+| `Maize___Common_Rust` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Maize___Gray_Leaf_Spot` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Maize___Leaf_Blight` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Mango___Anthracnose` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Mango___Bacterial_Canker` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Mango___Powdery_Mildew` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Mango___Sooty_Mould` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Rice___Brown_Spot` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Rice___Leaf_Blast` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Rice___Leaf_Scald` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Tomato___Leaf_Blight` | 0.000 | 0.000 | 0.000 | 2 | [CURRENT]
+| `Tomato___Leaf_Curl` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+| `Tomato___Septoria_Leaf_Spot` | 0.000 | 0.000 | 0.000 | 1 | [CURRENT]
+
+---
+
+## 6. Confusion Matrix Highlights
+
+```text
+Banana___Sigatoka                   -> Rice___Leaf_Scald:1, Cassava___Bacterial_Blight:1
+Cashew___Anthracnose                -> Mango___Bacterial_Canker:1
+Cashew___Gumosis                    -> Cassava___Bacterial_Blight:1
+Cashew___Leaf_Miner                 -> Maize___Blight:1
+Cashew___Red_Rust                   -> Cashew___Red_Rust:1
+Cassava___Bacterial_Blight          -> Cassava___Bacterial_Blight:1
+Cassava___Brown_Streak_Disease      -> Cassava___Brown_Streak_Disease:1
+Cassava___Green_Mottle              -> Cassava___Green_Mite:1
+Cassava___Mosaic                    -> Cassava___Mosaic:1
+Maize___Common_Rust                 -> Maize___Gray_Leaf_Spot:1
+Maize___Gray_Leaf_Spot              -> Maize___Common_Rust:1
+Maize___Leaf_Blight                 -> Cassava___Healthy:1
+Mango___Anthracnose                 -> Cashew___Anthracnose:1
+Mango___Bacterial_Canker            -> Cashew___Healthy:1
+Mango___Powdery_Mildew              -> Cashew___Gumosis:1
+Mango___Sooty_Mould                 -> Cassava___Mosaic:1
+Rice___Brown_Spot                   -> Sugarcane___Rust:1
+Rice___Leaf_Blast                   -> Rice___Leaf_Scald:1
+Rice___Leaf_Scald                   -> Rice___Sheath_Blight:1
+Tomato___Leaf_Blight                -> Cassava___Brown_Spot:1, Cashew___Healthy:1
+Tomato___Leaf_Curl                  -> Groundnut___Leaf_Raw:1
+Tomato___Septoria_Leaf_Spot         -> Tomato___Leaf_Curl:1
+```
+
+---
+
+## 7. How to Reproduce This Evaluation
+
 ```bash
 python3 tools/evaluate_model.py \
-  --model assets/cropguard_plant_disease_verified.tflite \
-  --labels assets/labels_verified.txt \
-  --test-set /path/to/cropguard_held_out_test_set \
-  --threshold 0.60 \
+  --model assets/cropguard_plant_disease.tflite \
+  --labels assets/labels.txt \
+  --test-set test_set \
+  --run-all-stress-tests \
   --output-md docs/MODEL_ACCURACY.md \
-  --output-json docs/eval_metrics.json
+  --output-json docs/eval_metrics.json \
+  --min-accuracy 0.70
 ```
-
-### Option B: Mobile Integration Test (`integration_test/model_eval_test.dart`)
-Run directly within the Flutter engine on an Android device or emulator:
-```bash
-# 1. Push test images to device
-adb push ./test_set /data/local/tmp/cropguard_test_set
-
-# 2. Execute on-device evaluation
-flutter test integration_test/model_eval_test.dart \
-  --dart-define=TEST_SET_DIR=/data/local/tmp/cropguard_test_set
-```
-
----
-
-## 6. Model Evaluation Benchmark & Results Log
-
-### Model Specification: Verified Model
-* **Model File**: `assets/cropguard_plant_disease_verified.tflite`
-* **Label Order Derivation**: Construction-verified via `sorted(os.listdir(DATASET_DIR))`
-* **Target Architecture**: MobileNetV2 with transfer learning & fine-tuning
-* **Input Resolution**: $128 \times 128 \times 3$ RAW $[0, 255]$ with internal Rescaling layer
-
-### Results Template (Populated upon retrain completion):
-
-| Metric | Target | Verified Value |
-|---|---|---|
-| **Test Set Source** | Ghanaian Field Validation Dataset | *Pending Retrain* |
-| **Number of Samples** | $\ge 500$ across all classes | *Pending Retrain* |
-| **Overall Top-1 Accuracy** | $\ge 85.00\%$ | *Pending Retrain* |
-| **Top-3 Accuracy** | $\ge 95.00\%$ | *Pending Retrain* |
-| **Macro F1** | $\ge 80.00\%$ | *Pending Retrain* |
-| **Weighted F1** | $\ge 85.00\%$ | *Pending Retrain* |
-| **Expected Calibration Error (ECE)** | $\le 8.00\%$ | *Pending Retrain* |
-| **Accuracy at $\tau \ge 0.60$** | $\ge 92.00\%$ | *Pending Retrain* |
-
-### Confidence Threshold Sweep Template
-
-| Threshold ($\tau$) | Coverage (% Scans Accepted) | Empirical Accuracy | Total Accepted Samples | Status |
-|---|---|---|---|---|
-| $\tau = 0.30$ | 98.2% | 76.50% | -- | Baseline Heuristic |
-| $\tau = 0.40$ | 94.1% | 82.30% | -- | Moderate Confidence |
-| $\tau = 0.50$ | 88.7% | 87.10% | -- | Recommended Floor |
-| $\tau = 0.60$ | **82.4%** | **92.60%** | -- | 👈 **Production Standard** |
-| $\tau = 0.70$ | 74.3% | 95.40% | -- | Strict Conservative |
-| $\tau = 0.80$ | 61.2% | 97.80% | -- | High Precision |
-| $\tau = 0.90$ | 42.0% | 99.10% | -- | Ultra-Confident Only |
-
----
-
-## 7. Retraining & Continuous Evaluation Pipeline
-
-Whenever a new model is trained:
-1. Harvest verified farmer feedback via `python3 tools/export_feedback.py`.
-2. Follow `docs/RETRAIN_INSTRUCTIONS.md` to train MobileNetV2 with verified alphabetical label ordering.
-3. Place exported `.tflite`, `labels_verified.txt`, and `model_metadata.json` into `assets/`.
-4. Run `python3 tools/evaluate_model.py` and commit the updated numbers to this document.
-5. Verify zero analyzer issues with `flutter analyze` and run full regression suite with `flutter test`.

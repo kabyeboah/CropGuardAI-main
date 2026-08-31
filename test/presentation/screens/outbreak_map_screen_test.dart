@@ -15,7 +15,9 @@ import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/core/theme/app_theme.dart';
 
 class MockCommunityRepository extends Mock implements ICommunityRepository {}
+
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+
 class MockTileImage extends Mock implements TileImage {}
 
 Widget _wrap(Widget child) {
@@ -94,7 +96,8 @@ void main() {
     sl.reset();
   });
 
-  testWidgets('Marker clustering performs acceptably with a large number of nearby outbreak points',
+  testWidgets(
+      'Marker clustering performs acceptably with a large number of nearby outbreak points',
       (tester) async {
     // Generate 500 synthetic outbreak points
     final reports = generateSyntheticReports(500);
@@ -116,7 +119,8 @@ void main() {
     expect(find.text('500 reports'), findsOneWidget);
   });
 
-  testWidgets('Map gracefully degrades (static list view) if tiles fail to load rather than showing blank map',
+  testWidgets(
+      'Map gracefully degrades (static list view) if tiles fail to load rather than showing blank map',
       (tester) async {
     final reports = generateSyntheticReports(5);
     when(() => mockCommunityRepo.getOutbreakReports())
@@ -157,7 +161,8 @@ void main() {
     expect(find.text('5 reports'), findsOneWidget);
   });
 
-  testWidgets('Degraded map recovers to normal FlutterMap when Retry Map is tapped',
+  testWidgets(
+      'Degraded map recovers to normal FlutterMap when Retry Map is tapped',
       (tester) async {
     final reports = generateSyntheticReports(5);
     when(() => mockCommunityRepo.getOutbreakReports())
@@ -190,7 +195,8 @@ void main() {
     expect(find.text('Map unavailable offline'), findsNothing);
   });
 
-  testWidgets('Falls back to seed outbreak data when Firestore returns empty list',
+  testWidgets(
+      'Falls back to seed outbreak data when Firestore returns empty list',
       (tester) async {
     when(() => mockCommunityRepo.getOutbreakReports())
         .thenAnswer((_) async => Result.success([]));

@@ -17,7 +17,8 @@ class MoreScreen extends StatelessWidget {
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.surface,
-        title: Text(context.l10n.more, style: Theme.of(context).textTheme.titleLarge),
+        title: Text(context.l10n.more,
+            style: Theme.of(context).textTheme.titleLarge),
         elevation: 0,
       ),
       body: ListView(

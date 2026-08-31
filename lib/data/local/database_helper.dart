@@ -58,7 +58,11 @@ class DatabaseHelper {
   Future<Database> _initDb() async {
     final String path;
     if (_testPath != null) {
-      path = inMemoryDatabasePath;
+      path = (_testPath!.contains('/') ||
+              _testPath!.contains('\\') ||
+              _testPath == inMemoryDatabasePath)
+          ? _testPath!
+          : inMemoryDatabasePath;
     } else {
       final dbPath = await getDatabasesPath();
       path = join(dbPath, _dbName);
@@ -93,21 +97,12 @@ class DatabaseHelper {
       )
     ''');
 
-    await db.execute('''
-      CREATE TABLE $tableFields (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        cropType TEXT NOT NULL,
-        sizeHectares REAL NOT NULL DEFAULT 0,
-        plantingDate INTEGER,
-        userId TEXT NOT NULL DEFAULT ''
-      )
-    ''');
-
+    await _createFieldsTable(db);
     await _createTreatmentPlansTable(db);
     await _createNotificationsTable(db);
     await db.execute(PendingSyncQueue.createTableSql);
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -116,12 +111,19 @@ class DatabaseHelper {
     if (oldVersion < 11) {
       // Safely add columns that may be absent in old installs. SQLite does not
       // support ADD COLUMN IF NOT EXISTS, so we inspect PRAGMA table_info first.
-      await _addColumnIfMissing(db, tableDetections, 'userId',    "TEXT NOT NULL DEFAULT ''");
-      await _addColumnIfMissing(db, tableDetections, 'displayName', "TEXT NOT NULL DEFAULT ''");
-      await _addColumnIfMissing(db, tableDetections, 'severity',  "TEXT NOT NULL DEFAULT 'unclear'");
-      await _addColumnIfMissing(db, tableDetections, 'cause',     "TEXT NOT NULL DEFAULT ''");
-      await _addColumnIfMissing(db, tableDetections, 'treatments',"TEXT NOT NULL DEFAULT ''");
-      await _addColumnIfMissing(db, tableFields,     'userId',    "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, tableDetections, 'userId', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, tableDetections, 'displayName', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, tableDetections, 'severity', "TEXT NOT NULL DEFAULT 'unclear'");
+      await _addColumnIfMissing(
+          db, tableDetections, 'cause', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, tableDetections, 'treatments', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, tableFields, 'userId', "TEXT NOT NULL DEFAULT ''");
+      await _createFieldsTable(db);
       await _createTreatmentPlansTable(db);
       await _createNotificationsTable(db);
     }
@@ -131,40 +133,72 @@ class DatabaseHelper {
     }
     if (oldVersion < 13) {
       // Add status column to pending_sync table.
-      await _addColumnIfMissing(db, 'pending_sync', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+      await _addColumnIfMissing(
+          db, 'pending_sync', 'status', "TEXT NOT NULL DEFAULT 'pending'");
     }
     if (oldVersion < 14) {
       // Distinguishes real model diagnoses from the low-confidence /
       // engine-unavailable fallback so History can badge them honestly
       // instead of showing a fabricated disease as a confident result.
-      await _addColumnIfMissing(db, tableDetections, 'isDegraded', 'INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfMissing(
+          db, tableDetections, 'isDegraded', 'INTEGER NOT NULL DEFAULT 0');
     }
     if (oldVersion < 15) {
-      await _addColumnIfMissing(db, tableNotifications, 'userId', "TEXT NOT NULL DEFAULT ''");
-      await _addColumnIfMissing(db, 'pending_sync', 'retry_count', "INTEGER NOT NULL DEFAULT 0");
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId ON $tableDetections (userId)');
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_fields_userId ON $tableFields (userId)');
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_treatment_plans_userId ON $tableTreatmentPlans (userId)');
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_notifications_userId ON $tableNotifications (userId)');
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_pending_sync_status ON pending_sync (status)');
+      await _createFieldsTable(db);
+      await _createNotificationsTable(db);
+      await _createTreatmentPlansTable(db);
+      await _addColumnIfMissing(
+          db, tableNotifications, 'userId', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(
+          db, 'pending_sync', 'retry_count', "INTEGER NOT NULL DEFAULT 0");
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_detections_userId ON $tableDetections (userId)');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_fields_userId ON $tableFields (userId)');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_treatment_plans_userId ON $tableTreatmentPlans (userId)');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_notifications_userId ON $tableNotifications (userId)');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_pending_sync_status ON pending_sync (status)');
     }
     if (oldVersion < 16) {
       await _addColumnIfMissing(db, tableDetections, 'modelVersion', 'TEXT');
     }
     if (oldVersion < 17) {
-      await _addColumnIfMissing(db, tableDetections, 'isSynced', 'INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfMissing(
+          db, tableDetections, 'isSynced', 'INTEGER NOT NULL DEFAULT 0');
       await _addColumnIfMissing(db, tableDetections, 'syncedAt', 'INTEGER');
-      await db.execute('CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
+      await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
     }
   }
 
-  /// Adds [column] to [table] only when the column does not yet exist.
+  /// Adds [column] to [table] only when the table exists and the column does not yet exist.
   Future<void> _addColumnIfMissing(
       Database db, String table, String column, String definition) async {
+    final tableExists = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      [table],
+    );
+    if (tableExists.isEmpty) return;
     final info = await db.rawQuery('PRAGMA table_info($table)');
     if (!info.any((row) => row['name'] == column)) {
       await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
     }
+  }
+
+  Future<void> _createFieldsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableFields (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        cropType TEXT NOT NULL,
+        sizeHectares REAL NOT NULL DEFAULT 0,
+        plantingDate INTEGER,
+        userId TEXT NOT NULL DEFAULT ''
+      )
+    ''');
   }
 
   Future<void> _createTreatmentPlansTable(Database db) async {
@@ -519,7 +553,8 @@ class DatabaseHelper {
 
   Future<String> insertTreatment(TreatmentPlan plan) async {
     final db = await database;
-    final payload = plan.id.isEmpty ? plan.copyWith(completed: plan.completed) : plan;
+    final payload =
+        plan.id.isEmpty ? plan.copyWith(completed: plan.completed) : plan;
     final id = payload.id.isEmpty ? _newId() : payload.id;
     await db.insert(
       tableTreatmentPlans,
@@ -568,7 +603,9 @@ class DatabaseHelper {
 
   Future<int> getCompletedTreatmentsCount({String? userId}) async {
     final db = await database;
-    final where = userId != null ? ' WHERE userId = ? AND completed = 1' : ' WHERE completed = 1';
+    final where = userId != null
+        ? ' WHERE userId = ? AND completed = 1'
+        : ' WHERE completed = 1';
     final args = userId != null ? [userId] : null;
     return Sqflite.firstIntValue(
           await db.rawQuery(
@@ -581,7 +618,9 @@ class DatabaseHelper {
 
   Future<int> getPendingTreatmentsCount({String? userId}) async {
     final db = await database;
-    final where = userId != null ? ' WHERE userId = ? AND completed = 0' : ' WHERE completed = 0';
+    final where = userId != null
+        ? ' WHERE userId = ? AND completed = 0'
+        : ' WHERE completed = 0';
     final args = userId != null ? [userId] : null;
     return Sqflite.firstIntValue(
           await db.rawQuery(
@@ -591,7 +630,6 @@ class DatabaseHelper {
         ) ??
         0;
   }
-
 
   // ─── Notifications ───────────────────────────────────────────────────────
 
@@ -613,7 +651,9 @@ class DatabaseHelper {
     final db = await database;
     final maps = await db.query(
       tableNotifications,
-      where: (userId != null && userId.isNotEmpty) ? 'userId = ? OR userId = ""' : null,
+      where: (userId != null && userId.isNotEmpty)
+          ? 'userId = ? OR userId = ""'
+          : null,
       whereArgs: (userId != null && userId.isNotEmpty) ? [userId] : null,
       orderBy: 'createdAtMs DESC',
     );
@@ -637,9 +677,12 @@ class DatabaseHelper {
 
   Future<void> markNotificationsAsRead({String? userId}) async {
     final db = await database;
-    final where = (userId != null && userId.isNotEmpty) ? 'userId = ? OR userId = ""' : null;
+    final where = (userId != null && userId.isNotEmpty)
+        ? 'userId = ? OR userId = ""'
+        : null;
     final args = (userId != null && userId.isNotEmpty) ? [userId] : null;
-    await db.update(tableNotifications, {'isRead': 1}, where: where, whereArgs: args);
+    await db.update(tableNotifications, {'isRead': 1},
+        where: where, whereArgs: args);
   }
 
   Future<void> markNotificationRead(String id) async {
@@ -658,7 +701,8 @@ class DatabaseHelper {
   }
 
   // Backward-compatible wrappers.
-  Future<List<Map<String, dynamic>>> getAllNotifications({String? userId}) async {
+  Future<List<Map<String, dynamic>>> getAllNotifications(
+      {String? userId}) async {
     final items = await getNotifications(userId: userId);
     return items.map((item) => item.toMap()).toList();
   }

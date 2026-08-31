@@ -171,7 +171,8 @@ class _RiskRow extends StatelessWidget {
                   const SizedBox(height: 6),
                   const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 14),
+                      Icon(Icons.warning_amber_rounded,
+                          color: Color(0xFFDC2626), size: 14),
                       SizedBox(width: 4),
                       Expanded(
                         child: Text(

@@ -10,7 +10,9 @@ import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
 import 'package:cropguard_flutter/presentation/screens/register/register_provider.dart';
 
 class _MockRegisterUseCase extends Mock implements RegisterUseCase {}
+
 class _MockDb extends Mock implements DatabaseHelper {}
+
 class _MockAuthService extends Mock implements FirebaseAuthService {}
 
 final _kUser = AppUser(
@@ -86,7 +88,8 @@ void main() {
         termsAccepted: false,
         onSuccess: () {},
       );
-      expect(provider.errorMessage, 'Please accept the terms and privacy policy.');
+      expect(
+          provider.errorMessage, 'Please accept the terms and privacy policy.');
     });
 
     test('errors if password < 8 characters', () async {
@@ -103,7 +106,8 @@ void main() {
   });
 
   group('RegisterProvider - registration execution', () {
-    test('successful registration updates status and calls onSuccess', () async {
+    test('successful registration updates status and calls onSuccess',
+        () async {
       when(() => mockRegisterUseCase(
             email: any(named: 'email'),
             password: any(named: 'password'),
@@ -127,10 +131,12 @@ void main() {
 
     test('failed registration maps failure message correctly', () async {
       when(() => mockRegisterUseCase(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-            name: any(named: 'name'),
-          )).thenAnswer((_) async => Result.error(const AuthFailure('email-already-in-use')));
+                email: any(named: 'email'),
+                password: any(named: 'password'),
+                name: any(named: 'name'),
+              ))
+          .thenAnswer((_) async =>
+              Result.error(const AuthFailure('email-already-in-use')));
 
       await provider.register(
         name: 'New User',
@@ -142,7 +148,8 @@ void main() {
       );
 
       expect(provider.status, RegisterStatus.error);
-      expect(provider.errorMessage, 'An account already exists with that email.');
+      expect(
+          provider.errorMessage, 'An account already exists with that email.');
     });
   });
 }

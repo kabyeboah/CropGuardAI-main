@@ -63,7 +63,8 @@ void main() {
       expect(reconstructed.verifiedReportsCount, equals(6));
       expect(reconstructed.verificationsGivenCount, equals(12));
       expect(reconstructed.trustScore, equals(84));
-      expect(reconstructed.reputationBadgeTitle, equals('🛡️ Trusted Sentinel'));
+      expect(
+          reconstructed.reputationBadgeTitle, equals('🛡️ Trusted Sentinel'));
     });
   });
 }

@@ -11,9 +11,9 @@ class InAppReviewHelper {
 
   static Future<void> openStoreListing() async {
     await _inAppReview.openStoreListing(
-      // Replace with actual app ID when available
-      // appStoreId: '...',
-      // microsoftStoreId: '...',
-    );
+        // Replace with actual app ID when available
+        // appStoreId: '...',
+        // microsoftStoreId: '...',
+        );
   }
 }

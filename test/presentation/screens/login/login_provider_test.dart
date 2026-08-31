@@ -13,10 +13,15 @@ import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/presentation/screens/login/login_provider.dart';
 
 class _MockLoginUseCase extends Mock implements LoginUseCase {}
+
 class _MockGoogleUseCase extends Mock implements SignInWithGoogleUseCase {}
+
 class _MockGuestUseCase extends Mock implements SignInAnonymouslyUseCase {}
+
 class _MockDb extends Mock implements DatabaseHelper {}
+
 class _MockAuthService extends Mock implements FirebaseAuthService {}
+
 class _MockAnalyticsService extends Mock implements AnalyticsService {}
 
 final _kUser = AppUser(
@@ -44,8 +49,10 @@ void main() {
     mockAnalytics = _MockAnalyticsService();
 
     when(() => mockAuth.isAnonymous).thenReturn(false);
-    when(() => mockAnalytics.logLogin(method: any(named: 'method'))).thenAnswer((_) async {});
-    when(() => mockAnalytics.setUser(isAnonymous: any(named: 'isAnonymous'))).thenAnswer((_) async {});
+    when(() => mockAnalytics.logLogin(method: any(named: 'method')))
+        .thenAnswer((_) async {});
+    when(() => mockAnalytics.setUser(isAnonymous: any(named: 'isAnonymous')))
+        .thenAnswer((_) async {});
 
     provider = LoginProvider(
       mockLoginUseCase,
@@ -71,7 +78,8 @@ void main() {
       expect(provider.errorMessage, 'Please enter a valid email address.');
     });
 
-    test('successful email sign in calls onSuccess and sets status to success', () async {
+    test('successful email sign in calls onSuccess and sets status to success',
+        () async {
       when(() => mockLoginUseCase(any(), any()))
           .thenAnswer((_) async => Result.success(_kUser));
 
@@ -85,9 +93,10 @@ void main() {
       expect(successCalled, isTrue);
     });
 
-    test('failed email sign in sets status to error and maps failure message', () async {
-      when(() => mockLoginUseCase(any(), any()))
-          .thenAnswer((_) async => Result.error(const AuthFailure('wrong-password')));
+    test('failed email sign in sets status to error and maps failure message',
+        () async {
+      when(() => mockLoginUseCase(any(), any())).thenAnswer(
+          (_) async => Result.error(const AuthFailure('wrong-password')));
 
       await provider.signIn('test@example.com', 'wrongpass', () {});
 
@@ -97,7 +106,8 @@ void main() {
   });
 
   group('LoginProvider - signInWithGoogle', () {
-    test('successful Google sign in updates status and calls onSuccess', () async {
+    test('successful Google sign in updates status and calls onSuccess',
+        () async {
       when(() => mockGoogleUseCase())
           .thenAnswer((_) async => Result.success(null));
 
@@ -111,8 +121,8 @@ void main() {
     });
 
     test('failed Google sign in sets error state', () async {
-      when(() => mockGoogleUseCase())
-          .thenAnswer((_) async => Result.error(const AuthFailure('google failure')));
+      when(() => mockGoogleUseCase()).thenAnswer(
+          (_) async => Result.error(const AuthFailure('google failure')));
 
       await provider.signInWithGoogle(() {});
 
@@ -122,7 +132,8 @@ void main() {
   });
 
   group('LoginProvider - signInAsGuest', () {
-    test('successful guest sign in updates status and calls onSuccess', () async {
+    test('successful guest sign in updates status and calls onSuccess',
+        () async {
       when(() => mockGuestUseCase())
           .thenAnswer((_) async => Result.success(null));
 
@@ -136,8 +147,8 @@ void main() {
     });
 
     test('failed guest sign in sets error state', () async {
-      when(() => mockGuestUseCase())
-          .thenAnswer((_) async => Result.error(const AuthFailure('guest failure')));
+      when(() => mockGuestUseCase()).thenAnswer(
+          (_) async => Result.error(const AuthFailure('guest failure')));
 
       await provider.signInAsGuest(() {});
 

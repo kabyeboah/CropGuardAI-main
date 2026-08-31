@@ -64,7 +64,7 @@ class CloudinaryService {
         }
         return url;
       }, maxAttempts: 3, timeout: const Duration(seconds: 40));
-      
+
       return secureUrl;
     } catch (e) {
       final sanitizedErr = _sanitize(e.toString());

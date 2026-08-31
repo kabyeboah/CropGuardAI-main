@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:cropguard_flutter/core/utils/agri_weather_utils.dart';
 import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
 import 'package:cropguard_flutter/data/remote/gemini_cloud_ai_service.dart';
+import 'package:cropguard_flutter/domain/models/cloud_ai_analysis_result.dart';
 import 'package:cropguard_flutter/domain/models/disease_risk.dart';
 import 'package:cropguard_flutter/domain/models/weather_forecast.dart';
 import 'package:cropguard_flutter/domain/repositories/i_community_repository.dart';
@@ -17,9 +18,13 @@ import 'package:cropguard_flutter/presentation/screens/result/low_confidence_scr
 import 'package:cropguard_flutter/presentation/screens/scanner/scanner_provider.dart';
 
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+
 class MockGeminiCloudAiService extends Mock implements GeminiCloudAiService {}
+
 class MockCommunityRepository extends Mock implements ICommunityRepository {}
+
 class MockScannerProvider extends Mock implements ScannerProvider {}
+
 class MockHomeProvider extends Mock implements HomeProvider {}
 
 void main() {
@@ -44,6 +49,20 @@ void main() {
 
     when(() => mockAuthService.currentUser).thenReturn(null);
     when(() => mockAuthService.currentUserId).thenReturn('');
+    when(() => mockGeminiService.analyzeCropImage(
+          imagePath: any(named: 'imagePath'),
+          cropType: any(named: 'cropType'),
+          initialTopCandidates: any(named: 'initialTopCandidates'),
+        )).thenAnswer((_) async => const CloudAiAnalysisResult(
+          label: 'Tomato Late Blight',
+          confidence: 0.94,
+          isHealthy: false,
+          symptoms: ['Dark lesions'],
+          rootCause: 'Phytophthora infestans',
+          organicRemedies: ['Copper spray'],
+          preventionTips: ['Proper spacing'],
+          rawReasoning: 'Observed lesions',
+        ));
   });
 
   tearDown(() {
@@ -56,7 +75,8 @@ void main() {
   }) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<ScannerProvider>.value(value: mockScannerProvider),
+        ChangeNotifierProvider<ScannerProvider>.value(
+            value: mockScannerProvider),
         ChangeNotifierProvider<HomeProvider>.value(
           value: homeProvider ?? mockHomeProvider,
         ),
@@ -75,7 +95,9 @@ void main() {
   }
 
   group('LowConfidenceScreen Regional Risk Integration', () {
-    testWidgets('does not apply fake hardcoded Black Pod risk when regionalRisks is empty', (tester) async {
+    testWidgets(
+        'does not apply fake hardcoded Black Pod risk when regionalRisks is empty',
+        (tester) async {
       when(() => mockHomeProvider.weeklyRisks).thenReturn([]);
       when(() => mockHomeProvider.weather).thenReturn(null);
       when(() => mockHomeProvider.outbreaks).thenReturn([]);
@@ -96,15 +118,20 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Expand on-device ExpansionTile
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle();
 
       // Verify that Tomato Late blight remains the top candidate (not displaced by fake Black Pod boost)
       expect(find.textContaining('Late blight'), findsWidgets);
-      // Ensure the screen loaded properly
       expect(find.byType(LowConfidenceScreen), findsOneWidget);
     });
 
-    testWidgets('uses real regional risks passed in constructor to boost matching candidates', (tester) async {
+    testWidgets(
+        'uses real regional risks passed in constructor to boost matching candidates',
+        (tester) async {
       final candidates = [
         (label: 'Tomato___Late_blight', confidence: 0.40),
         (label: 'Tomato___Early_blight', confidence: 0.35),
@@ -131,13 +158,19 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Expand on-device ExpansionTile
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle();
 
       expect(find.byType(LowConfidenceScreen), findsOneWidget);
       expect(find.textContaining('Late blight'), findsWidgets);
     });
 
-    testWidgets('computes regional risks from HomeProvider weather & verified outbreaks when not passed explicitly', (tester) async {
+    testWidgets(
+        'computes regional risks from HomeProvider weather & verified outbreaks when not passed explicitly',
+        (tester) async {
       final mockDaily = [
         DailyForecast(
           date: DateTime.now(),
@@ -190,13 +223,19 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Expand on-device ExpansionTile
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle();
 
       expect(find.byType(LowConfidenceScreen), findsOneWidget);
       expect(find.textContaining('Late blight'), findsWidgets);
     });
 
-    testWidgets('falls back to Unidentified instead of hardcoded cocoa diseases when topCandidates is empty', (tester) async {
+    testWidgets(
+        'does not display fake fallback candidates when topCandidates is empty',
+        (tester) async {
       when(() => mockHomeProvider.weeklyRisks).thenReturn([]);
       when(() => mockHomeProvider.weather).thenReturn(null);
       when(() => mockHomeProvider.outbreaks).thenReturn([]);
@@ -211,12 +250,51 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Expand on-device ExpansionTile
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle();
 
       expect(find.byType(LowConfidenceScreen), findsOneWidget);
-      expect(find.text('Unidentified'), findsWidgets);
       expect(find.textContaining('Black pod rot'), findsNothing);
       expect(find.textContaining('Frosty pod rot'), findsNothing);
+    });
+
+    testWidgets(
+        'auto-triggers Cloud AI diagnosis and displays persistent scope disclaimer',
+        (tester) async {
+      when(() => mockHomeProvider.weeklyRisks).thenReturn([]);
+      when(() => mockHomeProvider.weather).thenReturn(null);
+      when(() => mockHomeProvider.outbreaks).thenReturn([]);
+
+      await tester.pumpWidget(
+        buildWidget(
+          child: const LowConfidenceScreen(
+            confidence: 0.45,
+            imagePath: '/fake/path.jpg',
+            topCandidates: [(label: 'Tomato___Early_blight', confidence: 0.45)],
+            regionalRisks: [],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Cloud AI recommendation card
+      expect(find.text('Gemini Cloud AI Recommended'), findsOneWidget);
+      expect(find.text('Tomato Late Blight'), findsOneWidget);
+      expect(find.text('Accept & Save Cloud Diagnosis'), findsOneWidget);
+
+      // Verify persistent scope disclaimer
+      expect(
+        find.textContaining(
+            'CropGuard identifies known crop leaf diseases from photos'),
+        findsOneWidget,
+      );
+
+      // Verify on-device section is present
+      expect(
+          find.textContaining('On-Device Preliminary Guess'), findsOneWidget);
     });
   });
 }

@@ -7,7 +7,10 @@ import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
 import 'package:cropguard_flutter/data/repositories/auth_repository_impl.dart';
 
 class _MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
-class _MockUserCredential extends Mock implements firebase_auth.UserCredential {}
+
+class _MockUserCredential extends Mock
+    implements firebase_auth.UserCredential {}
+
 class _MockUser extends Mock implements firebase_auth.User {}
 
 void main() {
@@ -50,7 +53,9 @@ void main() {
       expect(result.data?.email, 'farmer@example.com');
     });
 
-    test('falls back to provided name if remote displayName is empty or default Farmer', () async {
+    test(
+        'falls back to provided name if remote displayName is empty or default Farmer',
+        () async {
       // Simulate remote display name update being slow or not reflected yet on user object
       when(() => mockUser.displayName).thenReturn(null);
       when(() => mockAuthService.register(

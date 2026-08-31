@@ -29,7 +29,6 @@ Runner/GeneratedPluginRegistrant.h
 Runner/GeneratedPluginRegistrant.m
 Pods/
 .symlinks/
-*.lock
 *.mode1v3
 *.mode2v3
 *.normal
@@ -41,7 +40,6 @@ ios/Config/
 DerivedData/
 *.moved-aside
 *.xcuserstate
-Pods/
 
 # Environment
 .env
@@ -64,3 +62,10 @@ ios/Flutter/.last_build_id
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 ios/Flutter/Secrets.xcconfig
+
+# Python & Data Artifacts
+__pycache__/
+*.pyc
+extracted_plant_disease/
+test_set/
+

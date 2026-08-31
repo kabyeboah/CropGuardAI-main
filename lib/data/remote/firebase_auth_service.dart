@@ -173,9 +173,13 @@ class FirebaseAuthService {
   // ─── Google Sign-In ───────────────────────────────────────────────────
   Future<UserCredential> signInWithGoogle() async {
     try {
-      final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
-      if (googleUser == null) throw const AuthFailure('Google sign-in cancelled');
-      final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
+      final googleUser =
+          await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
+      if (googleUser == null) {
+        throw const AuthFailure('Google sign-in cancelled');
+      }
+      final googleAuth =
+          await googleUser.authentication.timeout(const Duration(seconds: 15));
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -187,7 +191,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Google authentication failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Google authentication failed (code: ${e.code})');
     } catch (e) {
       if (e is Failure) rethrow;
       throw AuthFailure('Google sign-in failed: ${e.toString()}');
@@ -204,7 +209,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Anonymous sign-in failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Anonymous sign-in failed (code: ${e.code})');
     } catch (e) {
       throw AuthFailure('Anonymous sign-in failed: ${e.toString()}');
     }
@@ -227,8 +233,7 @@ class FirebaseAuthService {
 
   // ─── Re-authentication ────────────────────────────────────────────────
   bool get hasPasswordProvider =>
-      _auth.currentUser?.providerData
-          .any((p) => p.providerId == 'password') ??
+      _auth.currentUser?.providerData.any((p) => p.providerId == 'password') ??
       false;
 
   bool get hasGoogleProvider =>
@@ -254,7 +259,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Re-authentication failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Re-authentication failed (code: ${e.code})');
     } catch (e) {
       if (e is Failure) rethrow;
       throw AuthFailure('Re-authentication failed: ${e.toString()}');
@@ -263,15 +269,21 @@ class FirebaseAuthService {
 
   Future<void> reauthenticateWithGoogle() async {
     try {
-      final googleUser = await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
-      if (googleUser == null) throw const AuthFailure('Google sign-in cancelled');
-      final googleAuth = await googleUser.authentication.timeout(const Duration(seconds: 15));
+      final googleUser =
+          await _googleSignIn.signIn().timeout(const Duration(seconds: 30));
+      if (googleUser == null) {
+        throw const AuthFailure('Google sign-in cancelled');
+      }
+      final googleAuth =
+          await googleUser.authentication.timeout(const Duration(seconds: 15));
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       final user = _auth.currentUser;
-      if (user == null) throw const AuthFailure('No user signed in');
+      if (user == null) {
+        throw const AuthFailure('No user signed in');
+      }
       await RetryUtils.retry(
         () => user.reauthenticateWithCredential(credential),
         maxAttempts: 3,
@@ -279,7 +291,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Re-authentication failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Re-authentication failed (code: ${e.code})');
     } catch (e) {
       if (e is Failure) rethrow;
       throw AuthFailure('Re-authentication failed: ${e.toString()}');
@@ -317,7 +330,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Update display name failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Update display name failed (code: ${e.code})');
     } catch (e) {
       if (e is Failure) rethrow;
       throw AuthFailure('Update display name failed: ${e.toString()}');
@@ -335,7 +349,8 @@ class FirebaseAuthService {
         retryIf: _isAuthTransientError,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(e.message ?? 'Update photo URL failed (code: ${e.code})');
+      throw AuthFailure(
+          e.message ?? 'Update photo URL failed (code: ${e.code})');
     } catch (e) {
       if (e is Failure) rethrow;
       throw AuthFailure('Update photo URL failed: ${e.toString()}');
@@ -351,8 +366,8 @@ class FirebaseAuthService {
     }
     return uid;
   }
+
   String get currentUserEmail => _auth.currentUser?.email ?? '';
-  String get currentUserName =>
-      _auth.currentUser?.displayName ?? 'Farmer';
+  String get currentUserName => _auth.currentUser?.displayName ?? 'Farmer';
   String? get currentUserPhotoUrl => _auth.currentUser?.photoURL;
 }

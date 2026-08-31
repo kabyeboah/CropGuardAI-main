@@ -13,6 +13,7 @@ import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/presentation/screens/outbreak_map/outbreak_map_screen.dart';
 
 class MockCommunityRepository extends Mock implements ICommunityRepository {}
+
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
 
 void main() {
@@ -83,7 +84,9 @@ void main() {
     );
   }
 
-  testWidgets('OutbreakMapScreen initializes with initialCrop and initialRegion', (tester) async {
+  testWidgets(
+      'OutbreakMapScreen initializes with initialCrop and initialRegion',
+      (tester) async {
     await tester.pumpWidget(wrapWithRouter(
       const OutbreakMapScreen(
         initialCrop: 'Cocoa',

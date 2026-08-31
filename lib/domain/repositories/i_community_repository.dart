@@ -39,7 +39,8 @@ abstract class ICommunityRepository {
     required String imagePath,
   });
 
-  Future<Result<void>> submitTrainingCandidate(Map<String, dynamic> candidateData);
+  Future<Result<void>> submitTrainingCandidate(
+      Map<String, dynamic> candidateData);
 
   Future<Result<void>> reportPost({
     required String postId,

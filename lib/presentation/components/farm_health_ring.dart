@@ -79,46 +79,47 @@ class _FarmHealthRingState extends State<FarmHealthRing>
           value: '${(value * 100).toInt()}%',
           excludeSemantics: true,
           child: SizedBox(
-          width: widget.size,
-          height: widget.size,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: Size(widget.size, widget.size),
-                painter: _RingPainter(
-                  progress: value,
-                  color: ringColor,
-                  strokeWidth: widget.strokeWidth,
+            width: widget.size,
+            height: widget.size,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: Size(widget.size, widget.size),
+                  painter: _RingPainter(
+                    progress: value,
+                    color: ringColor,
+                    strokeWidth: widget.strokeWidth,
+                  ),
                 ),
-              ),
-              // Show the scan-prompt immediately (before the animation
-              // value updates) so there is never a "0%" flash on first run.
-              widget.showStartPrompt
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.camera_alt_outlined,
-                            color: colors.primary, size: 22),
-                        const SizedBox(height: 4),
-                        Text(context.l10n.scan,
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: colors.muted)),
-                      ],
-                    )
-                  : Text(
-                      '${(value * 100).toInt()}%',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: colors.onBackground,
-                          ),
-                    ),
-            ],
+                // Show the scan-prompt immediately (before the animation
+                // value updates) so there is never a "0%" flash on first run.
+                widget.showStartPrompt
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.camera_alt_outlined,
+                              color: colors.primary, size: 22),
+                          const SizedBox(height: 4),
+                          Text(context.l10n.scan,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.muted)),
+                        ],
+                      )
+                    : Text(
+                        '${(value * 100).toInt()}%',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                  color: colors.onBackground,
+                                ),
+                      ),
+              ],
+            ),
           ),
-        ),
         );
       },
     );
@@ -131,9 +132,7 @@ class _RingPainter extends CustomPainter {
   final double strokeWidth;
 
   const _RingPainter(
-      {required this.progress,
-      required this.color,
-      required this.strokeWidth});
+      {required this.progress, required this.color, required this.strokeWidth});
 
   @override
   void paint(Canvas canvas, Size size) {

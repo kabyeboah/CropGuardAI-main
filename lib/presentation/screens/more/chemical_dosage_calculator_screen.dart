@@ -42,15 +42,34 @@ class _ChemicalDosageCalculatorScreenState
 
   // Recommended dilution rates per acre (approximate standard agronomic defaults)
   // [totalVolumeLitersPerAcre, dosageGramsOrMlPerLiter]
-  final Map<String, ({double volumePerAcre, double dosagePerLiter})> _dosageSpecs = {
-    'Fungicide (Copper Hydroxide - Black Pod)': (volumePerAcre: 45.0, dosagePerLiter: 3.5),
+  final Map<String, ({double volumePerAcre, double dosagePerLiter})>
+      _dosageSpecs = {
+    'Fungicide (Copper Hydroxide - Black Pod)': (
+      volumePerAcre: 45.0,
+      dosagePerLiter: 3.5
+    ),
     'Insecticide (Mirid Control)': (volumePerAcre: 30.0, dosagePerLiter: 2.0),
     'Fungicide (Ridomil Gold)': (volumePerAcre: 45.0, dosagePerLiter: 2.5),
-    'Insecticide (Neem Oil Spray - Whitefly)': (volumePerAcre: 30.0, dosagePerLiter: 5.0),
-    'Bio-Pesticide (Potassium Soap)': (volumePerAcre: 30.0, dosagePerLiter: 4.0),
-    'Fungicide (Mancozeb - Early/Late Blight)': (volumePerAcre: 40.0, dosagePerLiter: 3.0),
-    'Insecticide (Spinosad - Caterpillars)': (volumePerAcre: 35.0, dosagePerLiter: 1.5),
-    'Insecticide (Emamectin Benzoate - Fall Armyworm)': (volumePerAcre: 35.0, dosagePerLiter: 1.0),
+    'Insecticide (Neem Oil Spray - Whitefly)': (
+      volumePerAcre: 30.0,
+      dosagePerLiter: 5.0
+    ),
+    'Bio-Pesticide (Potassium Soap)': (
+      volumePerAcre: 30.0,
+      dosagePerLiter: 4.0
+    ),
+    'Fungicide (Mancozeb - Early/Late Blight)': (
+      volumePerAcre: 40.0,
+      dosagePerLiter: 3.0
+    ),
+    'Insecticide (Spinosad - Caterpillars)': (
+      volumePerAcre: 35.0,
+      dosagePerLiter: 1.5
+    ),
+    'Insecticide (Emamectin Benzoate - Fall Armyworm)': (
+      volumePerAcre: 35.0,
+      dosagePerLiter: 1.0
+    ),
     'Neem Extract Concentrate': (volumePerAcre: 30.0, dosagePerLiter: 5.0),
   };
 
@@ -63,7 +82,8 @@ class _ChemicalDosageCalculatorScreenState
     final totalWaterNeeded = spec.volumePerAcre * _farmSizeAcres;
     final totalChemicalNeeded = totalWaterNeeded * spec.dosagePerLiter;
     final numberOfTanks = (totalWaterNeeded / _tankCapacityLiters).ceil();
-    final chemicalPerTank = totalChemicalNeeded / (numberOfTanks > 0 ? numberOfTanks : 1);
+    final chemicalPerTank =
+        totalChemicalNeeded / (numberOfTanks > 0 ? numberOfTanks : 1);
 
     final isLiquid = _selectedTreatment.contains('Oil') ||
         _selectedTreatment.contains('Insecticide') ||
@@ -273,14 +293,16 @@ class _ChemicalDosageCalculatorScreenState
                     _DosageRow(
                       icon: Icons.backpack_outlined,
                       label: 'Knapsack Tanks Needed',
-                      value: '$numberOfTanks Tank(s) (${_tankCapacityLiters.toInt()}L each)',
+                      value:
+                          '$numberOfTanks Tank(s) (${_tankCapacityLiters.toInt()}L each)',
                       colors: colors,
                     ),
                     const Divider(height: 16),
                     _DosageRow(
                       icon: Icons.science,
                       label: 'Dosage Per Tank',
-                      value: '${chemicalPerTank.toStringAsFixed(1)} $unit per tank',
+                      value:
+                          '${chemicalPerTank.toStringAsFixed(1)} $unit per tank',
                       colors: colors,
                       highlight: true,
                     ),
@@ -321,6 +343,25 @@ class _ChemicalDosageCalculatorScreenState
                         height: 1.5,
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: colors.muted),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            context.l10n.treatmentAdvisoryDisclaimer,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colors.muted,
+                              fontStyle: FontStyle.italic,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -351,8 +392,7 @@ class _DosageRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon,
-            size: 20, color: highlight ? colors.primary : colors.muted),
+        Icon(icon, size: 20, color: highlight ? colors.primary : colors.muted),
         const SizedBox(width: 10),
         Expanded(
           child: Text(

@@ -19,7 +19,9 @@ class ReporterTrustStats {
     required int verificationsGiven,
     int refutedReports = 0,
   }) {
-    final score = ((verifiedReports * 10) + (verificationsGiven * 2) - (refutedReports * 5))
+    final score = ((verifiedReports * 10) +
+            (verificationsGiven * 2) -
+            (refutedReports * 5))
         .clamp(0, 9999);
 
     String badge;

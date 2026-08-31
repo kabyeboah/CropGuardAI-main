@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -88,7 +89,8 @@ class _ScannerScreenState extends State<ScannerScreen>
     }
   }
 
-  Future<void> _checkAndRequestPermissions({bool requestIfDenied = true}) async {
+  Future<void> _checkAndRequestPermissions(
+      {bool requestIfDenied = true}) async {
     final granted = await PermissionHelper.hasScannerPermissions();
     if (granted) {
       if (mounted) {
@@ -106,7 +108,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _requestPermissions() async {
-    final requested = await PermissionHelper.requestScannerPermissions();
+    final requested = await PermissionHelper.requestCameraWithRecovery(context);
     if (mounted) {
       setState(() => _permissionsGranted = requested);
       if (requested) {
@@ -124,7 +126,8 @@ class _ScannerScreenState extends State<ScannerScreen>
       setState(() => _showGuidance = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.l10n.addedToBatch(provider.batchImagePaths.length)),
+          content:
+              Text(context.l10n.addedToBatch(provider.batchImagePaths.length)),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -134,14 +137,28 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _onGallery(ScannerProvider provider) async {
-    final path = await provider.pickFromGallery();
-    if (path == null || !mounted) return;
+    try {
+      final path = await provider.pickFromGallery();
+      if (path == null || !mounted) return;
 
-    if (provider.batchMode) {
-      provider.addCapturedToBatch(path);
-      setState(() => _showGuidance = false);
-    } else {
-      unawaited(_navigateToAnalysis(path));
+      if (provider.batchMode) {
+        provider.addCapturedToBatch(path);
+        setState(() => _showGuidance = false);
+      } else {
+        unawaited(_navigateToAnalysis(path));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.galleryPermissionError),
+            action: SnackBarAction(
+              label: context.l10n.settings,
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -323,93 +340,94 @@ class _ScannerScreenState extends State<ScannerScreen>
                     onPressed: () => context.go('/home'),
                   ),
           ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DeviceLayout.screenPaddingHorizontal,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DeviceLayout.screenPaddingHorizontal,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.camera_enhance_outlined,
+                        size: 48, color: colors.primary),
                   ),
-                  child: Icon(Icons.camera_enhance_outlined,
-                      size: 48, color: colors.primary),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  context.l10n.cameraRequiredTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 32),
+                  Text(
+                    context.l10n.cameraRequiredTitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.l10n.cameraRequiredDesc,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 15,
-                    height: 1.5,
+                  const SizedBox(height: 16),
+                  Text(
+                    context.l10n.cameraRequiredDesc,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: DeviceLayout.primaryButtonHeight,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          DeviceLayout.buttonCornerRadius,
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: DeviceLayout.primaryButtonHeight,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            DeviceLayout.buttonCornerRadius,
+                          ),
                         ),
                       ),
-                    ),
-                    onPressed: _requestPermissions,
-                    child: Text(
-                      context.l10n.grantPermissions,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: DeviceLayout.secondaryButtonHeight,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white30),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          DeviceLayout.buttonCornerRadius,
-                        ),
+                      onPressed: _requestPermissions,
+                      child: Text(
+                        context.l10n.grantPermissions,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ),
-                    onPressed: () => context.go('/home'),
-                    child: Text(
-                      context.l10n.goBack,
-                      style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: DeviceLayout.secondaryButtonHeight,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white30),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            DeviceLayout.buttonCornerRadius,
+                          ),
+                        ),
+                      ),
+                      onPressed: () => context.go('/home'),
+                      child: Text(
+                        context.l10n.goBack,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
     // SLOW-STATE SELECTOR — only rebuilds on user-driven events (torch toggle,
     // mode change, camera init, error appearance). NOT triggered by the ~150ms
@@ -422,7 +440,8 @@ class _ScannerScreenState extends State<ScannerScreen>
         batchMode: p.batchMode,
         batchCount: p.batchImagePaths.length,
         isAnalysing: p.isAnalysing,
-        errorMessage: p.errorMessageCode?.resolve(context.l10n) ?? p.errorMessage,
+        errorMessage:
+            p.errorMessageCode?.resolve(context.l10n) ?? p.errorMessage,
       ),
       builder: (context, s, _) {
         return PopScope(
@@ -436,9 +455,8 @@ class _ScannerScreenState extends State<ScannerScreen>
             extendBodyBehindAppBar: true,
             floatingActionButton: s.batchMode && s.batchCount > 0
                 ? FloatingActionButton.extended(
-                    onPressed: s.isAnalysing
-                        ? null
-                        : () => _onAnalyseBatch(provider),
+                    onPressed:
+                        s.isAnalysing ? null : () => _onAnalyseBatch(provider),
                     backgroundColor: colors.primary,
                     icon: s.isAnalysing
                         ? const SizedBox(
@@ -525,8 +543,8 @@ class _ScannerScreenState extends State<ScannerScreen>
                           Builder(
                               builder: (ctx) => Text(
                                   ctx.l10n.initialisingCamera,
-                                  style: const TextStyle(
-                                      color: Colors.white54))),
+                                  style:
+                                      const TextStyle(color: Colors.white54))),
                         ],
                       ),
                     ),
@@ -704,8 +722,7 @@ class _ScanOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // topClearance = status bar + AppBar so the frame is not hidden behind them.
-    final topClearance =
-        MediaQuery.paddingOf(context).top + kToolbarHeight;
+    final topClearance = MediaQuery.paddingOf(context).top + kToolbarHeight;
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);

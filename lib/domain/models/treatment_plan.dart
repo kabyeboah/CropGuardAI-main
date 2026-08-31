@@ -103,4 +103,3 @@ class TreatmentPlanGroup {
     return pending.first.dueDate;
   }
 }
-

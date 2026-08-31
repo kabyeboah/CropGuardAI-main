@@ -5,7 +5,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'app_logger.dart';
 
-
 /// Real connection quality, not just whether a network interface exists.
 enum ConnectionStatus {
   /// Reachable and responsive.
@@ -56,7 +55,8 @@ class ConnectivityService with WidgetsBindingObserver {
     // Re-probe whenever the OS reports an interface change (wifi <-> mobile <->
     // none) and, while the app is in the foreground, on an adaptive interval to
     // catch silent degradation without wasteful continuous polling.
-    _interfaceSub = _connectivity.onConnectivityChanged.listen((_) => _onInterfaceChanged());
+    _interfaceSub = _connectivity.onConnectivityChanged
+        .listen((_) => _onInterfaceChanged());
     WidgetsBinding.instance.addObserver(this);
     _startPolling();
     _refresh();
@@ -91,7 +91,8 @@ class ConnectivityService with WidgetsBindingObserver {
     _refresh();
   }
 
-  void _adjustPollInterval(ConnectionStatus status, {bool statusChanged = false}) {
+  void _adjustPollInterval(ConnectionStatus status,
+      {bool statusChanged = false}) {
     if (statusChanged) {
       // Status transition detected — reset to base interval to monitor actively.
       _currentPollInterval = _basePollInterval;
@@ -190,7 +191,10 @@ class ConnectivityService with WidgetsBindingObserver {
         return ConnectionStatus.offline;
       }
     } catch (e, s) {
-      AppLogger.e("Connectivity probe exception (e.g. platform channel not ready): $e", e, s);
+      AppLogger.e(
+          "Connectivity probe exception (e.g. platform channel not ready): $e",
+          e,
+          s);
       return ConnectionStatus.offline;
     }
   }

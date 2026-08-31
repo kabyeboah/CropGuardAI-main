@@ -12,13 +12,35 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
   ClassifierRepositoryImpl(this._classifier, [OODGate? oodGate])
       : _oodGate = oodGate ?? AlwaysAcceptOODGate();
 
+  Failure _mapException(Object e) {
+    if (e is ModelLoadException) {
+      return ModelLoadFailure(e.message);
+    }
+    if (e is ModelContractException) {
+      return ModelContractFailure(e.message);
+    }
+    if (e is ModelInputException) {
+      return ModelInputFailure(e.message);
+    }
+    if (e is ModelInferenceException) {
+      return ModelInferenceFailure(e.message);
+    }
+    if (e is LabelContractException) {
+      return LabelContractFailure(e.message);
+    }
+    if (e is MLException) {
+      return MLFailure(e.message, code: e.code);
+    }
+    return MLFailure(e.toString());
+  }
+
   @override
   Future<Result<void>> loadModel() async {
     try {
       await _classifier.loadModel();
       return Result.success(null);
     } catch (e) {
-      return Result.error(MLFailure(e.toString()));
+      return Result.error(_mapException(e));
     }
   }
 
@@ -35,41 +57,49 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
 
       final result = await _classifier.classifyFromPath(imagePath);
       if (result == null) {
-        return Result.error(const MLFailure('Classification failed to return a result'));
-      }
-      if (result.engineUnavailable) {
-        return Result.error(const MLFailure('ML engine unavailable on this platform or device'));
+        return Result.error(const ModelInferenceFailure(
+            'Classification failed to return a result'));
       }
       if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
-        return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
+        return Result.error(QualityFailure(
+            result.qualityResult!.issue, 'Image quality check failed'));
+      }
+      if (result.engineUnavailable) {
+        return Result.error(const ModelLoadFailure(
+            'ML engine unavailable on this platform or device'));
       }
       return Result.success(_mapClassification(result));
     } catch (e) {
-      return Result.error(MLFailure(e.toString()));
+      return Result.error(_mapException(e));
     }
   }
 
   @override
-  Future<Result<Classification?>> classifyFromBytes(Uint8List rgbaBytes, int width, int height) async {
+  Future<Result<Classification?>> classifyFromBytes(
+      Uint8List rgbaBytes, int width, int height) async {
     try {
       final isPlant = await _oodGate.isPlantBytes(rgbaBytes, width, height);
       if (!isPlant) {
         return Result.error(const OODFailure());
       }
 
-      final result = await _classifier.classifyFromBytes(rgbaBytes, width, height);
+      final result =
+          await _classifier.classifyFromBytes(rgbaBytes, width, height);
       if (result == null) {
-        return Result.error(const MLFailure('Classification failed to return a result'));
-      }
-      if (result.engineUnavailable) {
-        return Result.error(const MLFailure('ML engine unavailable on this platform or device'));
+        return Result.error(const ModelInferenceFailure(
+            'Classification failed to return a result'));
       }
       if (result.qualityResult != null && !result.qualityResult!.isAcceptable) {
-        return Result.error(QualityFailure(result.qualityResult!.issue, 'Image quality check failed'));
+        return Result.error(QualityFailure(
+            result.qualityResult!.issue, 'Image quality check failed'));
+      }
+      if (result.engineUnavailable) {
+        return Result.error(const ModelLoadFailure(
+            'ML engine unavailable on this platform or device'));
       }
       return Result.success(_mapClassification(result));
     } catch (e) {
-      return Result.error(MLFailure(e.toString()));
+      return Result.error(_mapException(e));
     }
   }
 

@@ -14,8 +14,16 @@ import '../../../core/utils/planting_reminder_manager.dart';
 /// Crops offered in onboarding — mirrors the "Add Crop" list on Home so the
 /// seeded selection stays consistent with later crop management.
 const _kOnboardingCrops = [
-  'Maize', 'Cassava', 'Tomato', 'Yam', 'Plantain',
-  'Rice', 'Soybean', 'Groundnut', 'Cocoa', 'Oil Palm',
+  'Maize',
+  'Cassava',
+  'Tomato',
+  'Yam',
+  'Plantain',
+  'Rice',
+  'Soybean',
+  'Groundnut',
+  'Cocoa',
+  'Oil Palm',
 ];
 
 /// 4-page horizontal pager with language picker on page 1 and animated hero widgets
@@ -194,8 +202,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   if (_currentPage == 0)
                     TextButton(
                       onPressed: () => context.go('/login'),
-                      child: Text('${context.l10n.hasAccountPrompt} ${context.l10n.signIn}',
-                          style: TextStyle(color: colors.primary, fontSize: 13)),
+                      child: Text(
+                          '${context.l10n.hasAccountPrompt} ${context.l10n.signIn}',
+                          style:
+                              TextStyle(color: colors.primary, fontSize: 13)),
                     ),
                   if (_currentPage > 0 && _currentPage < _pageCount - 1)
                     TextButton(
@@ -323,7 +333,8 @@ class _ScanPage extends StatelessWidget {
                     // Leaf icon in center
                     Center(
                       child: Icon(Icons.local_florist_rounded,
-                          size: 70, color: colors.primary.withValues(alpha: 0.8)),
+                          size: 70,
+                          color: colors.primary.withValues(alpha: 0.8)),
                     ),
                     // Scanning line
                     Positioned(
@@ -447,7 +458,8 @@ class _ActPage extends StatelessWidget {
                     return Transform(
                       transform: Matrix4.identity()
                         ..translateByDouble(offset * 80.0, -i * 8.0, 0.0, 1.0)
-                        ..scaleByDouble(0.75 + 0.25 * t, 0.75 + 0.25 * t, 1.0, 1.0),
+                        ..scaleByDouble(
+                            0.75 + 0.25 * t, 0.75 + 0.25 * t, 1.0, 1.0),
                       alignment: Alignment.center,
                       child: Opacity(
                         opacity: (0.4 + 0.6 * t).clamp(0.0, 1.0),
@@ -469,8 +481,7 @@ class _ActPage extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              Text(s.$1,
-                                  style: const TextStyle(fontSize: 26)),
+                              Text(s.$1, style: const TextStyle(fontSize: 26)),
                               const SizedBox(width: 10),
                               Text(s.$2,
                                   style: TextStyle(
@@ -610,8 +621,8 @@ class _PermissionsPage extends StatelessWidget {
                     height: 160 + 20 * pulse,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: colors.primary
-                          .withValues(alpha: 0.05 + 0.05 * pulse),
+                      color:
+                          colors.primary.withValues(alpha: 0.05 + 0.05 * pulse),
                     ),
                   ),
                   Container(
@@ -674,7 +685,8 @@ class _PermItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String desc;
-  const _PermItem({required this.icon, required this.label, required this.desc});
+  const _PermItem(
+      {required this.icon, required this.label, required this.desc});
 
   @override
   Widget build(BuildContext context) {
@@ -729,9 +741,22 @@ class _PermItem extends StatelessWidget {
 
 /// All 16 Ghana administrative regions (2019 reorganisation), alphabetically.
 const _kGhanaRegions = [
-  'Ahafo', 'Ashanti', 'Bono', 'Bono East', 'Central',
-  'Eastern', 'Greater Accra', 'North East', 'Northern', 'Oti',
-  'Savannah', 'Upper East', 'Upper West', 'Volta', 'Western', 'Western North',
+  'Ahafo',
+  'Ashanti',
+  'Bono',
+  'Bono East',
+  'Central',
+  'Eastern',
+  'Greater Accra',
+  'North East',
+  'Northern',
+  'Oti',
+  'Savannah',
+  'Upper East',
+  'Upper West',
+  'Volta',
+  'Western',
+  'Western North',
 ];
 
 class _RegionPage extends StatelessWidget {
@@ -813,8 +838,8 @@ class _RegionPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.2)),
+                border:
+                    Border.all(color: colors.primary.withValues(alpha: 0.2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

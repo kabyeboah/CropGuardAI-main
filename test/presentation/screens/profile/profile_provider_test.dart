@@ -9,8 +9,11 @@ import 'package:cropguard_flutter/data/remote/image_upload_service.dart';
 import 'package:cropguard_flutter/presentation/screens/profile/profile_provider.dart';
 
 class _MockProfileRepo extends Mock implements IProfileRepository {}
+
 class _MockAuthRepo extends Mock implements IAuthRepository {}
+
 class _MockConnectivityService extends Mock implements ConnectivityService {}
+
 class _MockImageUploadService extends Mock implements ImageUploadService {}
 
 void main() {
@@ -26,10 +29,13 @@ void main() {
     mockConnectivity = _MockConnectivityService();
     mockUploader = _MockImageUploadService();
 
-    when(() => mockConnectivity.statusStream).thenAnswer((_) => Stream.value(ConnectionStatus.online));
-    when(() => mockConnectivity.checkStatus()).thenAnswer((_) async => ConnectionStatus.online);
+    when(() => mockConnectivity.statusStream)
+        .thenAnswer((_) => Stream.value(ConnectionStatus.online));
+    when(() => mockConnectivity.checkStatus())
+        .thenAnswer((_) async => ConnectionStatus.online);
     when(() => mockProfileRepo.getLocalProfilePhotoPath()).thenReturn(null);
-    when(() => mockProfileRepo.getFarmStats()).thenAnswer((_) async => Result.success({'total': 50, 'healthy': 40, 'diseased': 10}));
+    when(() => mockProfileRepo.getFarmStats()).thenAnswer((_) async =>
+        Result.success({'total': 50, 'healthy': 40, 'diseased': 10}));
     when(() => mockProfileRepo.getAlertsEnabled()).thenReturn(true);
     when(() => mockProfileRepo.getHighQualityScans()).thenReturn(true);
 
@@ -52,7 +58,8 @@ void main() {
     });
 
     test('sets isPro to true if totalScans >= 100', () async {
-      when(() => mockProfileRepo.getFarmStats()).thenAnswer((_) async => Result.success({'total': 120, 'healthy': 100, 'diseased': 20}));
+      when(() => mockProfileRepo.getFarmStats()).thenAnswer((_) async =>
+          Result.success({'total': 120, 'healthy': 100, 'diseased': 20}));
 
       await provider.load();
 
@@ -67,8 +74,10 @@ void main() {
       expect(provider.profileError, 'Display name cannot be empty.');
     });
 
-    test('succeeds when updateDisplayName in auth repository succeeds', () async {
-      when(() => mockAuthRepo.updateDisplayName('Kofi')).thenAnswer((_) async => Result.success(null));
+    test('succeeds when updateDisplayName in auth repository succeeds',
+        () async {
+      when(() => mockAuthRepo.updateDisplayName('Kofi'))
+          .thenAnswer((_) async => Result.success(null));
 
       final success = await provider.saveProfile(displayName: 'Kofi');
 

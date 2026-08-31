@@ -176,8 +176,7 @@ class AppRouter {
         path: '/analysing',
         parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
-          final imagePath =
-              state.uri.queryParameters['imagePath'] ?? '';
+          final imagePath = state.uri.queryParameters['imagePath'] ?? '';
           return AnalisingScreen(imagePath: imagePath);
         },
       ),
@@ -227,11 +226,10 @@ class AppRouter {
               regionalRisks: extra.regionalRisks,
             );
           }
-          final confidence = double.tryParse(
-                  state.uri.queryParameters['confidence'] ?? '0') ??
-              0.0;
-          final imagePath =
-              state.uri.queryParameters['imagePath'] ?? '';
+          final confidence =
+              double.tryParse(state.uri.queryParameters['confidence'] ?? '0') ??
+                  0.0;
+          final imagePath = state.uri.queryParameters['imagePath'] ?? '';
           return LowConfidenceScreen(
               confidence: confidence, imagePath: imagePath);
         },

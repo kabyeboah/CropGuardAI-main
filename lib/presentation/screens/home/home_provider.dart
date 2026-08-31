@@ -3,12 +3,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/connectivity_service.dart';
 import '../../../core/utils/ghana_region.dart';
 import '../../../core/utils/ghana_seasonal_tip.dart';
+import '../../../core/utils/location_helper.dart';
+import '../../../core/utils/nominatim_service.dart';
 import '../../../core/utils/outbreak_alert_service.dart';
 import '../../../core/utils/planting_reminder_manager.dart';
 import '../../../domain/models/detection_result.dart';
@@ -31,8 +32,7 @@ class FarmStats {
     this.diseasedScans = 0,
   });
 
-  double get healthScore =>
-      totalScans > 0 ? healthyScans / totalScans : 0.0;
+  double get healthScore => totalScans > 0 ? healthyScans / totalScans : 0.0;
 }
 
 class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
@@ -42,13 +42,14 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
   final ConnectivityService _connectivity;
   final SharedPreferences _prefs;
   final ICommunityRepository _communityRepository;
+  final NominatimService _nominatimService;
   StreamSubscription<ConnectionStatus>? _connectivitySub;
   Timer? _weatherTimer;
   bool _disposed = false;
 
   // SharedPreferences keys for the weather cache.
   static const _kCacheJson = 'weather_v1_json';
-  static const _kCacheTs   = 'weather_v1_ts';
+  static const _kCacheTs = 'weather_v1_ts';
 
   // Stale threshold — refresh when cached data is older than this.
   static const _cacheTTL = Duration(minutes: 30);
@@ -59,8 +60,10 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
     this._authRepository,
     SharedPreferences prefs,
     this._connectivity,
-    this._communityRepository,
-  ) : _prefs = prefs {
+    this._communityRepository, {
+    NominatimService? nominatimService,
+  })  : _prefs = prefs,
+        _nominatimService = nominatimService ?? NominatimService(prefs: prefs) {
     WidgetsBinding.instance.addObserver(this);
     _connectivitySub = _connectivity.statusStream.listen((status) {
       connectionStatus = status;
@@ -182,7 +185,7 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> refreshData() async {
     final userId = _authRepository.currentUser?.id;
     final result = await _getHomeDataUseCase(userId: userId);
-    
+
     try {
       final outbreaksResult = await _communityRepository.getOutbreakReports();
       if (outbreaksResult.isSuccess) {
@@ -234,8 +237,8 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (jsonStr == null) return;
     try {
       final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
-      final cached  = WeatherForecast.fromJson(decoded);
-      final region  = cached.latitude > 8.0 ? 'North' : 'South';
+      final cached = WeatherForecast.fromJson(decoded);
+      final region = cached.latitude > 8.0 ? 'North' : 'South';
       weather = cached;
       _updateDerivedWeatherFields(cached, region);
     } catch (_) {
@@ -250,7 +253,7 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Returns true when the cached data is still fresh enough to skip a fetch.
   bool _isCacheFresh() {
-    final ts  = _prefs.getInt(_kCacheTs) ?? 0;
+    final ts = _prefs.getInt(_kCacheTs) ?? 0;
     final age = DateTime.now().millisecondsSinceEpoch - ts;
     return age < _cacheTTL.inMilliseconds;
   }
@@ -270,7 +273,8 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _updateDerivedWeatherFields(WeatherForecast w, String region) {
     if (w.daily.isEmpty) return;
     final today = w.daily.first;
-    weeklyRisks = AgriWeatherUtils.assessWeeklyRisks(w.daily, outbreaks: _outbreaks, region: region);
+    weeklyRisks = AgriWeatherUtils.assessWeeklyRisks(w.daily,
+        outbreaks: _outbreaks, region: region);
     hasDiseaseRisk = AgriWeatherUtils.isFungalRisk(today);
     if (hasDiseaseRisk) {
       diseaseRiskMessage =
@@ -309,14 +313,20 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
         ),
       ).timeout(const Duration(seconds: 6));
 
+      // Coarsen coordinates to 2 decimal places (~1.1 km) for farm privacy.
+      final coarsenedLat =
+          LocationHelper.coarsen(position.latitude, precision: 2);
+      final coarsenedLon =
+          LocationHelper.coarsen(position.longitude, precision: 2);
+
       // Cache the fix so the background outbreak-alert task has a location to
       // compare reports against without its own GPS acquisition.
       unawaited(OutbreakAlertService.saveLastKnownLocation(
-          _prefs, position.latitude, position.longitude));
+          _prefs, coarsenedLat, coarsenedLon));
 
-      final region = position.latitude > 8.0 ? 'North' : 'South';
-      unawaited(_reverseGeocode(position.latitude, position.longitude));
-      await _fetchWeather(position.latitude, position.longitude, region);
+      final region = coarsenedLat > 8.0 ? 'North' : 'South';
+      unawaited(_reverseGeocode(coarsenedLat, coarsenedLon));
+      await _fetchWeather(coarsenedLat, coarsenedLon, region);
     } catch (_) {
       await _fetchFallbackWeather();
     }
@@ -339,24 +349,10 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _reverseGeocode(double lat, double lon) async {
     try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json',
-      );
-      final response = await http.get(uri, headers: {
-        // Nominatim's usage policy requires an identifying User-Agent with a
-        // contact. Use a project address, not a personal email. Update this to
-        // your real support contact before release.
-        'User-Agent': 'CropGuardAI/1.0 (kwameyeboah@gmail.com)',
-      }).timeout(const Duration(seconds: 5));
-      if (response.statusCode == 200) {
-        final data    = jsonDecode(response.body) as Map<String, dynamic>;
-        final address = (data['address'] as Map<String, dynamic>?) ?? {};
-        locationName  = address['county'] as String? ??
-            address['city']    as String? ??
-            address['town']    as String? ??
-            address['village'] as String? ??
-            'Ghana';
-        if (!_disposed) notifyListeners();
+      final resolved = await _nominatimService.reverseGeocode(lat, lon);
+      if (!_disposed) {
+        locationName = resolved;
+        notifyListeners();
       }
     } catch (_) {
       // Keep existing locationName.
@@ -370,7 +366,8 @@ class HomeProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     try {
-      final fetched = await _getWeatherUseCase.execute(latitude: lat, longitude: lon);
+      final fetched =
+          await _getWeatherUseCase.execute(latitude: lat, longitude: lon);
       if (_disposed) return;
       weather = fetched;
       _updateDerivedWeatherFields(fetched, region);

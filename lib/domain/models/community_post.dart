@@ -8,6 +8,7 @@ class CommunityPost {
   final String? imageUri;
   final String? expertResponse;
   final int timestamp;
+
   /// UI-only sync state: 'pending', 'syncing', 'synced', 'failed'.
   final String? syncStatus;
 
@@ -23,7 +24,8 @@ class CommunityPost {
     this.syncStatus,
   });
 
-  factory CommunityPost.fromMap(Map<String, dynamic> map, String id, {String? syncStatus}) {
+  factory CommunityPost.fromMap(Map<String, dynamic> map, String id,
+      {String? syncStatus}) {
     return CommunityPost(
       id: id,
       userId: map['userId'] as String? ?? '',

@@ -36,6 +36,7 @@ void main() {
     // assert
     expect(result.isSuccess, true);
     expect(result.data, tUser);
-    verify(() => mockRepository.signIn(email: 'test@example.com', password: 'password123')).called(1);
+    verify(() => mockRepository.signIn(
+        email: 'test@example.com', password: 'password123')).called(1);
   });
 }

@@ -132,12 +132,6 @@ dev_dependencies:
 
 dependency_overrides:
   firebase_core_platform_interface: 6.0.3
-  # audioplayers_darwin 6.5.0 has a Swift compiler bug on line 88 of AudioContext.swift
-  # (.AVAudioSession.CategoryOptions.allowBluetoothHFP should be .allowBluetoothHFP).
-  # The pub-cache file has been patched in place. This override pins the version so
-  # a future `pub get` doesn't silently regress. Remove once audioplayers upgrades
-  # audioplayers_darwin past 6.5.0.
-  audioplayers_darwin: 6.5.0
   record_linux: ^1.2.0
 
 flutter:
@@ -148,8 +142,8 @@ flutter:
     # the app binary. Release builds supply secrets via --dart-define or Firebase
     # Remote Config (see core/config/app_secrets.dart). .env is loaded at runtime
     # only when present (local dev); see main.dart.
-    - assets/cropguard_plant_disease_verified.tflite
-    - assets/labels_verified.txt
+    - assets/cropguard_plant_disease.tflite
+    - assets/labels.txt
     - assets/model_metadata.json
     - assets/api_specs/
     - assets/diseases/

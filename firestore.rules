@@ -12,11 +12,14 @@ service cloud.firestore {
     }
 
     // Community posts: any authenticated user can read; only authors can create/delete.
+    // Posts are immutable once published to preserve community audit integrity.
     match /community_posts/{post} {
       allow read: if request.auth != null;
       allow create: if request.auth != null 
                     && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.body is string
                     && request.resource.data.body.size() <= 500;
+      allow update: if false;
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
@@ -38,6 +41,7 @@ service cloud.firestore {
     // Feedback and Expert Requests: an authenticated user can only create a
     // record stamped with their own uid (prevents spoofing another user's id).
     match /feedback/{item} {
+      allow read, update, delete: if false;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
     }
@@ -46,6 +50,7 @@ service cloud.firestore {
                     && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     match /missing_crops/{crop} {
@@ -53,9 +58,11 @@ service cloud.firestore {
                     && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
     }
 
     match /training_candidates/{candidate} {
+      allow read, update, delete: if false;
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
     }
@@ -75,9 +82,10 @@ service cloud.firestore {
     }
 
     // Outbreak reports: authenticated users can read; authors create their own.
-    // Cap free-text notes to bound abuse / storage. Validate field types/ranges
-    // so the crowd-sourced dataset stays clean, and keep reports immutable once
-    // filed (no update/delete) for audit integrity.
+    // Cap free-text notes to bound abuse / storage. Validate field types/ranges.
+    // Clients CANNOT inject arbitrary verifiedBy/refutedBy lists or forge confidence.
+    // Direct client updates and deletes are DENIED; all verification mutations MUST
+    // execute through trusted server-side Cloud Functions (verifyOutbreak).
     match /outbreak_reports/{report} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -85,7 +93,7 @@ service cloud.firestore {
                     && request.resource.data.disease is string
                     && request.resource.data.disease.size() <= 80
                     && (!('notes' in request.resource.data)
-                        || request.resource.data.notes.size() <= 500)
+                        || (request.resource.data.notes is string && request.resource.data.notes.size() <= 500))
                     && (!('severity' in request.resource.data)
                         || request.resource.data.severity in ['low','medium','high'])
                     && (!('confidence' in request.resource.data)
@@ -99,10 +107,13 @@ service cloud.firestore {
                     && (!('longitude' in request.resource.data)
                         || (request.resource.data.longitude is number
                             && request.resource.data.longitude >= -180
-                            && request.resource.data.longitude <= 180));
-      allow update: if request.auth != null
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verifiedBy', 'refutedBy']);
-      allow delete: if false;
+                            && request.resource.data.longitude <= 180))
+                    && (!('verifiedBy' in request.resource.data)
+                        || request.resource.data.verifiedBy == [request.auth.uid]
+                        || request.resource.data.verifiedBy == [])
+                    && (!('refutedBy' in request.resource.data)
+                        || request.resource.data.refutedBy == []);
+      allow update, delete: if false;
     }
 
     // Treatment plans synced to cloud.

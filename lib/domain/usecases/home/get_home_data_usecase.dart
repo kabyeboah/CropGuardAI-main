@@ -21,8 +21,10 @@ class GetHomeDataUseCase {
 
   Future<Result<HomeData>> call({String? userId}) async {
     final statsResult = await _repository.getFarmStats(userId: userId);
-    final scansResult = await _repository.getRecentDetections(userId: userId, limit: 5);
-    final trendResult = await _repository.getDailyTrend(days: 7, userId: userId);
+    final scansResult =
+        await _repository.getRecentDetections(userId: userId, limit: 5);
+    final trendResult =
+        await _repository.getDailyTrend(days: 7, userId: userId);
 
     if (statsResult.isError) return Result.error(statsResult.failure!);
     if (scansResult.isError) return Result.error(scansResult.failure!);

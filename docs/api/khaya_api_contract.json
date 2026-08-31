@@ -1,0 +1,225 @@
+{
+  "provider": "Khaya AI (GhanaNLP)",
+  "portalUrl": "https://developer.khaya.ai/",
+  "baseUrl": "https://translation-api.ghananlp.org",
+  "managedVia": "Azure API Management",
+  "verifiedAt": "2026-08-31",
+  "verificationMethod": "Public developer portal + web search. Full schema requires authenticated portal access.",
+  "apis": {
+    "asr": {
+      "productName": "Automatic Speech Recognition API",
+      "version": "v3",
+      "status": "ACTIVE",
+      "deprecatedVersions": [
+        "v1",
+        "v2"
+      ],
+      "baseUrl": "https://translation-api.ghananlp.org",
+      "endpoint": "/asr/v3/transcribe",
+      "endpointVerified": "ASSUMED_FROM_PATTERN",
+      "method": "POST",
+      "authentication": {
+        "headerName": "Ocp-Apim-Subscription-Key",
+        "credentialType": "subscription_key",
+        "storageLocation": "Firebase Secret Manager (server-side only)"
+      },
+      "request": {
+        "contentType": "audio/wav",
+        "body": "raw WAV bytes",
+        "queryParams": {
+          "language": "language code e.g. tw, ee, dag"
+        },
+        "audioRequirements": {
+          "format": "WAV (PCM)",
+          "sampleRate": 16000,
+          "channels": 1,
+          "maxDuration": "UNVERIFIED",
+          "maxPayloadBytes": "UNVERIFIED"
+        }
+      },
+      "response": {
+        "contentType": "application/json OR text/plain",
+        "fields": {
+          "text": "transcript string \u2014 present when JSON response"
+        },
+        "confidenceField": "NOT_PROVIDED",
+        "notes": "Response may be plain string OR JSON object with 'text' field \u2014 both must be handled"
+      },
+      "errors": {
+        "400": "InvalidAudio",
+        "401": "AuthenticationFailure",
+        "403": "AuthenticationFailure",
+        "429": "RateLimitExceeded",
+        "500": "ProviderServerError",
+        "503": "ProviderUnavailable"
+      },
+      "supportedLanguages": {
+        "tw": {
+          "name": "Twi",
+          "verified": true
+        },
+        "ee": {
+          "name": "Ewe",
+          "verified": true
+        },
+        "dag": {
+          "name": "Dagbani",
+          "verified": true
+        },
+        "gaa": {
+          "name": "Ga",
+          "verified": false
+        },
+        "fat": {
+          "name": "Fante",
+          "verified": false
+        }
+      },
+      "rateLimits": "UNVERIFIED",
+      "timeoutRecommendation": "15 seconds"
+    },
+    "tts": {
+      "productName": "Text-To-Speech API",
+      "version": "v2",
+      "status": "ACTIVE",
+      "deprecatedVersions": [
+        "v1"
+      ],
+      "baseUrl": "https://translation-api.ghananlp.org",
+      "endpoint": "/tts/v2/synthesize",
+      "endpointVerified": "ASSUMED_FROM_PATTERN",
+      "method": "POST",
+      "authentication": {
+        "headerName": "Ocp-Apim-Subscription-Key",
+        "credentialType": "subscription_key",
+        "storageLocation": "Firebase Secret Manager (server-side only)"
+      },
+      "request": {
+        "contentType": "application/json",
+        "body": {
+          "text": "string (required)",
+          "language": "string (required) - e.g. tw, ee, dag",
+          "speaker_id": "string (optional) - voice selection"
+        },
+        "maxTextLength": 2000
+      },
+      "response": {
+        "contentType": "audio/wav",
+        "body": "raw audio bytes (WAV format)"
+      },
+      "voices": {
+        "tw": {
+          "speakerId": "twi_speaker_4",
+          "verified": true
+        },
+        "ee": {
+          "speakerId": "ewe_speaker_1",
+          "verified": true
+        },
+        "dag": {
+          "speakerId": "dagbani_speaker_1",
+          "verified": true
+        },
+        "gaa": {
+          "speakerId": "UNVERIFIED",
+          "verified": false
+        },
+        "fat": {
+          "speakerId": "UNVERIFIED",
+          "verified": false
+        }
+      },
+      "errors": {
+        "400": "InvalidText",
+        "401": "AuthenticationFailure",
+        "403": "AuthenticationFailure",
+        "413": "PayloadTooLarge",
+        "429": "RateLimitExceeded",
+        "500": "ProviderServerError",
+        "503": "ProviderUnavailable"
+      },
+      "rateLimits": "UNVERIFIED",
+      "timeoutRecommendation": "20 seconds"
+    },
+    "translation": {
+      "productName": "Translation API",
+      "version": "v2",
+      "status": "ACTIVE",
+      "deprecatedVersions": [
+        "v1"
+      ],
+      "baseUrl": "https://translation-api.ghananlp.org",
+      "endpoint": "/translate",
+      "endpointVerified": "PARTIALLY - homepage example shows POST /translate",
+      "method": "POST",
+      "authentication": {
+        "headerName": "Ocp-Apim-Subscription-Key",
+        "credentialType": "subscription_key",
+        "storageLocation": "Firebase Secret Manager (server-side only)"
+      },
+      "request": {
+        "contentType": "application/json",
+        "body": {
+          "in": "string (required) - text to translate",
+          "lang": "string (required) - language pair e.g. en-tw"
+        }
+      },
+      "response": {
+        "contentType": "application/json",
+        "translationField": "UNVERIFIED - requires portal access"
+      },
+      "supportedLanguagePairs": {
+        "en-tw": {
+          "source": "English",
+          "target": "Twi",
+          "verified": true
+        },
+        "tw-en": {
+          "source": "Twi",
+          "target": "English",
+          "verified": true
+        },
+        "en-ee": {
+          "source": "English",
+          "target": "Ewe",
+          "verified": true
+        },
+        "ee-en": {
+          "source": "Ewe",
+          "target": "English",
+          "verified": true
+        },
+        "en-dag": {
+          "source": "English",
+          "target": "Dagbani",
+          "verified": true
+        },
+        "dag-en": {
+          "source": "Dagbani",
+          "target": "English",
+          "verified": true
+        },
+        "en-gaa": {
+          "source": "English",
+          "target": "Ga",
+          "verified": false
+        },
+        "en-fat": {
+          "source": "English",
+          "target": "Fante",
+          "verified": false
+        }
+      },
+      "errors": {
+        "400": "InvalidText",
+        "401": "AuthenticationFailure",
+        "403": "AuthenticationFailure",
+        "429": "RateLimitExceeded",
+        "500": "ProviderServerError"
+      },
+      "rateLimits": "UNVERIFIED",
+      "timeoutRecommendation": "10 seconds",
+      "implementationStatus": "NOT_YET_IMPLEMENTED_IN_CROPGUARD"
+    }
+  }
+}

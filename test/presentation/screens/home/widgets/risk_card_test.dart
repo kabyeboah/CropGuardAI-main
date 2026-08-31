@@ -12,7 +12,8 @@ import 'package:cropguard_flutter/domain/usecases/risk/get_risk_assessment_useca
 import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/presentation/screens/home/widgets/risk_card.dart';
 
-class MockGetRiskAssessmentUseCase extends Mock implements GetRiskAssessmentUseCase {}
+class MockGetRiskAssessmentUseCase extends Mock
+    implements GetRiskAssessmentUseCase {}
 
 void main() {
   late MockGetRiskAssessmentUseCase mockUseCase;
@@ -37,7 +38,9 @@ void main() {
     );
   }
 
-  testWidgets('RiskCard displays risk level and contributing factors when loaded', (tester) async {
+  testWidgets(
+      'RiskCard displays risk level and contributing factors when loaded',
+      (tester) async {
     final dummyAssessment = RiskAssessment(
       region: 'Ashanti',
       latitude: 6.6666,
@@ -73,7 +76,9 @@ void main() {
     expect(find.text('5 verified outbreak reports nearby'), findsOneWidget);
   });
 
-  testWidgets('RiskCard displays insufficient data message when local reports < 3', (tester) async {
+  testWidgets(
+      'RiskCard displays insufficient data message when local reports < 3',
+      (tester) async {
     final insufficientAssessment = RiskAssessment(
       region: 'Bono',
       latitude: 7.5828,

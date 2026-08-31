@@ -1,11 +1,11 @@
 # CropGuard AI
 
-[![Flutter Version](https://img.shields.io/badge/Flutter-%3E%3D%203.10.0-blue.svg?logo=flutter)](https://flutter.dev)
-[![Dart Version](https://img.shields.io/badge/Dart-%3E%3D%203.6.0%20%3C%204.0.0-blue.svg?logo=dart)](https://dart.dev)
-[![Platform support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
-[![Offline First](https://img.shields.io/badge/Offline--First-100%25%20Functionality-brightgreen.svg)](#)
-[![Target Region](https://img.shields.io/badge/Region-Ghana%20%2F%20Sub--Saharan%20Africa-orange.svg)](#)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#)
+[![Flutter Version](https://img.shields.io/badge/Flutter-%3E%3D%203.10.0-blue.svg?logo=flutter)](https://flutter.dev) [CURRENT]
+[![Dart Version](https://img.shields.io/badge/Dart-%3E%3D%203.6.0%20%3C%204.0.0-blue.svg?logo=dart)](https://dart.dev) [CURRENT]
+[![Platform support](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#) [CURRENT]
+[![Offline First](https://img.shields.io/badge/Offline--First-100%25%20Functionality-brightgreen.svg)](#) [CURRENT]
+[![Target Region](https://img.shields.io/badge/Region-Ghana%20%2F%20Sub--Saharan%20Africa-orange.svg)](#) [CURRENT]
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#) [CURRENT]
 
 **CropGuard AI** is a production-grade, offline-first mobile application built with Flutter & Dart. It is tailored specifically for smallholder farmers in Ghana and Sub-Saharan Africa to instantly diagnose crop diseases on-device using quantized TensorFlow Lite models, access localized treatment recommendations, track outbreak alerts on an offline-capable interactive map, and receive audio assistance in native regional languages.
 
@@ -13,9 +13,9 @@
 
 ## 🏗️ Clean Architecture
 
-The project strictly follows **Clean Architecture** principles to separate concerns into predictable, testable, and maintainable layers. Dependencies flow inwards: **Presentation (UI & Providers) ➔ Domain (Use Cases & Entities) ➔ Data (Repositories, Local DB & Remote Services)**.
+The project strictly follows **Clean Architecture** principles to separate concerns into predictable, testable, and maintainable layers. [CURRENT] Dependencies flow inwards: **Presentation (UI & Providers) ➔ Domain (Use Cases & Entities) ➔ Data (Repositories, Local DB & Remote Services)**. [CURRENT]
 
-Global Dependency Injection is configured using [GetIt](https://pub.dev/packages/get_it) in [`lib/core/di/service_locator.dart`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/di/service_locator.dart).
+Global Dependency Injection is configured using [GetIt](https://pub.dev/packages/get_it) in [`lib/core/di/service_locator.dart`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/di/service_locator.dart). [CURRENT]
 
 ```
 lib/
@@ -70,7 +70,7 @@ lib/
 
 ### 1. On-Device TensorFlow Lite ML Engine
 * **Quantized CNN Models**: Runs on `tflite_flutter` without requiring active cloud network connections.
-  * **Verified MobileNetV2 Model** (`cropguard_plant_disease_verified.tflite`): Detects 51 classes across major staple and regional crops (Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, Cowpea, Mango, Sugarcane, etc.).
+  * **MobileNetV2 Model** (`cropguard_plant_disease.tflite`): Detects 51 classes across major staple and regional crops (Maize, Potato, Tomato, Rice, Cassava, Banana, Yam, Cashew, Cocoa, Groundnut, Cowpea, Mango, Sugarcane, etc.).
 * **Pre-Execution Quality Gate**: `ImageQualityAnalyzer` checks image lighting and blur before running tensor operations. Low-confidence predictions (< 60%) automatically navigate to a low-confidence diagnostic helper screen to prevent false treatment recommendations.
 
 ### 2. Offline-First Architecture & Auto-Sync Engine
@@ -94,11 +94,11 @@ lib/
 
 ## ⚙️ App Secrets Resolution Order
 
-Sensitive API keys and endpoints are never hardcoded. [`AppSecrets`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) resolves values in the following order (first available wins):
+Sensitive API keys and endpoints are never hardcoded. [CURRENT] [`AppSecrets`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) resolves values in the following order (first available wins): [CURRENT]
 
-1. **Compile-Time `--dart-define` Flags**: e.g., `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key`
-2. **Local `.env` File**: Loaded at runtime in local debug mode.
-3. **Firebase Remote Config**: Dynamic production patching via `AppBootstrap.runStartupTasks()`.
+1. [CURRENT] **Compile-Time `--dart-define` Flags**: e.g., `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key` [CURRENT]
+2. [CURRENT] **Local `.env` File**: Loaded at runtime in local debug mode. [CURRENT]
+3. [CURRENT] **Firebase Remote Config**: Dynamic production patching via `AppBootstrap.runStartupTasks()`. [CURRENT]
 
 ---
 
@@ -133,9 +133,9 @@ flutter pub get
   * iOS: `ios/Runner/GoogleService-Info.plist`
 
 ### 3. Verify Asset Bundling
-Ensure the following AI models and metadata files exist in `assets/`:
-- `assets/cropguard_plant_disease_verified.tflite`
-- `assets/labels_verified.txt`
+Ensure the following AI models and metadata files exist in `assets/`: [CURRENT]
+- `assets/cropguard_plant_disease.tflite`
+- `assets/labels.txt`
 - `assets/model_metadata.json`
 
 ### 4. Run the Application
@@ -151,7 +151,7 @@ flutter run --dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key_here
 
 ## 🧪 Testing & Quality Assurance
 
-The application features a comprehensive test suite in the [`test/`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/test) directory, utilizing `flutter_test`, `mocktail`, and `sqflite_common_ffi`.
+The application features a comprehensive test suite in the [`test/`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/test) directory, utilizing `flutter_test`, `mocktail`, and `sqflite_common_ffi`. [CURRENT]
 
 ### Test Execution Commands
 ```bash
@@ -175,4 +175,4 @@ flutter test test/domain/usecases/scanner/scan_crop_usecase_test.dart
 
 ## 📄 License & Attribution
 
-This project is licensed under the **MIT License**.
+This project is licensed under the **MIT License**. [CURRENT]

@@ -84,13 +84,15 @@ void main() {
         containsAll(['en', 'tw', 'ee', 'dag']));
   });
 
-  test('modelVersionLabel initializes with default or metadata version', () async {
+  test('modelVersionLabel initializes with default or metadata version',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final provider = await build();
     expect(provider.modelVersionLabel, contains('51 classes'));
   });
 
-  test('checkForModelUpdates toggles state and resolves updateMessageCode', () async {
+  test('checkForModelUpdates toggles state and resolves updateMessageCode',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final provider = await build();
 

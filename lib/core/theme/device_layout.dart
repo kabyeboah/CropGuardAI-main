@@ -74,8 +74,7 @@ extension DeviceLayoutContext on BuildContext {
   /// Padding for scrolling content (extra bottom room so FABs / nav bars
   /// do not clip the last item).
   EdgeInsets get scrollContentPadding => isTablet
-      ? const EdgeInsets.fromLTRB(24, 32, 24,
-          DeviceLayout.sectionSpacing + 32)
+      ? const EdgeInsets.fromLTRB(24, 32, 24, DeviceLayout.sectionSpacing + 32)
       : const EdgeInsets.fromLTRB(
           DeviceLayout.screenPaddingHorizontal,
           DeviceLayout.screenPaddingVertical,

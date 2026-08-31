@@ -94,7 +94,8 @@ void main() {
       expect(await manager.getDaysSinceLastScan(), 0);
     });
 
-    test('falls back to device clock when serverTimeOverride returns future error',
+    test(
+        'falls back to device clock when serverTimeOverride returns future error',
         () async {
       // Simulate offline: serverTimeOverride throws, clockOverride is set.
       StreakManager.serverTimeOverride = () async => throw Exception('offline');
@@ -110,4 +111,3 @@ void main() {
     });
   });
 }
-

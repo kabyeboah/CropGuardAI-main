@@ -5,7 +5,9 @@ import 'package:cropguard_flutter/domain/models/disease_risk.dart';
 
 void main() {
   group('RiskWeightedClassifier Unit Tests', () {
-    test('boosts confidence when candidate disease matches regional high outbreak risk', () {
+    test(
+        'boosts confidence when candidate disease matches regional high outbreak risk',
+        () {
       final List<TopCandidate> candidates = [
         (label: 'Cocoa___Black_pod_rot', confidence: 0.40),
         (label: 'Cocoa___Healthy', confidence: 0.35),
@@ -31,7 +33,8 @@ void main() {
       expect(adjusted.first.confidence, greaterThan(0.40));
     });
 
-    test('returns original candidates unchanged if no regional risks exist', () {
+    test('returns original candidates unchanged if no regional risks exist',
+        () {
       final List<TopCandidate> candidates = [
         (label: 'Cassava___Mosaic_disease', confidence: 0.70),
         (label: 'Cassava___Healthy', confidence: 0.30),

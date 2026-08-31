@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. [CURRENT]
 
 ## Commands
 
@@ -13,11 +13,11 @@ flutter test test/domain/usecases/scanner/scan_crop_usecase_test.dart  # Single 
 flutter run --dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key          # Run with secrets
 ```
 
-For a release/profile build: `flutter run --release` or `flutter build apk`.
+For a release/profile build: `flutter run --release` or `flutter build apk`. [CURRENT]
 
 ## Architecture
 
-Clean Architecture with three layers. Dependency direction is strict: **UI → Use Cases → Repositories → Data Sources**.
+Clean Architecture with three layers. [CURRENT] Dependency direction is strict: **UI → Use Cases → Repositories → Data Sources**. [CURRENT]
 
 ```
 lib/
@@ -46,7 +46,7 @@ lib/
       *_provider.dart          # ChangeNotifier — calls use cases, maps to UI state
 ```
 
-State management is **Provider** (`ChangeNotifier`) registered globally in `buildProviders()` inside `service_locator.dart`. Every provider is constructed from GetIt singletons.
+State management is **Provider** (`ChangeNotifier`) registered globally in `buildProviders()` inside `service_locator.dart`. [CURRENT] Every provider is constructed from GetIt singletons. [CURRENT]
 
 ## Key Conventions
 
@@ -54,7 +54,7 @@ State management is **Provider** (`ChangeNotifier`) registered globally in `buil
 
 **No direct data-layer access from UI** — widgets and providers must not import Firebase, sqflite, or tflite directly. All calls go through use cases.
 
-**ML model contract** — `CropDiseaseClassifier` uses `assets/cropguard_plant_disease_verified.tflite`, input 128×128 RAW [0, 255] RGB with internal Rescaling layer, confidence threshold 0.60. Do not change input dimensions or normalisation without shipping a matching `.tflite` and updating `labels_verified.txt`.
+**ML model contract** — `CropDiseaseClassifier` uses `assets/cropguard_plant_disease.tflite`, input 128×128 RAW [0, 255] RGB with internal Rescaling layer, confidence threshold 0.60. Do not change input dimensions or normalisation without shipping a matching `.tflite` and updating `labels.txt`.
 
 **Localization** — generated from `l10n/app_*.arb` into `lib/l10n/`. Supported locales: `en`, `tw` (Twi), `ee` (Ewe), `dag` (Dagbani). Use `AppLocalizations.of(context)!` in widgets; no hardcoded user-visible strings.
 
@@ -70,5 +70,5 @@ State management is **Provider** (`ChangeNotifier`) registered globally in `buil
 
 ## Testing
 
-Tests live under `test/domain/usecases/`. Use `flutter_test` and `mocktail` for mocking repositories. Follow the existing pattern: mock the repository interface, inject it into the use case, assert `Result` outcomes.
+Tests live under `test/domain/usecases/`. [CURRENT] Use `flutter_test` and `mocktail` for mocking repositories. [CURRENT] Follow the existing pattern: mock the repository interface, inject it into the use case, assert `Result` outcomes. [CURRENT]
 

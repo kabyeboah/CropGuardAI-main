@@ -17,11 +17,13 @@ class _ScreenSecurityHelperState extends State<ScreenSecurityHelper> {
   }
 
   Future<void> _enableSecureMode() async {
-    await FlutterWindowManagerPlus.addFlags(FlutterWindowManagerPlus.FLAG_SECURE);
+    await FlutterWindowManagerPlus.addFlags(
+        FlutterWindowManagerPlus.FLAG_SECURE);
   }
 
   Future<void> _disableSecureMode() async {
-    await FlutterWindowManagerPlus.clearFlags(FlutterWindowManagerPlus.FLAG_SECURE);
+    await FlutterWindowManagerPlus.clearFlags(
+        FlutterWindowManagerPlus.FLAG_SECURE);
   }
 
   @override

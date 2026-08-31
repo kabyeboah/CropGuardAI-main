@@ -1,7 +1,7 @@
 {
   "model_name": "CropGuard Plant Disease Classifier",
-  "model_file": "cropguard_plant_disease_verified.tflite",
-  "labels_file": "labels_verified.txt",
+  "model_file": "cropguard_plant_disease.tflite",
+  "labels_file": "labels.txt",
   "num_classes": 51,
   "input_size": 128,
   "input_channels": 3,

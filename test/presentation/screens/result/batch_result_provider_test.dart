@@ -27,20 +27,28 @@ DetectionResult _det({
 
 void main() {
   group('BatchResultProvider.calculateResults severity', () {
-    test('diseased batch overallSeverity matches highest individual leaf severity', () {
+    test(
+        'diseased batch overallSeverity matches highest individual leaf severity',
+        () {
       final provider = BatchResultProvider();
       provider.calculateResults([
         _det(confidence: 0.99, isHealthy: false, severity: ScanSeverity.early),
         _det(confidence: 0.85, isHealthy: false, severity: ScanSeverity.severe),
-        _det(confidence: 0.90, isHealthy: false, severity: ScanSeverity.moderate),
+        _det(
+            confidence: 0.90,
+            isHealthy: false,
+            severity: ScanSeverity.moderate),
       ]);
       expect(provider.batchResult!.overallSeverity, ScanSeverity.severe);
     });
 
-    test('diseased batch with unclear severity uses unclear when no higher severity present', () {
+    test(
+        'diseased batch with unclear severity uses unclear when no higher severity present',
+        () {
       final provider = BatchResultProvider();
       provider.calculateResults([
-        _det(confidence: 0.50, isHealthy: false, severity: ScanSeverity.unclear),
+        _det(
+            confidence: 0.50, isHealthy: false, severity: ScanSeverity.unclear),
       ]);
       expect(provider.batchResult!.overallSeverity, ScanSeverity.unclear);
     });

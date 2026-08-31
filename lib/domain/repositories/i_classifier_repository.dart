@@ -8,11 +8,9 @@ class Classification {
   final double confidence;
   final bool isHealthy;
   final DiseaseInfoEntry diseaseInfo;
-  // True when this result came from the fallback heuristic (engine failed to
-  // load, or the real model's confidence was below the accept threshold)
-  // rather than a genuine model prediction. Must be threaded through to
-  // anything that persists or displays this result — see
-  // ScanCropUseCase and the history screen.
+  // True when the genuine model's confidence was below the diagnostic threshold
+  // (confidence abstention), triggering escalation to multi-angle capture,
+  // Gemini Cloud AI pathology audit, or human agronomist review.
   final bool isDegraded;
   final List<TopCandidate> topCandidates;
   final String? modelVersion;
@@ -32,6 +30,7 @@ abstract class IClassifierRepository {
   Future<Result<void>> loadModel();
   bool get isModelLoaded;
   Future<Result<Classification?>> classifyFromPath(String imagePath);
-  Future<Result<Classification?>> classifyFromBytes(Uint8List rgbaBytes, int width, int height);
+  Future<Result<Classification?>> classifyFromBytes(
+      Uint8List rgbaBytes, int width, int height);
   void dispose();
 }

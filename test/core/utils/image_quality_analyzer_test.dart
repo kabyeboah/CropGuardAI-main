@@ -18,7 +18,8 @@ void main() {
     expect(result.issue, equals(ImageQualityIssue.tooDark));
   });
 
-  test('ImageQualityAnalyzer accepts high contrast / sharp leaf texture image', () {
+  test('ImageQualityAnalyzer accepts high contrast / sharp leaf texture image',
+      () {
     final sharpImage = img.Image(width: 300, height: 300);
     // Draw high-contrast checkerboard pattern to simulate sharp leaf texture edges
     for (var y = 0; y < 300; y++) {
@@ -43,12 +44,14 @@ void main() {
     }
 
     // High threshold rejects it
-    final strictResult = ImageQualityAnalyzer.analyze(softImage, minBlurThreshold: 100.0);
+    final strictResult =
+        ImageQualityAnalyzer.analyze(softImage, minBlurThreshold: 100.0);
     expect(strictResult.isAcceptable, isFalse);
     expect(strictResult.issue, equals(ImageQualityIssue.blurry));
 
     // Lower threshold accepts soft texture
-    final relaxedResult = ImageQualityAnalyzer.analyze(softImage, minBlurThreshold: 1.0);
+    final relaxedResult =
+        ImageQualityAnalyzer.analyze(softImage, minBlurThreshold: 1.0);
     expect(relaxedResult.isAcceptable, isTrue);
   });
 }

@@ -1,14 +1,54 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Community post media: authenticated users can view; owner-only write (< 5MB images).
     match /community_posts/{userId}/{fileName} {
       allow read: if request.auth != null;
-      // Owner-only writes, capped at 5 MB and restricted to images to prevent
-      // abuse (arbitrary large or non-image uploads).
       allow write: if request.auth != null
                    && request.auth.uid == userId
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+    }
+
+    // Scan photos: strictly private to the scanning user.
+    match /scans/{userId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // User profile avatars: public read for authenticated community members, owner write.
+    match /profiles/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // User document attachments: private to owner.
+    match /users/{userId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // User diagnosis feedback attachments.
+    match /feedback/{userId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny all other access by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

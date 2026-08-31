@@ -9,7 +9,9 @@ import 'package:cropguard_flutter/core/config/app_secrets.dart';
 import 'package:cropguard_flutter/core/error/failures.dart';
 
 class MockCloudinaryService extends Mock implements CloudinaryService {}
-class MockFirebaseStorageService extends Mock implements FirebaseStorageService {}
+
+class MockFirebaseStorageService extends Mock
+    implements FirebaseStorageService {}
 
 void main() {
   late MockCloudinaryService mockCloudinary;
@@ -27,13 +29,16 @@ void main() {
     AppSecrets.reset();
   });
 
-  test('ImageUploadService falls back to Firebase Storage when Cloudinary is unconfigured', () async {
+  test(
+      'ImageUploadService falls back to Firebase Storage when Cloudinary is unconfigured',
+      () async {
     when(() => mockFirebaseStorage.uploadCommunityImage(
           localPath: any(named: 'localPath'),
           userId: any(named: 'userId'),
         )).thenAnswer((_) async => 'https://firebase.storage/sample.jpg');
 
-    final result = await service.uploadImage('/tmp/test.jpg', userId: 'user123');
+    final result =
+        await service.uploadImage('/tmp/test.jpg', userId: 'user123');
 
     expect(result, equals('https://firebase.storage/sample.jpg'));
     verify(() => mockFirebaseStorage.uploadCommunityImage(
@@ -43,17 +48,21 @@ void main() {
     verifyNever(() => mockCloudinary.uploadImage(any()));
   });
 
-  test('ImageUploadService uses Cloudinary when configured and falls back to Firebase Storage on failure', () async {
+  test(
+      'ImageUploadService uses Cloudinary when configured and falls back to Firebase Storage on failure',
+      () async {
     AppSecrets.dartDefineCloudinaryCloudNameOverride = 'test_cloud';
     AppSecrets.dartDefineCloudinaryUploadPresetOverride = 'test_preset';
 
-    when(() => mockCloudinary.uploadImage(any())).thenThrow(Exception('Cloudinary network error'));
+    when(() => mockCloudinary.uploadImage(any()))
+        .thenThrow(Exception('Cloudinary network error'));
     when(() => mockFirebaseStorage.uploadCommunityImage(
           localPath: any(named: 'localPath'),
           userId: any(named: 'userId'),
         )).thenAnswer((_) async => 'https://firebase.storage/fallback.jpg');
 
-    final result = await service.uploadImage('/tmp/test.jpg', userId: 'user123');
+    final result =
+        await service.uploadImage('/tmp/test.jpg', userId: 'user123');
 
     expect(result, equals('https://firebase.storage/fallback.jpg'));
     verify(() => mockCloudinary.uploadImage('/tmp/test.jpg')).called(1);
@@ -63,7 +72,9 @@ void main() {
         )).called(1);
   });
 
-  test('ImageUploadService cleans up temporary compressed file after successful upload', () async {
+  test(
+      'ImageUploadService cleans up temporary compressed file after successful upload',
+      () async {
     final rawImage = img.Image(width: 2000, height: 1500);
     img.fill(rawImage, color: img.ColorRgb8(0, 128, 255));
     final jpgBytes = img.encodeJpg(rawImage, quality: 100);
@@ -77,14 +88,16 @@ void main() {
           localPath: any(named: 'localPath'),
           userId: any(named: 'userId'),
         )).thenAnswer((invocation) async {
-      uploadedPath = invocation.namedArguments[const Symbol('localPath')] as String;
+      uploadedPath =
+          invocation.namedArguments[const Symbol('localPath')] as String;
       // The compressed file should exist while upload is ongoing
       expect(File(uploadedPath!).existsSync(), isTrue);
       return 'https://firebase.storage/uploaded.jpg';
     });
 
     try {
-      final result = await service.uploadImage(testFile.path, userId: 'user123');
+      final result =
+          await service.uploadImage(testFile.path, userId: 'user123');
 
       expect(result, equals('https://firebase.storage/uploaded.jpg'));
       expect(uploadedPath, isNotNull);
@@ -101,7 +114,9 @@ void main() {
     }
   });
 
-  test('ImageUploadService cleans up temporary compressed file even when upload fails', () async {
+  test(
+      'ImageUploadService cleans up temporary compressed file even when upload fails',
+      () async {
     final rawImage = img.Image(width: 2000, height: 1500);
     img.fill(rawImage, color: img.ColorRgb8(255, 0, 0));
     final jpgBytes = img.encodeJpg(rawImage, quality: 100);
@@ -115,7 +130,8 @@ void main() {
           localPath: any(named: 'localPath'),
           userId: any(named: 'userId'),
         )).thenAnswer((invocation) {
-      attemptedPath = invocation.namedArguments[const Symbol('localPath')] as String;
+      attemptedPath =
+          invocation.namedArguments[const Symbol('localPath')] as String;
       throw Exception('Network upload failed');
     });
 

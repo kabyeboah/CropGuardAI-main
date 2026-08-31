@@ -56,8 +56,8 @@ void main() {
     });
 
     test('propagates repository failure', () async {
-      when(() => repo.saveDetection(any()))
-          .thenAnswer((_) async => Result.error(const CacheFailure('DB write failed')));
+      when(() => repo.saveDetection(any())).thenAnswer(
+          (_) async => Result.error(const CacheFailure('DB write failed')));
 
       final result = await useCase(_kDetection);
 

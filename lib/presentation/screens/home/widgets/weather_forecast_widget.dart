@@ -16,15 +16,18 @@ class WeatherForecastWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(context.l10n.sevenDayForecast, 
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            Text(context.l10n.sevenDayForecast,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             Row(
               children: [
                 Icon(Icons.location_on, size: 12, color: colors.muted),
@@ -44,12 +47,14 @@ class WeatherForecastWidget extends StatelessWidget {
             itemBuilder: (context, index) {
               final day = weather.daily[index];
               final isToday = index == 0;
-              
+
               return Container(
                 width: 70,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: isToday ? colors.primary.withValues(alpha: 0.1) : colors.surface,
+                  color: isToday
+                      ? colors.primary.withValues(alpha: 0.1)
+                      : colors.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isToday ? colors.primary : colors.border,
@@ -60,11 +65,16 @@ class WeatherForecastWidget extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      isToday ? context.l10n.today : LocaleFormatter.formatDayOfWeek(context, day.date),
+                      isToday
+                          ? context.l10n.today
+                          : LocaleFormatter.formatDayOfWeek(context, day.date),
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        color: isToday ? colors.primary : colors.onBackgroundSecondary,
+                        fontWeight:
+                            isToday ? FontWeight.bold : FontWeight.normal,
+                        color: isToday
+                            ? colors.primary
+                            : colors.onBackgroundSecondary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -72,7 +82,8 @@ class WeatherForecastWidget extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${day.maxTemp.toInt()}°',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     Text(
                       '${day.precipitationProbability.toInt()}% rain',

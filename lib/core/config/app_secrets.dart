@@ -28,6 +28,12 @@ class AppSecrets {
   static String? dartDefineAndroidPackageOverride;
   @visibleForTesting
   static String? dartDefineIosBundleIdOverride;
+  @visibleForTesting
+  static String? dartDefineGeminiApiKeyOverride;
+  @visibleForTesting
+  static String? dartDefineOsmTileUrlOverride;
+  @visibleForTesting
+  static String? dartDefineOsmUserAgentOverride;
 
   /// Resets all overrides and remote keys back to default/empty values.
   /// Intended for unit testing.
@@ -39,6 +45,9 @@ class AppSecrets {
     dartDefinePasswordResetUrlOverride = null;
     dartDefineAndroidPackageOverride = null;
     dartDefineIosBundleIdOverride = null;
+    dartDefineGeminiApiKeyOverride = null;
+    dartDefineOsmTileUrlOverride = null;
+    dartDefineOsmUserAgentOverride = null;
 
     _remoteGhanaNlpKey = null;
     _remoteCloudName = null;
@@ -46,6 +55,9 @@ class AppSecrets {
     _remotePasswordResetUrl = null;
     _remoteAndroidPackage = null;
     _remoteIosBundleId = null;
+    _remoteGeminiApiKey = null;
+    _remoteOsmTileUrl = null;
+    _remoteOsmUserAgent = null;
   }
 
   /// Safe dotenv read: returns '' when dotenv isn't initialised (release) so
@@ -94,7 +106,8 @@ class AppSecrets {
   );
 
   static String get cloudinaryCloudName {
-    final ddName = dartDefineCloudinaryCloudNameOverride ?? _dartDefineCloudName;
+    final ddName =
+        dartDefineCloudinaryCloudNameOverride ?? _dartDefineCloudName;
     if (ddName.isNotEmpty) return ddName;
     final envVal = _env('CLOUDINARY_CLOUD_NAME');
     if (envVal.isNotEmpty) return envVal;
@@ -102,7 +115,8 @@ class AppSecrets {
   }
 
   static String get cloudinaryUploadPreset {
-    final ddPreset = dartDefineCloudinaryUploadPresetOverride ?? _dartDefineUploadPreset;
+    final ddPreset =
+        dartDefineCloudinaryUploadPresetOverride ?? _dartDefineUploadPreset;
     if (ddPreset.isNotEmpty) return ddPreset;
     final envVal = _env('CLOUDINARY_UPLOAD_PRESET');
     if (envVal.isNotEmpty) return envVal;
@@ -153,7 +167,8 @@ class AppSecrets {
   static const _defaultIosBundleId = 'com.crop.guard.app';
 
   static String get passwordResetContinueUrl {
-    final ddUrl = dartDefinePasswordResetUrlOverride ?? _dartDefinePasswordResetUrl;
+    final ddUrl =
+        dartDefinePasswordResetUrlOverride ?? _dartDefinePasswordResetUrl;
     if (ddUrl.isNotEmpty) return ddUrl;
     final envVal = _env('PASSWORD_RESET_CONTINUE_URL');
     if (envVal.isNotEmpty) return envVal;
@@ -190,6 +205,82 @@ class AppSecrets {
     }
     if (iosBundleId != null && iosBundleId.isNotEmpty) {
       _remoteIosBundleId = iosBundleId;
+    }
+  }
+
+  // ── Gemini Cloud AI ─────────────────────────────────────────────────────────
+  static String? _remoteGeminiApiKey;
+
+  static const _dartDefineGeminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: '',
+  );
+
+  /// Gemini API key for fallback cloud multimodal diagnosis.
+  static String? get geminiApiKey {
+    final ddKey = dartDefineGeminiApiKeyOverride ?? _dartDefineGeminiApiKey;
+    if (ddKey.isNotEmpty) return ddKey;
+    final envVal = _env('GEMINI_API_KEY');
+    if (envVal.isNotEmpty) return envVal;
+    return (_remoteGeminiApiKey?.isNotEmpty == true)
+        ? _remoteGeminiApiKey
+        : null;
+  }
+
+  /// Called by [AppBootstrap] when Remote Config returns a value.
+  static void setGeminiApiKey(String key) {
+    if (key.isNotEmpty) _remoteGeminiApiKey = key;
+  }
+
+  static bool get hasGeminiApiKey =>
+      geminiApiKey != null && geminiApiKey!.isNotEmpty;
+
+  // ── OpenStreetMap & Mapping Configuration ──────────────────────────────────
+  static String? _remoteOsmTileUrl;
+  static String? _remoteOsmUserAgent;
+
+  static const _dartDefineOsmTileUrl = String.fromEnvironment(
+    'OSM_TILE_URL',
+    defaultValue: '',
+  );
+  static const _dartDefineOsmUserAgent = String.fromEnvironment(
+    'OSM_USER_AGENT',
+    defaultValue: '',
+  );
+
+  static const _defaultOsmTileUrl =
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  static const _defaultOsmUserAgent =
+      'CropGuardAI/1.0 (com.crop.guard.app; support@cropguard.app)';
+
+  /// Base raster tile server URL template for flutter_map.
+  static String get osmTileUrl {
+    final ddUrl = dartDefineOsmTileUrlOverride ?? _dartDefineOsmTileUrl;
+    if (ddUrl.isNotEmpty) return ddUrl;
+    final envVal = _env('OSM_TILE_URL');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteOsmTileUrl ?? _defaultOsmTileUrl;
+  }
+
+  /// Compliant User-Agent header for OpenStreetMap tile server and Nominatim API.
+  static String get osmUserAgent {
+    final ddUa = dartDefineOsmUserAgentOverride ?? _dartDefineOsmUserAgent;
+    if (ddUa.isNotEmpty) return ddUa;
+    final envVal = _env('OSM_USER_AGENT');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteOsmUserAgent ?? _defaultOsmUserAgent;
+  }
+
+  /// Called by [AppBootstrap] when Remote Config returns custom OSM configuration.
+  static void setOsmConfig({
+    String? tileUrl,
+    String? userAgent,
+  }) {
+    if (tileUrl != null && tileUrl.isNotEmpty) {
+      _remoteOsmTileUrl = tileUrl;
+    }
+    if (userAgent != null && userAgent.isNotEmpty) {
+      _remoteOsmUserAgent = userAgent;
     }
   }
 }

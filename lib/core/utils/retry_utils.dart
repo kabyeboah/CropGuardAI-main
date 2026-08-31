@@ -32,7 +32,8 @@ class RetryUtils {
         }
       } catch (error) {
         final isLastAttempt = attempt >= maxAttempts;
-        final shouldRetry = !isLastAttempt && (retryIf == null || retryIf(error));
+        final shouldRetry =
+            !isLastAttempt && (retryIf == null || retryIf(error));
 
         if (!shouldRetry) {
           rethrow;
@@ -40,10 +41,11 @@ class RetryUtils {
 
         // Sanitize sensitive keywords from logged error
         final logMsg = error.toString().replaceAll(
-          RegExp(r'key|secret|password|token', caseSensitive: false),
-          '***',
-        );
-        AppLogger.w('Retry attempt $attempt failed: $logMsg. Retrying in ${delay.inMilliseconds}ms...');
+              RegExp(r'key|secret|password|token', caseSensitive: false),
+              '***',
+            );
+        AppLogger.w(
+            'Retry attempt $attempt failed: $logMsg. Retrying in ${delay.inMilliseconds}ms...');
 
         await Future.delayed(delay);
         attempt++;

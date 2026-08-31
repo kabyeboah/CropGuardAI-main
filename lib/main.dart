@@ -19,7 +19,9 @@ import 'presentation/navigation/app_router.dart';
 import 'firebase_options.dart';
 
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/utils/app_logger.dart';
+import 'core/utils/diagnostic_sanitizer.dart';
 
 // Start the stopwatch immediately when the app entrypoint file is loaded
 final Stopwatch startupStopwatch = Stopwatch()..start();
@@ -49,15 +51,36 @@ void main() async {
     firebaseReady = true;
 
     FlutterError.onError = (details) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      final cleanException =
+          DiagnosticSanitizer.sanitizeError(details.exception);
+      final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(details.stack);
+      if (AppLogger.isCrashlyticsEnabled) {
+        FirebaseCrashlytics.instance.recordError(
+          cleanException,
+          cleanStack,
+          reason: DiagnosticSanitizer.sanitizeString(
+              details.context?.toString() ?? 'Flutter Error'),
+          fatal: true,
+        );
+      }
       AppLogger.e('Flutter Error', details.exception, details.stack);
     };
     PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      final cleanErr = DiagnosticSanitizer.sanitizeError(error);
+      final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(stack);
+      if (AppLogger.isCrashlyticsEnabled) {
+        FirebaseCrashlytics.instance
+            .recordError(cleanErr, cleanStack, fatal: true);
+      }
+      AppLogger.e('Platform Error', error, stack);
       return true;
     };
     try {
       await setupServiceLocator();
+      // Apply persisted consent before any background or auth listener runs
+      final prefs = sl<SharedPreferences>();
+      final isAnalyticsAllowed = prefs.getBool('analytics_enabled') ?? false;
+      await sl<AnalyticsService>().setEnabled(isAnalyticsAllowed);
     } catch (e, s) {
       AppLogger.e('Service locator registration failed', e, s);
     }
@@ -97,10 +120,17 @@ void main() async {
     }
 
     // Attribute crashes and analytics to the current user across every auth
-    // path (login/register/google/anonymous/logout). uid is cleared on sign-out.
+    // path (login/register/google/anonymous/logout) ONLY when user consented.
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      unawaited(FirebaseCrashlytics.instance.setUserIdentifier(user?.uid ?? ''));
-      unawaited(sl<AnalyticsService>().setUser(isAnonymous: user?.isAnonymous ?? false));
+      final analytics =
+          sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null;
+      if (analytics?.isEnabled == true) {
+        unawaited(
+            FirebaseCrashlytics.instance.setUserIdentifier(user?.uid ?? ''));
+        unawaited(analytics?.setUser(isAnonymous: user?.isAnonymous ?? false));
+      } else {
+        unawaited(FirebaseCrashlytics.instance.setUserIdentifier(''));
+      }
     });
 
     runApp(
@@ -125,9 +155,12 @@ void main() async {
     // Guard against calling Crashlytics before Firebase.initializeApp() has
     // completed — that call would itself throw, producing an unhandled
     // secondary exception that crashes the process before any error is logged.
-    if (firebaseReady) {
+    if (firebaseReady && AppLogger.isCrashlyticsEnabled) {
       try {
-        unawaited(FirebaseCrashlytics.instance.recordError(error, stack, fatal: true));
+        final cleanErr = DiagnosticSanitizer.sanitizeError(error);
+        final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(stack);
+        unawaited(FirebaseCrashlytics.instance
+            .recordError(cleanErr, cleanStack, fatal: true));
       } catch (_) {}
     }
     AppLogger.e('Uncaught Error', error, stack);

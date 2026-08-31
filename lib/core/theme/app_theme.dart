@@ -45,7 +45,8 @@ class AppTheme {
           backgroundColor: colors.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+            borderRadius:
+                BorderRadius.circular(DeviceLayout.buttonCornerRadius),
           ),
           minimumSize: const Size(
             double.infinity,
@@ -63,7 +64,8 @@ class AppTheme {
           foregroundColor: colors.primary,
           side: BorderSide(color: colors.primary),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+            borderRadius:
+                BorderRadius.circular(DeviceLayout.buttonCornerRadius),
           ),
           minimumSize: const Size(
             double.infinity,
@@ -100,7 +102,8 @@ class AppTheme {
         fillColor: colors.surface,
         isDense: false,
         contentPadding: DeviceLayout.textFieldContentPadding,
-        constraints: const BoxConstraints(minHeight: DeviceLayout.textFieldMinHeight),
+        constraints:
+            const BoxConstraints(minHeight: DeviceLayout.textFieldMinHeight),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(DeviceLayout.cornerRadius),
           borderSide: BorderSide(color: colors.border),
@@ -114,7 +117,8 @@ class AppTheme {
           borderSide: BorderSide(color: colors.primary, width: 2),
         ),
         hintStyle: TextStyle(color: colors.muted, fontSize: 15),
-        labelStyle: TextStyle(color: colors.onBackgroundSecondary, fontSize: 14),
+        labelStyle:
+            TextStyle(color: colors.onBackgroundSecondary, fontSize: 14),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -140,21 +144,66 @@ class AppTheme {
 
   static TextTheme _buildTextTheme(CropColors colors) {
     return TextTheme(
-      displayLarge: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.bold),
-      displayMedium: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.bold),
-      displaySmall: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.bold),
-      headlineLarge: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.bold),
-      headlineMedium: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.w600, fontSize: 24),
-      headlineSmall: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.w600, fontSize: 20),
-      titleLarge: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.bold, fontSize: 18),
-      titleMedium: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.w600, fontSize: 16),
-      titleSmall: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.w500, fontSize: 14),
-      bodyLarge: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontSize: 16),
-      bodyMedium: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontSize: 14),
-      bodySmall: TextStyle(fontFamily: 'Inter', color: colors.onBackgroundSecondary, fontSize: 12),
-      labelLarge: TextStyle(fontFamily: 'Inter', color: colors.onBackground, fontWeight: FontWeight.w500, fontSize: 14),
-      labelMedium: TextStyle(fontFamily: 'Inter', color: colors.onBackgroundSecondary, fontSize: 12),
-      labelSmall: TextStyle(fontFamily: 'Inter', color: colors.muted, fontSize: 11),
+      displayLarge: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.bold),
+      displayMedium: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.bold),
+      displaySmall: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.bold),
+      headlineLarge: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.bold),
+      headlineMedium: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.w600,
+          fontSize: 24),
+      headlineSmall: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.w600,
+          fontSize: 20),
+      titleLarge: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.bold,
+          fontSize: 18),
+      titleMedium: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.w600,
+          fontSize: 16),
+      titleSmall: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.w500,
+          fontSize: 14),
+      bodyLarge: TextStyle(
+          fontFamily: 'Inter', color: colors.onBackground, fontSize: 16),
+      bodyMedium: TextStyle(
+          fontFamily: 'Inter', color: colors.onBackground, fontSize: 14),
+      bodySmall: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackgroundSecondary,
+          fontSize: 12),
+      labelLarge: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackground,
+          fontWeight: FontWeight.w500,
+          fontSize: 14),
+      labelMedium: TextStyle(
+          fontFamily: 'Inter',
+          color: colors.onBackgroundSecondary,
+          fontSize: 12),
+      labelSmall:
+          TextStyle(fontFamily: 'Inter', color: colors.muted, fontSize: 11),
     );
   }
 }
@@ -170,7 +219,9 @@ class AppColorsThemeExtension extends ThemeExtension<AppColorsThemeExtension> {
       AppColorsThemeExtension(colors: colors ?? this.colors);
 
   @override
-  AppColorsThemeExtension lerp(ThemeExtension<AppColorsThemeExtension>? other, double t) => this;
+  AppColorsThemeExtension lerp(
+          ThemeExtension<AppColorsThemeExtension>? other, double t) =>
+      this;
 }
 
 extension BuildContextColors on BuildContext {

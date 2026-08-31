@@ -26,7 +26,9 @@ void main() {
       expect(service.offlineStream, isNotNull);
     });
 
-    test('didChangeAppLifecycleState resets poll interval on resume and stops on pause', () {
+    test(
+        'didChangeAppLifecycleState resets poll interval on resume and stops on pause',
+        () {
       service.didChangeAppLifecycleState(AppLifecycleState.paused);
       service.didChangeAppLifecycleState(AppLifecycleState.resumed);
       expect(service.currentPollInterval, const Duration(seconds: 60));

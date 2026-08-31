@@ -6,37 +6,37 @@
 
 ## Table of Contents
 
-1. [App Overview](#1-app-overview)
-2. [App Name, Branding & Identity](#2-app-name-branding--identity)
-3. [Screen Inventory — All 9 Screens](#3-screen-inventory--all-9-screens)
-4. [Screen-by-Screen Breakdown](#4-screen-by-screen-breakdown)
-5. [User Flow & Navigation](#5-user-flow--navigation)
-6. [UI Design System & Specifications](#6-ui-design-system--specifications)
-7. [UX Principles for This App](#7-ux-principles-for-this-app)
-8. [Component Library](#8-component-library)
-9. [Functionality & Features](#9-functionality--features)
-10. [Android Implementation Guide](#10-android-implementation-guide)
-11. [AI Model Integration](#11-ai-model-integration)
-12. [Software Engineering Checklist (Sommerville)](#12-software-engineering-checklist-sommerville)
-13. [Requirements Specification](#13-requirements-specification)
-14. [Testing Plan](#14-testing-plan)
-15. [Prompts to Give Your AI (Vibe Coding Guide)](#15-prompts-to-give-your-ai-vibe-coding-guide)
+1. [CURRENT] [App Overview](#1-app-overview) [CURRENT]
+2. [CURRENT] [App Name, Branding & Identity](#2-app-name-branding--identity) [CURRENT]
+3. [CURRENT] [Screen Inventory — All 9 Screens](#3-screen-inventory--all-9-screens) [CURRENT]
+4. [CURRENT] [Screen-by-Screen Breakdown](#4-screen-by-screen-breakdown) [CURRENT]
+5. [CURRENT] [User Flow & Navigation](#5-user-flow--navigation) [CURRENT]
+6. [CURRENT] [UI Design System & Specifications](#6-ui-design-system--specifications) [CURRENT]
+7. [CURRENT] [UX Principles for This App](#7-ux-principles-for-this-app) [CURRENT]
+8. [CURRENT] [Component Library](#8-component-library) [CURRENT]
+9. [CURRENT] [Functionality & Features](#9-functionality--features) [CURRENT]
+10. [CURRENT] [Android Implementation Guide](#10-android-implementation-guide) [CURRENT]
+11. [CURRENT] [AI Model Integration](#11-ai-model-integration) [CURRENT]
+12. [CURRENT] [Software Engineering Checklist (Sommerville)](#12-software-engineering-checklist-sommerville) [CURRENT]
+13. [CURRENT] [Requirements Specification](#13-requirements-specification) [CURRENT]
+14. [CURRENT] [Testing Plan](#14-testing-plan) [CURRENT]
+15. [CURRENT] [Prompts to Give Your AI (Vibe Coding Guide)](#15-prompts-to-give-your-ai-vibe-coding-guide) [CURRENT]
 
 ---
 
 ## 1. App Overview
 
-| Field | Detail |
-|---|---|
-| **App name** | CropGuard |
-| **Platform** | Android (API 26+, Android 8.0 and above) |
-| **Primary user** | Smallholder farmers (maize, tomato, potato) |
-| **Core function** | Photograph a crop leaf → AI detects disease → show result + treatment |
-| **AI model** | CNN with MobileNetV2 transfer learning, exported as TFLite |
-| **Connectivity** | Fully offline — no internet required after installation |
-| **Language** | English (simple, plain language — no technical jargon) |
-| **Target region** | Ghana / Sub-Saharan Africa |
-| **Min device spec** | 2GB RAM, Android 8.0, any camera |
+| Field | Detail | [CURRENT]
+|---|---| [CURRENT]
+| **App name** | CropGuard | [CURRENT]
+| **Platform** | Android (API 26+, Android 8.0 and above) | [CURRENT]
+| **Primary user** | Smallholder farmers (maize, tomato, potato) | [HISTORICAL]
+| **Core function** | Photograph a crop leaf → AI detects disease → show result + treatment | [CURRENT]
+| **AI model** | CNN with MobileNetV2 transfer learning, exported as TFLite | [CURRENT]
+| **Connectivity** | Fully offline — no internet required after installation | [CURRENT]
+| **Language** | English (simple, plain language — no technical jargon) | [CURRENT]
+| **Target region** | Ghana / Sub-Saharan Africa | [CURRENT]
+| **Min device spec** | 2GB RAM, Android 8.0, any camera | [CURRENT]
 
 ---
 
@@ -46,22 +46,22 @@
 **CropGuard** — short, memorable, tells the farmer exactly what it does.
 
 ### Tagline
-> *"Detect crop diseases instantly. Works without internet."*
+> *"Detect crop diseases instantly. [CURRENT] Works without internet."* [CURRENT]
 
 ### Brand Colors
 
-| Role | Color | Hex |
-|---|---|---|
-| Primary brand | Dark green | `#2d6a1f` |
-| Healthy result | Medium green | `#639922` |
-| Healthy background | Light green | `#f0f9eb` |
-| Disease result | Red | `#E24B4A` |
-| Disease background | Light red | `#fff0f0` |
-| Low confidence | Amber | `#EF9F27` |
-| Low conf. background | Light amber | `#fdf5e4` |
-| Toolbar background | Dark green | `#1a3d0a` |
-| Surface / card | White | `#ffffff` |
-| Secondary surface | Light grey | system `background_secondary` |
+| Role | Color | Hex | [CURRENT]
+|---|---|---| [CURRENT]
+| Primary brand | Dark green | `#2d6a1f` | [CURRENT]
+| Healthy result | Medium green | `#639922` | [CURRENT]
+| Healthy background | Light green | `#f0f9eb` | [CURRENT]
+| Disease result | Red | `#E24B4A` | [CURRENT]
+| Disease background | Light red | `#fff0f0` | [CURRENT]
+| Low confidence | Amber | `#EF9F27` | [CURRENT]
+| Low conf. [CURRENT] background | Light amber | `#fdf5e4` | [CURRENT]
+| Toolbar background | Dark green | `#1a3d0a` | [CURRENT]
+| Surface / card | White | `#ffffff` | [CURRENT]
+| Secondary surface | Light grey | system `background_secondary` | [CURRENT]
 
 ### Logo
 - Square with rounded corners (18dp radius)
@@ -74,23 +74,23 @@
 - **Red = disease found / danger**
 - **Amber = uncertain / needs attention**
 
-A farmer who cannot read English must still understand the result from color alone.
+A farmer who cannot read English must still understand the result from color alone. [CURRENT]
 
 ---
 
 ## 3. Screen Inventory — All 9 Screens
 
-| # | Screen | Purpose | Navigation trigger |
-|---|---|---|---|
-| 1 | Splash / Onboarding | First-time welcome, 3 slides | App launch (first install only) |
-| 2 | Home Dashboard | Central hub, quick scan CTA, recent results | App launch (returning user) |
-| 3 | Camera / Scan | Live camera view, capture or gallery | "Scan a leaf" button or Scan tab |
-| 4 | Analysing (Loading) | AI processing feedback | After image captured |
-| 5 | Result — Disease found | Red theme, disease info, treatment steps | After analysis (diseased) |
-| 6 | Result — Healthy leaf | Green theme, healthy confirmation, tips | After analysis (healthy) |
-| 7 | Result — Low confidence | Amber theme, retry prompt | Confidence < 60% |
-| 8 | History | All past detections, filterable | History tab in bottom nav |
-| 9 | Settings | Display preferences, model info, about | Settings tab in bottom nav |
+| # | Screen | Purpose | Navigation trigger | [CURRENT]
+|---|---|---|---| [CURRENT]
+| 1 | Splash / Onboarding | First-time welcome, 3 slides | App launch (first install only) | [CURRENT]
+| 2 | Home Dashboard | Central hub, quick scan CTA, recent results | App launch (returning user) | [CURRENT]
+| 3 | Camera / Scan | Live camera view, capture or gallery | "Scan a leaf" button or Scan tab | [CURRENT]
+| 4 | Analysing (Loading) | AI processing feedback | After image captured | [CURRENT]
+| 5 | Result — Disease found | Red theme, disease info, treatment steps | After analysis (diseased) | [CURRENT]
+| 6 | Result — Healthy leaf | Green theme, healthy confirmation, tips | After analysis (healthy) | [CURRENT]
+| 7 | Result — Low confidence | Amber theme, retry prompt | Confidence < 60% | [CURRENT]
+| 8 | History | All past detections, filterable | History tab in bottom nav | [CURRENT]
+| 9 | Settings | Display preferences, model info, about | Settings tab in bottom nav | [CURRENT]
 
 ---
 
@@ -140,16 +140,16 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body content (scrollable, top to bottom):**
 
-1. **Tip card** (green tinted, full width)
+1. [CURRENT] **Tip card** (green tinted, full width) [CURRENT]
    - Label: `Today's tip`
    - Body: Rotating agricultural tip (stored locally, e.g. "Check maize leaves for grey spots — early blight season.")
 
-2. **Primary action section**
+2. [CURRENT] **Primary action section** [CURRENT]
    - Label: `What do you want to do?`
    - Large primary button: `Scan a leaf now` (full width, 56dp tall, camera icon)
    - Below it, two half-width secondary buttons side by side: `Gallery` | `History`
 
-3. **Recent scans section**
+3. [CURRENT] **Recent scans section** [CURRENT]
    - Label: `Recent scans`
    - Last 3 detection history items (same row format as History screen)
    - Link text at bottom: `See all history →`
@@ -169,21 +169,21 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body (top to bottom):**
 
-1. **Camera viewfinder** (fills top ~50% of screen)
+1. [CURRENT] **Camera viewfinder** (fills top ~50% of screen) [CURRENT]
    - Live camera preview
    - Overlay guide frame (rounded rectangle, dashed border) to help farmer center the leaf
    - Corner brackets to indicate target area
 
-2. **Slide indicator** (two dots — showing camera mode is active vs. gallery mode)
+2. [CURRENT] **Slide indicator** (two dots — showing camera mode is active vs. [CURRENT] gallery mode) [CURRENT]
 
-3. **Scan tips card** (compact)
+3. [CURRENT] **Scan tips card** (compact) [CURRENT]
    - Label: `Tips for a good scan`
    - Tips:
      - Place leaf flat with good lighting
      - Capture the whole leaf in frame
      - Avoid blurry or dark photos
 
-4. **Shutter area**
+4. [CURRENT] **Shutter area** [CURRENT]
    - Large circular shutter button (60dp diameter, green border, filled green center)
    - Below shutter: `Choose from gallery instead` (outline button, full width)
 
@@ -203,11 +203,11 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body (centered vertically):**
 
-1. Dimmed preview of the captured image (full width, 150dp tall, 50% opacity)
-2. Title text: `Running AI analysis`
-3. Subtitle: `This takes about 2–3 seconds`
-4. Progress bar (indeterminate or animated from 0→100%)
-5. Status text: `Processing image...` (updates to `Almost done...`)
+1. [CURRENT] Dimmed preview of the captured image (full width, 150dp tall, 50% opacity) [CURRENT]
+2. [CURRENT] Title text: `Running AI analysis` [CURRENT]
+3. [CURRENT] Subtitle: `This takes about 2–3 seconds` [CURRENT]
+4. [CURRENT] Progress bar (indeterminate or animated from 0→100%) [CURRENT]
+5. [CURRENT] Status text: `Processing image...` (updates to `Almost done...`) [CURRENT]
 
 **UX notes:**
 - No back button during analysis (disable it while inference runs)
@@ -224,9 +224,9 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body (scrollable):**
 
-1. **Leaf thumbnail** (full width, 90dp tall, captured image)
+1. [CURRENT] **Leaf thumbnail** (full width, 90dp tall, captured image) [CURRENT]
 
-2. **Disease result card** (red tinted background `#fff0f0`, red border)
+2. [CURRENT] **Disease result card** (red tinted background `#fff0f0`, red border) [CURRENT]
    - Disease name: bold, 14sp, dark red
    - Badge top-right: `Diseased` (red badge)
    - Cause: 12sp, red, e.g. `Caused by Exserohilum turcicum fungus`
@@ -235,18 +235,18 @@ A farmer who cannot read English must still understand the result from color alo
      - Horizontal bar (red fill)
      - Percentage (e.g. `91%`)
 
-3. **Treatment section**
+3. [CURRENT] **Treatment section** [CURRENT]
    - Section label: `What to do`
    - Numbered treatment steps (3–5 steps), e.g.:
-     1. Remove and burn infected leaves immediately
-     2. Apply mancozeb or chlorothalonil fungicide
-     3. Consult an agronomist if spread is large
+1. [CURRENT] Remove and burn infected leaves immediately [CURRENT]
+2. [CURRENT] Apply mancozeb or chlorothalonil fungicide [CURRENT]
+3. [CURRENT] Consult an agronomist if spread is large [CURRENT]
    - Each step: numbered circle (green) + instruction text (13sp)
 
-4. **Disclaimer** (small, grey)
+4. [CURRENT] **Disclaimer** (small, grey) [CURRENT]
    - `This is an AI suggestion. Consult an agronomist for serious outbreaks.`
 
-5. **Action buttons** (side by side)
+5. [CURRENT] **Action buttons** (side by side) [CURRENT]
    - `Save result` (primary green)
    - `Scan again` (secondary)
 
@@ -260,22 +260,22 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body (scrollable):**
 
-1. **Leaf thumbnail** (full width, 90dp tall)
+1. [CURRENT] **Leaf thumbnail** (full width, 90dp tall) [CURRENT]
 
-2. **Healthy result card** (green tinted `#f0f9eb`, green border)
+2. [CURRENT] **Healthy result card** (green tinted `#f0f9eb`, green border) [CURRENT]
    - Label: `No disease found`
    - Badge: `Healthy` (green)
    - Body: `Your crop leaf appears to be in good condition.`
    - Confidence bar (green fill) + percentage (e.g. `97%`)
 
-3. **Maintenance tips card** (white card)
+3. [CURRENT] **Maintenance tips card** (white card) [CURRENT]
    - Section label: `Keep your crop healthy`
    - Numbered tips:
-     1. Continue regular watering schedule
-     2. Monitor weekly for any new spots or yellowing
-     3. Apply preventative fertiliser as needed
+1. [CURRENT] Continue regular watering schedule [CURRENT]
+2. [CURRENT] Monitor weekly for any new spots or yellowing [CURRENT]
+3. [CURRENT] Apply preventative fertiliser as needed [CURRENT]
 
-4. **Action buttons**
+4. [CURRENT] **Action buttons** [CURRENT]
    - `Save result` (primary green)
    - `Scan another` (secondary)
 
@@ -289,17 +289,17 @@ A farmer who cannot read English must still understand the result from color alo
 
 **Body (centered):**
 
-1. Dimmed/blurred image preview (full width, 120dp, low opacity)
+1. [CURRENT] Dimmed/blurred image preview (full width, 120dp, low opacity) [CURRENT]
 
-2. **Amber warning card**
+2. [CURRENT] **Amber warning card** [CURRENT]
    - Title: `Could not identify clearly`
    - Body: `The AI is only [X]% confident. This may not be a crop leaf, or the photo is blurry or too dark.`
    - Confidence bar (amber fill) + percentage
 
-3. **Guidance text**
+3. [CURRENT] **Guidance text** [CURRENT]
    - `Make sure the leaf fills the frame, is in focus, and there is enough light.`
 
-4. **Action buttons** (stacked)
+4. [CURRENT] **Action buttons** (stacked) [CURRENT]
    - `Try again` (primary green, full width)
    - `Choose from gallery` (secondary, full width)
 
@@ -319,7 +319,7 @@ A farmer who cannot read English must still understand the result from color alo
 
 **List body (scrollable):**
 
-Each history row contains:
+Each history row contains: [CURRENT]
 - Thumbnail (36×36dp, rounded corners, leaf image or placeholder)
 - Disease/crop name (13sp, bold)
 - Date and time + confidence (10sp, grey)
@@ -344,24 +344,24 @@ Each history row contains:
 **Sections:**
 
 #### Display
-| Setting | Type | Default |
-|---|---|---|
-| Large text mode | Toggle | Off |
-| Show confidence score | Toggle | On |
+| Setting | Type | Default | [CURRENT]
+|---|---|---| [CURRENT]
+| Large text mode | Toggle | Off | [CURRENT]
+| Show confidence score | Toggle | On | [CURRENT]
 
 #### Model & Data
-| Setting | Type | Info |
-|---|---|---|
-| Model version | Info row | `MobileNetV2 — v1.2.0` + green "Up to date" badge |
-| Supported crops | Info row | `Maize, Tomato, Potato` + "View all" link |
-| Clear scan history | Destructive action | Red "Clear" text, confirmation dialog before deleting |
+| Setting | Type | Info | [CURRENT]
+|---|---|---| [CURRENT]
+| Model version | Info row | `MobileNetV2 — v1.2.0` + green "Up to date" badge | [CURRENT]
+| Supported crops | Info row | `Maize, Tomato, Potato` + "View all" link | [CURRENT]
+| Clear scan history | Destructive action | Red "Clear" text, confirmation dialog before deleting | [CURRENT]
 
 #### About
-| Setting | Type | Info |
-|---|---|---|
-| About CropGuard | Info row | `Version 1.0 · Built for farmers` |
-| How to use | Link | Opens simple user guide |
-| Disclaimer | Info | AI suggestion only, not a replacement for agronomist |
+| Setting | Type | Info | [CURRENT]
+|---|---|---| [CURRENT]
+| About CropGuard | Info row | `Version 1.0 · Built for farmers` | [CURRENT]
+| How to use | Link | Opens simple user guide | [CURRENT]
+| Disclaimer | Info | AI suggestion only, not a replacement for agronomist | [CURRENT]
 
 **Bottom navigation:** Settings tab active.
 
@@ -438,44 +438,44 @@ Bottom Navigation Bar (4 tabs, always visible on main screens)
 
 ### Typography Scale
 
-| Role | Size | Weight | Usage |
-|---|---|---|---|
-| Screen title (toolbar) | 16sp | 500 | All toolbar titles |
-| Subtitle (toolbar) | 10sp | 400 | Toolbar subtitles |
-| Section labels | 11sp | 500, UPPERCASE | Category headers |
-| Disease name / headline | 14sp | 500 | Result card title |
-| Body text | 13sp | 400 | Cards, descriptions |
-| Tips / secondary | 11–12sp | 400 | Hints, tips, captions |
-| Badges / tags | 10sp | 500 | Status labels |
-| **Minimum (outdoor mode)** | **16sp** | 400 | Large text mode toggle |
+| Role | Size | Weight | Usage | [CURRENT]
+|---|---|---|---| [CURRENT]
+| Screen title (toolbar) | 16sp | 500 | All toolbar titles | [CURRENT]
+| Subtitle (toolbar) | 10sp | 400 | Toolbar subtitles | [CURRENT]
+| Section labels | 11sp | 500, UPPERCASE | Category headers | [CURRENT]
+| Disease name / headline | 14sp | 500 | Result card title | [CURRENT]
+| Body text | 13sp | 400 | Cards, descriptions | [CURRENT]
+| Tips / secondary | 11–12sp | 400 | Hints, tips, captions | [CURRENT]
+| Badges / tags | 10sp | 500 | Status labels | [CURRENT]
+| **Minimum (outdoor mode)** | **16sp** | 400 | Large text mode toggle | [CURRENT]
 
-> **Rule:** Never use px. Always use sp for text, dp for everything else.
+> **Rule:** Never use px. [CURRENT] Always use sp for text, dp for everything else. [CURRENT]
 
 ### Spacing System
 
-| Token | Value | Usage |
-|---|---|---|
-| xs | 4dp | Tight gaps (icon-to-label) |
-| sm | 8dp | Between related elements |
-| md | 12dp | Card internal padding |
-| lg | 16dp | Screen edge margins |
-| xl | 24dp | Section spacing |
+| Token | Value | Usage | [CURRENT]
+|---|---|---| [CURRENT]
+| xs | 4dp | Tight gaps (icon-to-label) | [CURRENT]
+| sm | 8dp | Between related elements | [CURRENT]
+| md | 12dp | Card internal padding | [CURRENT]
+| lg | 16dp | Screen edge margins | [CURRENT]
+| xl | 24dp | Section spacing | [CURRENT]
 
 ### Component Dimensions
 
-| Component | Size |
-|---|---|
-| Primary button | Full width, 48dp height, 10dp corner radius |
-| Secondary button | Full width or 50%, 44dp height |
-| Camera shutter button | 60dp diameter circle |
-| Navigation bar | 48dp height |
-| Toolbar / App bar | 56dp height |
-| History list row | Min 56dp height |
-| Touch targets (all) | Minimum 48×48dp |
-| Confidence progress bar | 6dp height, full width |
-| Card corner radius | 10dp |
-| Thumbnail (history) | 36×36dp, 6dp radius |
-| Badge | 10sp text, 2dp top/bottom, 7dp left/right padding, pill radius |
+| Component | Size | [CURRENT]
+|---|---| [CURRENT]
+| Primary button | Full width, 48dp height, 10dp corner radius | [CURRENT]
+| Secondary button | Full width or 50%, 44dp height | [CURRENT]
+| Camera shutter button | 60dp diameter circle | [CURRENT]
+| Navigation bar | 48dp height | [CURRENT]
+| Toolbar / App bar | 56dp height | [CURRENT]
+| History list row | Min 56dp height | [CURRENT]
+| Touch targets (all) | Minimum 48×48dp | [CURRENT]
+| Confidence progress bar | 6dp height, full width | [CURRENT]
+| Card corner radius | 10dp | [CURRENT]
+| Thumbnail (history) | 36×36dp, 6dp radius | [CURRENT]
+| Badge | 10sp text, 2dp top/bottom, 7dp left/right padding, pill radius | [CURRENT]
 
 ### Elevation & Depth
 
@@ -490,27 +490,27 @@ Bottom Navigation Bar (4 tabs, always visible on main screens)
 
 ### Designed for farmers — not developers
 
-These UX rules must be followed throughout the entire app:
+These UX rules must be followed throughout the entire app: [CURRENT]
 
-1. **Plain language only.** No words like "CNN", "inference", "tensor", "confidence interval", "model". Use "AI check", "how sure the AI is", "result".
+1. [CURRENT] **Plain language only.** No words like "CNN", "inference", "tensor", "confidence interval", "model". [CURRENT] Use "AI check", "how sure the AI is", "result". [CURRENT]
 
-2. **Color communicates everything.** Green = good. Red = bad. Amber = unsure. Any farmer should understand the result screen in under 3 seconds without reading.
+2. [CURRENT] **Color communicates everything.** Green = good. [CURRENT] Red = bad. [CURRENT] Amber = unsure. [CURRENT] Any farmer should understand the result screen in under 3 seconds without reading. [CURRENT]
 
-3. **Large, tappable buttons.** All buttons minimum 48dp tall. Primary actions are full-width. Never place two important actions right next to each other.
+3. [CURRENT] **Large, tappable buttons.** All buttons minimum 48dp tall. [CURRENT] Primary actions are full-width. [CURRENT] Never place two important actions right next to each other. [CURRENT]
 
-4. **Outdoor readability.** Default font at least 13sp. Large text mode bumps to 16sp+. High contrast — never light grey text on white background.
+4. [CURRENT] **Outdoor readability.** Default font at least 13sp. [CURRENT] Large text mode bumps to 16sp+. [CURRENT] High contrast — never light grey text on white background. [CURRENT]
 
-5. **Works offline.** No spinner that depends on internet. Model loaded from assets. History stored locally. Tips stored locally.
+5. [CURRENT] **Works offline.** No spinner that depends on internet. [CURRENT] Model loaded from assets. [CURRENT] History stored locally. [CURRENT] Tips stored locally. [CURRENT]
 
-6. **Fail gracefully.** Every error has a message and a recovery action. Never show a blank screen or a raw exception.
+6. [CURRENT] **Fail gracefully.** Every error has a message and a recovery action. [CURRENT] Never show a blank screen or a raw exception. [CURRENT]
 
-7. **One action per screen.** The camera screen's only job is capturing a photo. The result screen's only job is showing the result. Don't crowd screens.
+7. [CURRENT] **One action per screen.** The camera screen's only job is capturing a photo. [CURRENT] The result screen's only job is showing the result. [CURRENT] Don't crowd screens. [CURRENT]
 
-8. **Loading always visible.** Never run AI inference silently. Always show Screen 4 (Analysing) so the farmer knows the app is working.
+8. [CURRENT] **Loading always visible.** Never run AI inference silently. [CURRENT] Always show Screen 4 (Analysing) so the farmer knows the app is working. [CURRENT]
 
-9. **Confidence score always shown.** Never display just a disease label. Always pair it with a confidence bar and percentage.
+9. [CURRENT] **Confidence score always shown.** Never display just a disease label. [CURRENT] Always pair it with a confidence bar and percentage. [CURRENT]
 
-10. **Disclaimer always present.** Every result screen includes: *"This is an AI suggestion. Consult an agronomist for serious outbreaks."*
+10. [CURRENT] **Disclaimer always present.** Every result screen includes: *"This is an AI suggestion. [CURRENT] Consult an agronomist for serious outbreaks."* [CURRENT]
 
 ---
 
@@ -613,28 +613,28 @@ Active bg:     Subtle green tint pill around icon
 
 ### Core Features (Must Have)
 
-| Feature | Description |
-|---|---|
-| Camera scan | Open camera, display viewfinder with guide frame, capture on shutter tap |
-| Gallery upload | Open Android photo picker, select existing image |
-| Image preprocessing | Resize to 224×224dp, normalize pixels to match training preprocessing |
-| TFLite inference | Run MobileNetV2 model on background thread, return class + confidence |
-| Disease result display | Show disease name, confidence bar, cause, and numbered treatment steps |
-| Healthy result display | Show healthy confirmation, confidence bar, maintenance tips |
-| Low confidence fallback | Show amber warning when confidence < 60%, prompt retry |
-| Detection history | Save result to Room database, display in History tab |
-| Offline operation | All features work with no internet connection |
-| Settings | Large text toggle, model info, clear history |
+| Feature | Description | [CURRENT]
+|---|---| [CURRENT]
+| Camera scan | Open camera, display viewfinder with guide frame, capture on shutter tap | [CURRENT]
+| Gallery upload | Open Android photo picker, select existing image | [CURRENT]
+| Image preprocessing | Resize to 224×224dp, normalize pixels to match training preprocessing | [CURRENT]
+| TFLite inference | Run MobileNetV2 model on background thread, return class + confidence | [CURRENT]
+| Disease result display | Show disease name, confidence bar, cause, and numbered treatment steps | [CURRENT]
+| Healthy result display | Show healthy confirmation, confidence bar, maintenance tips | [CURRENT]
+| Low confidence fallback | Show amber warning when confidence < 60%, prompt retry | [CURRENT]
+| Detection history | Save result to Room database, display in History tab | [CURRENT]
+| Offline operation | All features work with no internet connection | [CURRENT]
+| Settings | Large text toggle, model info, clear history | [CURRENT]
 
 ### Secondary Features (Should Have)
 
-| Feature | Description |
-|---|---|
-| Onboarding | 3-screen first-launch walkthrough |
-| Daily crop tips | Rotating local tips shown on Home screen |
-| History filtering | Filter by All / Diseased / Healthy |
-| Result sharing | Share screenshot of result (Android share sheet) |
-| About screen | App version, disclaimer, model info |
+| Feature | Description | [CURRENT]
+|---|---| [CURRENT]
+| Onboarding | 3-screen first-launch walkthrough | [CURRENT]
+| Daily crop tips | Rotating local tips shown on Home screen | [CURRENT]
+| History filtering | Filter by All / Diseased / Healthy | [CURRENT]
+| Result sharing | Share screenshot of result (Android share sheet) | [CURRENT]
+| About screen | App version, disclaimer, model info | [CURRENT]
 
 ### Out of Scope (Version 1)
 
@@ -744,12 +744,12 @@ implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
 ### Critical Implementation Rules
 
-1. **Never run inference on the main thread.** Use `viewModelScope.launch(Dispatchers.IO)`.
-2. **Load model once.** Initialise `Interpreter` in `DiseaseClassifier` constructor, reuse it.
-3. **Normalization must match training.** Verify this before integration testing.
-4. **Confidence threshold = 0.60f.** If `max(outputArray) < 0.60`, navigate to Low Confidence screen.
-5. **Model in `assets/`.** Never download it at runtime.
-6. **Image path, not Bitmap, stored in Room.** Save the file path; load image from path when needed.
+1. [CURRENT] **Never run inference on the main thread.** Use `viewModelScope.launch(Dispatchers.IO)`. [CURRENT]
+2. [CURRENT] **Load model once.** Initialise `Interpreter` in `DiseaseClassifier` constructor, reuse it. [CURRENT]
+3. [CURRENT] **Normalization must match training.** Verify this before integration testing. [CURRENT]
+4. [CURRENT] **Confidence threshold = 0.60f.** If `max(outputArray) < 0.60`, navigate to Low Confidence screen. [HISTORICAL]
+5. [CURRENT] **Model in `assets/`.** Never download it at runtime. [CURRENT]
+6. [CURRENT] **Image path, not Bitmap, stored in Room.** Save the file path; load image from path when needed. [CURRENT]
 
 ---
 
@@ -757,35 +757,35 @@ implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
 ### Model Details
 
-| Field | Value |
-|---|---|
-| Base model | MobileNetV2 (pretrained on ImageNet) |
-| Transfer learning | Final layers replaced and retrained on PlantVillage dataset |
-| Input shape | 224 × 224 × 3 (RGB) |
-| Input dtype | float32 |
-| Normalization | [-1, 1] (MobileNetV2 standard) |
-| Output shape | [1, N] where N = number of disease classes |
-| Output dtype | float32 (softmax probabilities) |
-| Export format | TensorFlow Lite (.tflite) |
-| Quantization | Post-training quantization (DEFAULT) — reduces size ~4× |
-| Target file size | < 20MB |
+| Field | Value | [CURRENT]
+|---|---| [CURRENT]
+| Base model | MobileNetV2 (pretrained on ImageNet) | [CURRENT]
+| Transfer learning | Final layers replaced and retrained on PlantVillage dataset | [CURRENT]
+| Input shape | 224 × 224 × 3 (RGB) | [CURRENT]
+| Input dtype | float32 | [CURRENT]
+| Normalization | [-1, 1] (MobileNetV2 standard) | [CURRENT]
+| Output shape | [1, N] where N = number of disease classes | [CURRENT]
+| Output dtype | float32 (softmax probabilities) | [CURRENT]
+| Export format | TensorFlow Lite (.tflite) | [CURRENT]
+| Quantization | Post-training quantization (DEFAULT) — reduces size ~4× | [CURRENT]
+| Target file size | < 20MB | [CURRENT]
 
 ### Disease Classes Supported (PlantVillage subset)
 
-| Crop | Disease | Class label |
-|---|---|---|
-| Maize | Northern Leaf Blight | `Corn_Northern_Leaf_Blight` |
-| Maize | Common Rust | `Corn_Common_Rust` |
-| Maize | Gray Leaf Spot | `Corn_Gray_Leaf_Spot` |
-| Maize | Healthy | `Corn_Healthy` |
-| Tomato | Bacterial Spot | `Tomato_Bacterial_Spot` |
-| Tomato | Early Blight | `Tomato_Early_Blight` |
-| Tomato | Late Blight | `Tomato_Late_Blight` |
-| Tomato | Leaf Mold | `Tomato_Leaf_Mold` |
-| Tomato | Healthy | `Tomato_Healthy` |
-| Potato | Early Blight | `Potato_Early_Blight` |
-| Potato | Late Blight | `Potato_Late_Blight` |
-| Potato | Healthy | `Potato_Healthy` |
+| Crop | Disease | Class label | [CURRENT]
+|---|---|---| [CURRENT]
+| Maize | Northern Leaf Blight | `Corn_Northern_Leaf_Blight` | [CURRENT]
+| Maize | Common Rust | `Corn_Common_Rust` | [CURRENT]
+| Maize | Gray Leaf Spot | `Corn_Gray_Leaf_Spot` | [CURRENT]
+| Maize | Healthy | `Corn_Healthy` | [CURRENT]
+| Tomato | Bacterial Spot | `Tomato_Bacterial_Spot` | [CURRENT]
+| Tomato | Early Blight | `Tomato_Early_Blight` | [CURRENT]
+| Tomato | Late Blight | `Tomato_Late_Blight` | [CURRENT]
+| Tomato | Leaf Mold | `Tomato_Leaf_Mold` | [HISTORICAL]
+| Tomato | Healthy | `Tomato_Healthy` | [CURRENT]
+| Potato | Early Blight | `Potato_Early_Blight` | [CURRENT]
+| Potato | Late Blight | `Potato_Late_Blight` | [CURRENT]
+| Potato | Healthy | `Potato_Healthy` | [CURRENT]
 
 ### Confidence Threshold Logic
 
@@ -886,30 +886,30 @@ with open('crop_disease_model.tflite', 'wb') as f:
 
 ### Functional Requirements
 
-| ID | Requirement |
-|---|---|
-| FR1 | The app shall allow a user to capture a crop leaf image using the device camera |
-| FR2 | The app shall allow a user to select an existing image from the device gallery |
-| FR3 | The app shall classify the leaf image and return a disease label and confidence score |
-| FR4 | If confidence is below 60%, the app shall prompt the user to retake the image |
-| FR5 | The app shall display a disease description and recommended treatment for each result |
-| FR6 | The app shall store detection history locally (image path, result, timestamp) |
-| FR7 | The app shall function without an internet connection after installation |
-| FR8 | The app shall display a confidence score alongside every result |
-| FR9 | The app shall show a disclaimer recommending agronomist consultation |
+| ID | Requirement | [CURRENT]
+|---|---| [CURRENT]
+| FR1 | The app shall allow a user to capture a crop leaf image using the device camera | [CURRENT]
+| FR2 | The app shall allow a user to select an existing image from the device gallery | [CURRENT]
+| FR3 | The app shall classify the leaf image and return a disease label and confidence score | [CURRENT]
+| FR4 | If confidence is below 60%, the app shall prompt the user to retake the image | [CURRENT]
+| FR5 | The app shall display a disease description and recommended treatment for each result | [CURRENT]
+| FR6 | The app shall store detection history locally (image path, result, timestamp) | [CURRENT]
+| FR7 | The app shall function without an internet connection after installation | [CURRENT]
+| FR8 | The app shall display a confidence score alongside every result | [CURRENT]
+| FR9 | The app shall show a disclaimer recommending agronomist consultation | [CURRENT]
 
 ### Non-Functional Requirements
 
-| ID | Requirement | Measure |
-|---|---|---|
-| NFR1 | Classification accuracy | ≥ 85% on test set |
-| NFR2 | Inference time | ≤ 3 seconds on 2GB RAM device |
-| NFR3 | App cold start time | ≤ 4 seconds |
-| NFR4 | Model file size | ≤ 20MB |
-| NFR5 | Minimum Android version | API 26 (Android 8.0) |
-| NFR6 | Touch target size | Minimum 48×48dp |
-| NFR7 | Body text size | Minimum 13sp (16sp in large text mode) |
-| NFR8 | Offline support | 100% core features work without internet |
+| ID | Requirement | Measure | [CURRENT]
+|---|---|---| [CURRENT]
+| NFR1 | Classification accuracy | ≥ 85% on test set | [CURRENT]
+| NFR2 | Inference time | ≤ 3 seconds on 2GB RAM device | [CURRENT]
+| NFR3 | App cold start time | ≤ 4 seconds | [HISTORICAL]
+| NFR4 | Model file size | ≤ 20MB | [CURRENT]
+| NFR5 | Minimum Android version | API 26 (Android 8.0) | [CURRENT]
+| NFR6 | Touch target size | Minimum 48×48dp | [CURRENT]
+| NFR7 | Body text size | Minimum 13sp (16sp in large text mode) | [CURRENT]
+| NFR8 | Offline support | 100% core features work without internet | [CURRENT]
 
 ### System Constraints
 
@@ -925,28 +925,28 @@ with open('crop_disease_model.tflite', 'wb') as f:
 
 ### Test Cases
 
-| ID | Test | Type | Expected result | Pass/Fail |
-|---|---|---|---|---|
-| T01 | Preprocess 224×224 image, check tensor shape | Unit | Shape: [1, 224, 224, 3] | |
-| T02 | Preprocess image, check pixel range | Unit | All values in [-1.0, 1.0] | |
-| T03 | Run model on healthy tomato leaf | Integration | Label: Healthy, conf ≥ 80% | |
-| T04 | Run model on diseased maize leaf | Integration | Correct disease, conf ≥ 75% | |
-| T05 | Submit blurry image | Robustness | Low confidence screen shown | |
-| T06 | Submit non-plant image (face) | Edge case | Low confidence screen shown | |
-| T07 | Scroll history list 50+ items | Performance | No jank, smooth 60fps | |
-| T08 | Run on 2GB RAM device | Performance | No crash, inference ≤ 3s | |
-| T09 | Deny camera permission | Edge case | Rationale shown, gallery offered | |
-| T10 | Complete scan without internet | Functional | Full result shown offline | |
-| T11 | Non-technical user completes scan | Acceptance | Success without assistance | |
-| T12 | Save result and view in history | Functional | Appears in history correctly | |
-| T13 | Clear history in settings | Functional | All records deleted | |
-| T14 | Toggle large text mode | Functional | Text size increases throughout | |
+| ID | Test | Type | Expected result | Pass/Fail | [CURRENT]
+|---|---|---|---|---| [CURRENT]
+| T01 | Preprocess 224×224 image, check tensor shape | Unit | Shape: [1, 224, 224, 3] | | [CURRENT]
+| T02 | Preprocess image, check pixel range | Unit | All values in [-1.0, 1.0] | | [CURRENT]
+| T03 | Run model on healthy tomato leaf | Integration | Label: Healthy, conf ≥ 80% | | [CURRENT]
+| T04 | Run model on diseased maize leaf | Integration | Correct disease, conf ≥ 75% | | [CURRENT]
+| T05 | Submit blurry image | Robustness | Low confidence screen shown | | [CURRENT]
+| T06 | Submit non-plant image (face) | Edge case | Low confidence screen shown | | [CURRENT]
+| T07 | Scroll history list 50+ items | Performance | No jank, smooth 60fps | | [CURRENT]
+| T08 | Run on 2GB RAM device | Performance | No crash, inference ≤ 3s | | [CURRENT]
+| T09 | Deny camera permission | Edge case | Rationale shown, gallery offered | | [CURRENT]
+| T10 | Complete scan without internet | Functional | Full result shown offline | | [CURRENT]
+| T11 | Non-technical user completes scan | Acceptance | Success without assistance | | [CURRENT]
+| T12 | Save result and view in history | Functional | Appears in history correctly | | [CURRENT]
+| T13 | Clear history in settings | Functional | All records deleted | | [CURRENT]
+| T14 | Toggle large text mode | Functional | Text size increases throughout | | [CURRENT]
 
 ---
 
 ## 15. Prompts to Give Your AI (Vibe Coding Guide)
 
-Use these exact prompts with your AI to build each part of the app:
+Use these exact prompts with your AI to build each part of the app: [CURRENT]
 
 ---
 

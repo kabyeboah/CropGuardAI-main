@@ -1,18 +1,19 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cropguard_flutter/core/utils/classifier_health_service.dart';
 import 'package:cropguard_flutter/data/ml/crop_disease_classifier.dart';
 import 'package:cropguard_flutter/data/ml/disease_info.dart';
 
 void main() {
-  // ── Shell behaviour ─────────────────────────────────────────────────────────
+  // ── Shell & Exception behaviour ─────────────────────────────────────────────
 
-  test('loadModel handles asset loading in unit test environment', () async {
+  test(
+      'loadModel handles asset loading failure by throwing explicit MLException',
+      () async {
     final classifier = CropDiseaseClassifier();
-    // In unit tests without flutter assets loaded, loadModel fails gracefully
-    await classifier.loadModel();
+    await expectLater(classifier.loadModel(), throwsA(isA<MLException>()));
     expect(classifier.isLoaded, isFalse);
     expect(classifier.isEngineAvailable, isFalse);
   });
@@ -21,117 +22,81 @@ void main() {
     expect(CropDiseaseClassifier.modelVersion, anyOf(isNull, isA<String>()));
   });
 
-  test('classifyFromPath with non-existent file still returns a degraded result', () async {
+  test('classifyFromPath with non-existent file throws ModelInputException',
+      () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final classifier = CropDiseaseClassifier();
 
-    final result = await classifier.classifyFromPath('non_existent_image.jpg');
-
-    expect(result, isNotNull);
-    expect(result!.isDegraded, isTrue);
-    expect(result.label, equals('Unidentified'));
-    expect(result.confidence, lessThan(CropDiseaseClassifier.confidenceThreshold));
+    await expectLater(
+      classifier.classifyFromPath('non_existent_image.jpg'),
+      throwsA(isA<ModelInputException>()
+          .having((e) => e.code, 'code', 'MODEL_INPUT_INVALID')),
+    );
   });
 
-  test('classifyFromBytes returns degraded result below threshold', () async {
+  test('classifyFromBytes with invalid dimensions throws ModelInputException',
+      () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final classifier = CropDiseaseClassifier();
 
-    // Grey RGBA bytes — green condition is false for every pixel.
-    final dummyBytes = Uint8List.fromList(List.filled(100 * 100 * 4, 128));
-    final result = await classifier.classifyFromBytes(dummyBytes, 100, 100);
-
-    expect(result, isNotNull);
-    expect(result!.isDegraded, isTrue);
-    expect(result.label, equals('Unidentified'));
-    expect(result.confidence, lessThan(CropDiseaseClassifier.confidenceThreshold));
+    final dummyBytes = Uint8List(0);
+    await expectLater(
+      classifier.classifyFromBytes(dummyBytes, 0, 0),
+      throwsA(isA<ModelInputException>()
+          .having((e) => e.code, 'code', 'MODEL_INPUT_INVALID')),
+    );
   });
 
-  test('close() does not throw', () {
+  test('close() closes interpreter and resets loaded state without throwing',
+      () {
     final classifier = CropDiseaseClassifier();
     expect(() => classifier.close(), returnsNormally);
+    expect(classifier.isLoaded, isFalse);
   });
 
-  // ── Fallback heuristic confidence paths (via fallbackForTest seam) ──────────
+  // ── Explicit ML Exceptions ───────────────────────────────────────────────────
 
-  group('fallback heuristic confidence ceiling (via fallbackForTest seam)', () {
-    test('engine-unavailable path returns confidence 0.0, below threshold', () async {
-      TestWidgetsFlutterBinding.ensureInitialized();
-
-      final result = await CropDiseaseClassifier.fallbackForTest(
-        Uint8List.fromList(List.filled(10 * 10 * 4, 128)),
-        engineUnavailable: true,
-        isRgbaRaw: true,
-        width: 10,
-        height: 10,
-      );
-
-      expect(result.engineUnavailable, isTrue);
-      expect(result.isDegraded, isTrue);
-      expect(result.label, equals('Unidentified'));
-      expect(result.confidence, equals(0.0));
-      expect(result.confidence, lessThan(CropDiseaseClassifier.confidenceThreshold));
+  group('Explicit ML Exceptions and failure codes', () {
+    test('ModelLoadException has code MODEL_LOAD_FAILED', () {
+      const e = ModelLoadException('Asset not found');
+      expect(e.code, equals('MODEL_LOAD_FAILED'));
+      expect(e.toString(), contains('MODEL_LOAD_FAILED'));
     });
 
-    test('base heuristic path (non-green RGBA bytes) returns confidence 0.30, below threshold', () async {
-      TestWidgetsFlutterBinding.ensureInitialized();
-
-      // Grey pixels: R=G=B=128 → green condition (G>R && G>B) is false
-      // for every pixel → greenRatio = 0 ≤ 0.35 → confidence stays at 0.30.
-      final greyBytes = Uint8List.fromList(List.filled(10 * 10 * 4, 128));
-      final result = await CropDiseaseClassifier.fallbackForTest(
-        greyBytes,
-        engineUnavailable: false,
-        isRgbaRaw: true,
-        width: 10,
-        height: 10,
-      );
-
-      expect(result.isDegraded, isTrue);
-      expect(result.label, equals('Unidentified'));
-      expect(result.confidence, equals(0.30));
-      expect(result.confidence, lessThan(CropDiseaseClassifier.confidenceThreshold));
+    test('ModelContractException has code MODEL_CONTRACT_FAILED', () {
+      const e = ModelContractException('Shape mismatch');
+      expect(e.code, equals('MODEL_CONTRACT_FAILED'));
+      expect(e.toString(), contains('MODEL_CONTRACT_FAILED'));
     });
 
-    test('green-pixel heuristic path (>35% green RGBA bytes) returns confidence 0.45, below threshold', () async {
-      TestWidgetsFlutterBinding.ensureInitialized();
+    test('ModelInputException has code MODEL_INPUT_INVALID', () {
+      const e = ModelInputException('Decode error');
+      expect(e.code, equals('MODEL_INPUT_INVALID'));
+      expect(e.toString(), contains('MODEL_INPUT_INVALID'));
+    });
 
-      // R=50, G=200, B=50, A=255 → G > R && G > B && G > 40 → every pixel
-      // counted as green → greenRatio = 1.0 > 0.35 → confidence boosted to 0.45.
-      const w = 10;
-      const h = 10;
-      final greenBytes = Uint8List(w * h * 4);
-      for (var i = 0; i < w * h; i++) {
-        greenBytes[i * 4 + 0] = 50;   // R
-        greenBytes[i * 4 + 1] = 200;  // G
-        greenBytes[i * 4 + 2] = 50;   // B
-        greenBytes[i * 4 + 3] = 255;  // A
-      }
+    test('ModelInferenceException has code MODEL_INFERENCE_FAILED', () {
+      const e = ModelInferenceException('Runtime error');
+      expect(e.code, equals('MODEL_INFERENCE_FAILED'));
+      expect(e.toString(), contains('MODEL_INFERENCE_FAILED'));
+    });
 
-      final result = await CropDiseaseClassifier.fallbackForTest(
-        greenBytes,
-        engineUnavailable: false,
-        isRgbaRaw: true,
-        width: w,
-        height: h,
-      );
-
-      expect(result.isDegraded, isTrue);
-      expect(result.label, equals('Unidentified'));
-      expect(result.confidence, equals(0.45));
-      expect(result.confidence, lessThan(CropDiseaseClassifier.confidenceThreshold));
+    test('LabelContractException has code LABEL_CONTRACT_FAILED', () {
+      const e = LabelContractException('Count mismatch');
+      expect(e.code, equals('LABEL_CONTRACT_FAILED'));
+      expect(e.toString(), contains('LABEL_CONTRACT_FAILED'));
     });
   });
 
   // ── averageResults ──────────────────────────────────────────────────────────
 
-  test('averageResults with one result returns that result unchanged', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    final single = await CropDiseaseClassifier.fallbackForTest(
-      Uint8List.fromList(List.filled(10 * 10 * 4, 128)),
-      isRgbaRaw: true,
-      width: 10,
-      height: 10,
+  test('averageResults with one result returns that result unchanged', () {
+    final single = ClassificationResult(
+      label: 'Tomato___Early_blight',
+      confidence: 0.85,
+      isHealthy: false,
+      diseaseInfo: DiseaseDatabase.getInfo('Tomato___Early_blight'),
+      topCandidates: [(label: 'Tomato___Early_blight', confidence: 0.85)],
     );
 
     final averaged = CropDiseaseClassifier.averageResults([single]);
@@ -139,26 +104,31 @@ void main() {
     expect(averaged.confidence, equals(single.confidence));
   });
 
-  test('averageResults averages confidence across multiple results', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    final r1 = await CropDiseaseClassifier.fallbackForTest(
-      Uint8List.fromList(List.filled(10 * 10 * 4, 128)),
-      isRgbaRaw: true,
-      width: 10,
-      height: 10,
+  test('averageResults averages confidence across multiple results', () {
+    final r1 = ClassificationResult(
+      label: 'Tomato___Early_blight',
+      confidence: 0.40,
+      isHealthy: false,
+      diseaseInfo: DiseaseDatabase.getInfo('Tomato___Early_blight'),
+      isDegraded: true,
+      topCandidates: [(label: 'Tomato___Early_blight', confidence: 0.40)],
     );
-    final r2 = await CropDiseaseClassifier.fallbackForTest(
-      null,
-      engineUnavailable: true,
+    final r2 = ClassificationResult(
+      label: 'Tomato___Early_blight',
+      confidence: 0.80,
+      isHealthy: false,
+      diseaseInfo: DiseaseDatabase.getInfo('Tomato___Early_blight'),
+      topCandidates: [(label: 'Tomato___Early_blight', confidence: 0.80)],
     );
 
     final averaged = CropDiseaseClassifier.averageResults([r1, r2]);
-    expect(averaged.confidence,
-        closeTo((r1.confidence + r2.confidence) / 2, 0.001));
+    expect(averaged.confidence, closeTo(0.60, 0.001));
     expect(averaged.isDegraded, isTrue);
   });
 
-  test('averageResults performs true soft-voting across candidate distributions', () {
+  test(
+      'averageResults performs true soft-voting across candidate distributions',
+      () {
     final r1 = ClassificationResult(
       label: 'Tomato___Early_blight',
       confidence: 0.55,
@@ -191,54 +161,54 @@ void main() {
   });
 
   group('computeSoftVotingCandidates', () {
-    test('sums per-label confidence across angles and normalizes correctly', () {
+    test('sums per-label confidence across angles and normalizes correctly',
+        () {
       final angle1 = [
-        (label: 'Cocoa___Black_pod_rot', confidence: 0.60),
-        (label: 'Cocoa___Frosty_pod_rot', confidence: 0.30),
+        (label: 'Cashew___Red_Rust', confidence: 0.60),
+        (label: 'Cashew___Gumosis', confidence: 0.30),
       ];
       final angle2 = [
-        (label: 'Cocoa___Black_pod_rot', confidence: 0.80),
-        (label: 'Cocoa___Frosty_pod_rot', confidence: 0.10),
+        (label: 'Cashew___Red_Rust', confidence: 0.80),
+        (label: 'Cashew___Gumosis', confidence: 0.10),
       ];
 
-      final merged = CropDiseaseClassifier.computeSoftVotingCandidates([angle1, angle2]);
+      final merged =
+          CropDiseaseClassifier.computeSoftVotingCandidates([angle1, angle2]);
 
       expect(merged, hasLength(2));
-      expect(merged[0].label, equals('Cocoa___Black_pod_rot'));
+      expect(merged[0].label, equals('Cashew___Red_Rust'));
       expect(merged[0].confidence, closeTo(0.70, 0.001));
-      expect(merged[1].label, equals('Cocoa___Frosty_pod_rot'));
+      expect(merged[1].label, equals('Cashew___Gumosis'));
       expect(merged[1].confidence, closeTo(0.20, 0.001));
     });
 
-    test('returns fallback candidates when candidate lists are empty', () {
-      final fallback = [
-        (label: 'Cocoa___Healthy', confidence: 0.50),
-      ];
-
-      final merged = CropDiseaseClassifier.computeSoftVotingCandidates(
-        [],
-        fallbackCandidates: fallback,
-      );
-
-      expect(merged, equals(fallback));
+    test(
+        'returns empty candidates when candidate lists are empty without synthesizing fake labels',
+        () {
+      final merged = CropDiseaseClassifier.computeSoftVotingCandidates([]);
+      expect(merged, isEmpty);
     });
   });
 
-  group('Fallback telemetry', () {
-    test('updates ClassifierHealthService and logs fallback analytics when services are registered', () async {
-      TestWidgetsFlutterBinding.ensureInitialized();
-      final healthService = ClassifierHealthService();
+  group('Canonical Model Contract and DiseaseDatabase alignment', () {
+    test('assets/model_metadata.json exists and strictly specifies contract',
+        () {
+      final file = File('assets/model_metadata.json');
+      expect(file.existsSync(), isTrue,
+          reason: 'assets/model_metadata.json must exist');
 
-      expect(healthService.fallbackCount, equals(0));
-      healthService.updateHealth(isHealthy: true, usedFallback: true);
-      expect(healthService.fallbackCount, equals(1));
+      final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      expect(json['model_file'], equals('cropguard_plant_disease.tflite'));
+      expect(json['labels_file'], equals('labels.txt'));
+      expect(json['input_size'], equals(128));
+      expect(json['num_classes'], equals(51));
+      expect(json['input_channels'], equals(3));
+      expect(json['calibration_temperature'], isNotNull);
     });
-  });
 
-  group('Verified Model Labels and DiseaseDatabase alignment', () {
-    test('assets/labels_verified.txt exists and contains exactly 51 classes', () {
-      final file = File('assets/labels_verified.txt');
-      expect(file.existsSync(), isTrue, reason: 'assets/labels_verified.txt must exist');
+    test('assets/labels.txt exists and contains exactly 51 unique classes', () {
+      final file = File('assets/labels.txt');
+      expect(file.existsSync(), isTrue, reason: 'assets/labels.txt must exist');
 
       final lines = file
           .readAsLinesSync()
@@ -247,11 +217,19 @@ void main() {
           .toList();
 
       expect(lines.length, equals(51));
-      expect(lines.toSet().length, equals(51), reason: 'All 51 labels must be unique');
+      expect(lines.toSet().length, equals(51),
+          reason: 'All 51 labels must be unique');
     });
 
-    test('every label in assets/labels_verified.txt aligns with DiseaseDatabase', () {
-      final file = File('assets/labels_verified.txt');
+    test('assets/cropguard_plant_disease.tflite exists', () {
+      final file = File('assets/cropguard_plant_disease.tflite');
+      expect(file.existsSync(), isTrue,
+          reason: 'assets/cropguard_plant_disease.tflite must exist');
+      expect(file.lengthSync(), greaterThan(100000));
+    });
+
+    test('every label in assets/labels.txt aligns with DiseaseDatabase', () {
+      final file = File('assets/labels.txt');
       final lines = file
           .readAsLinesSync()
           .map((l) => l.trim())

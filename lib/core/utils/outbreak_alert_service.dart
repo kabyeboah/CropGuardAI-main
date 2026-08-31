@@ -1,5 +1,3 @@
-import 'dart:developer' as dev;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/local/database_helper.dart';
 import '../../data/remote/firestore_service.dart';
 import '../../domain/models/app_notification.dart';
+import 'app_logger.dart';
 import 'notification_helper.dart';
 
 /// Community early-warning: notifies a farmer when a disease outbreak is
@@ -66,7 +65,7 @@ class OutbreakAlertService {
             lon = last.longitude;
           }
         } catch (e) {
-          dev.log('Failed to fetch last known position in background: $e');
+          AppLogger.w('Failed to fetch last known position in background: $e');
         }
       }
       // Without a location we can't measure proximity — skip quietly.
@@ -93,7 +92,10 @@ class OutbreakAlertService {
         if (dt != null && now.difference(dt).inDays > recentDays) continue;
 
         final distKm = Geolocator.distanceBetween(
-              lat, lon, rLat.toDouble(), rLon.toDouble(),
+              lat,
+              lon,
+              rLat.toDouble(),
+              rLon.toDouble(),
             ) /
             1000.0;
         if (distKm > radiusKm) continue;
@@ -102,8 +104,8 @@ class OutbreakAlertService {
         newlyAlerted.add(id);
         if (distKm < nearestDist) {
           nearestDist = distKm;
-          nearestDisease = (r['disease'] ?? r['diseaseName']) as String? ??
-              'A crop disease';
+          nearestDisease =
+              (r['disease'] ?? r['diseaseName']) as String? ?? 'A crop disease';
         }
       }
 
@@ -132,7 +134,7 @@ class OutbreakAlertService {
       await prefs.setStringList(_kAlertedIds, alerted.toList());
       return true;
     } catch (e) {
-      dev.log('OutbreakAlertService failed: $e');
+      AppLogger.e('OutbreakAlertService failed: $e');
       return false;
     }
   }

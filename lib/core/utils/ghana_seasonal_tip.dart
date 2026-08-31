@@ -33,13 +33,13 @@ class GhanaSeasonalTip {
       // Use the same Remote Config ranges as isHighRisk() so the two methods
       // stay consistent. Fall back to hardcoded ranges when config is not set.
       final rawMajorStart = config.getInt('rainy_major_start');
-      final rawMajorEnd   = config.getInt('rainy_major_end');
+      final rawMajorEnd = config.getInt('rainy_major_end');
       final rawMinorStart = config.getInt('rainy_minor_start');
-      final rawMinorEnd   = config.getInt('rainy_minor_end');
+      final rawMinorEnd = config.getInt('rainy_minor_end');
       final majorStart = rawMajorStart > 0 ? rawMajorStart : 3;
-      final majorEnd   = rawMajorEnd   > 0 ? rawMajorEnd   : 6;
+      final majorEnd = rawMajorEnd > 0 ? rawMajorEnd : 6;
       final minorStart = rawMinorStart > 0 ? rawMinorStart : 9;
-      final minorEnd   = rawMinorEnd   > 0 ? rawMinorEnd   : 11;
+      final minorEnd = rawMinorEnd > 0 ? rawMinorEnd : 11;
 
       if (month >= majorStart && month <= majorEnd) {
         return majorMsg.isNotEmpty
@@ -64,9 +64,11 @@ class GhanaSeasonalTip {
   }
 
   static int getDailyTipIndex(int total) {
-    final dayOfYear = DateTime.now().difference(
+    final dayOfYear = DateTime.now()
+        .difference(
           DateTime(DateTime.now().year, 1, 1),
-        ).inDays;
+        )
+        .inDays;
     return dayOfYear % total;
   }
 }

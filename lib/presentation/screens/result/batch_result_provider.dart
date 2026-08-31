@@ -39,9 +39,8 @@ class BatchResultProvider extends ChangeNotifier {
         for (var r in diseasedResults) {
           counts[r.displayName] = (counts[r.displayName] ?? 0) + 1;
         }
-        dominantDisease = counts.entries
-            .reduce((a, b) => a.value > b.value ? a : b)
-            .key;
+        dominantDisease =
+            counts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
       }
 
       String overallSeverity = ScanSeverity.healthy;
@@ -54,9 +53,8 @@ class BatchResultProvider extends ChangeNotifier {
           ScanSeverity.healthy: 0,
         };
 
-        overallSeverity = diseasedResults
-            .map((r) => r.severity)
-            .reduce((a, b) => (severityRank[a] ?? 1) >= (severityRank[b] ?? 1) ? a : b);
+        overallSeverity = diseasedResults.map((r) => r.severity).reduce(
+            (a, b) => (severityRank[a] ?? 1) >= (severityRank[b] ?? 1) ? a : b);
       }
 
       String aggregatedSummary;

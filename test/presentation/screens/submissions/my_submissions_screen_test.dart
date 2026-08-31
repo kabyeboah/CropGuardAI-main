@@ -14,8 +14,11 @@ import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/presentation/screens/submissions/my_submissions_screen.dart';
 
 class MockFirestoreService extends Mock implements FirestoreService {}
+
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
+
 class MockDatabase extends Mock implements Database {}
 
 Widget _wrapScreen() {
@@ -28,7 +31,8 @@ Widget _wrapScreen() {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const Scaffold(body: Text('Profile Screen')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('Profile Screen')),
       ),
     ],
   );
@@ -96,12 +100,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('My Submissions'), findsOneWidget);
-    expect(find.text('Expert Consultation: Tomato Early Blight'), findsOneWidget);
+    expect(
+        find.text('Expert Consultation: Tomato Early Blight'), findsOneWidget);
     expect(find.text('Received & Resolved'), findsOneWidget);
     expect(find.text('Failed to Load Submissions'), findsNothing);
   });
 
-  testWidgets('displays empty state when user has no submissions', (tester) async {
+  testWidgets('displays empty state when user has no submissions',
+      (tester) async {
     when(() => mockFirestore.getUserExpertRequests('test-user-123')).thenAnswer(
       (_) async => [],
     );
@@ -116,9 +122,11 @@ void main() {
     expect(find.text('Failed to Load Submissions'), findsNothing);
   });
 
-  testWidgets('renders error banner with retry action on network failure', (tester) async {
+  testWidgets('renders error banner with retry action on network failure',
+      (tester) async {
     var callCount = 0;
-    when(() => mockFirestore.getUserExpertRequests('test-user-123')).thenAnswer((_) async {
+    when(() => mockFirestore.getUserExpertRequests('test-user-123'))
+        .thenAnswer((_) async {
       callCount++;
       if (callCount == 1) {
         throw Exception('Network unreachable');

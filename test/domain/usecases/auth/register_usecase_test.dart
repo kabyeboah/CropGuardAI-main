@@ -49,11 +49,12 @@ void main() {
 
     test('returns failure when email is already in use', () async {
       when(() => mockRepository.register(
-            email: any(named: 'email'),
-            password: any(named: 'password'),
-            name: any(named: 'name'),
-          )).thenAnswer(
-              (_) async => Result.error(const AuthFailure('email-already-in-use')));
+                email: any(named: 'email'),
+                password: any(named: 'password'),
+                name: any(named: 'name'),
+              ))
+          .thenAnswer((_) async =>
+              Result.error(const AuthFailure('email-already-in-use')));
 
       final result = await useCase(
         email: 'taken@example.com',
@@ -72,8 +73,7 @@ void main() {
             name: any(named: 'name'),
           )).thenAnswer((_) async => Result.success(tUser));
 
-      await useCase(
-          email: 'a@b.com', password: 'secret123', name: 'Ama');
+      await useCase(email: 'a@b.com', password: 'secret123', name: 'Ama');
 
       verify(() => mockRepository.register(
             email: 'a@b.com',
@@ -90,7 +90,8 @@ void main() {
       );
 
       expect(result.isError, true);
-      expect(result.failure!.message, 'Password must be at least 8 characters long.');
+      expect(result.failure!.message,
+          'Password must be at least 8 characters long.');
       verifyNever(() => mockRepository.register(
             email: any(named: 'email'),
             password: any(named: 'password'),

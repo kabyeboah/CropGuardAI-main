@@ -142,8 +142,10 @@ class _SectionView extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Text(section.body,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                height: 1.6, color: colors.onBackgroundSecondary)),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(height: 1.6, color: colors.onBackgroundSecondary)),
         const SizedBox(height: 20),
       ],
     );

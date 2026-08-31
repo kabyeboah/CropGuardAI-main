@@ -79,4 +79,36 @@ class LocationHelper {
 
     return defaultPoint;
   }
+
+  /// Coarsens a geographic coordinate (latitude or longitude) to [precision] decimal
+  /// places to protect farmer privacy and prevent exact plot/homestead identification.
+  ///
+  /// Precision reference (at equator):
+  /// - 1 decimal place: ~11.1 km
+  /// - 2 decimal places: ~1.11 km (default: protects farm plot while preserving community accuracy)
+  /// - 3 decimal places: ~111 m
+  static double coarsen(double coordinate, {int precision = 2}) {
+    return double.parse(coordinate.toStringAsFixed(precision));
+  }
+
+  /// Coarsens a [GeoPoint] coordinate pair to [precision] decimal places.
+  static GeoPoint coarsenPoint(GeoPoint point, {int precision = 2}) {
+    return GeoPoint(
+      coarsen(point.latitude, precision: precision),
+      coarsen(point.longitude, precision: precision),
+      isPrecise: point.isPrecise,
+    );
+  }
+
+  /// Coarsens a latitude/longitude pair and returns a tuple.
+  static (double, double) coarsenCoordinates(
+    double lat,
+    double lon, {
+    int precision = 2,
+  }) {
+    return (
+      coarsen(lat, precision: precision),
+      coarsen(lon, precision: precision),
+    );
+  }
 }

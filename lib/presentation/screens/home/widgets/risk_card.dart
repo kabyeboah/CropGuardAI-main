@@ -33,7 +33,8 @@ class _RiskCardState extends State<RiskCard> {
   @override
   void initState() {
     super.initState();
-    _useCase = widget.getRiskAssessmentUseCase ?? sl<GetRiskAssessmentUseCase>();
+    _useCase =
+        widget.getRiskAssessmentUseCase ?? sl<GetRiskAssessmentUseCase>();
     _fetchRisk();
   }
 
@@ -139,7 +140,9 @@ class _RiskCardState extends State<RiskCard> {
         if (assessment.region != null && assessment.region!.isNotEmpty) {
           queryParams['region'] = assessment.region!;
         }
-        final uri = Uri(path: '/outbreak_map', queryParameters: queryParams.isEmpty ? null : queryParams);
+        final uri = Uri(
+            path: '/outbreak_map',
+            queryParameters: queryParams.isEmpty ? null : queryParams);
         context.push(uri.toString());
       },
       child: Column(
@@ -174,7 +177,8 @@ class _RiskCardState extends State<RiskCard> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -206,7 +210,8 @@ class _RiskCardState extends State<RiskCard> {
                   Expanded(
                     child: Text(
                       l10n.riskInsufficientDataMsg,
-                      style: TextStyle(color: colors.onBackgroundSecondary, fontSize: 12),
+                      style: TextStyle(
+                          color: colors.onBackgroundSecondary, fontSize: 12),
                     ),
                   ),
                 ],

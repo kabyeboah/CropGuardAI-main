@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,7 +16,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   final DatabaseHelper _dbHelper;
   final ImageUploadService _imageUploadService;
 
-  CommunityRepositoryImpl(this._firestoreService, this._dbHelper, this._imageUploadService);
+  CommunityRepositoryImpl(
+      this._firestoreService, this._dbHelper, this._imageUploadService);
 
   @override
   Stream<List<CommunityPost>> getPostsStream() {
@@ -34,7 +34,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.addPost permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.addPost permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       // Queue for retry when connectivity is restored.
@@ -61,7 +62,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.requestExpertHelp permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.requestExpertHelp permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       await _enqueue(PendingSyncType.expertRequest, {
@@ -76,9 +78,12 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   }
 
   @override
-  Future<Result<void>> upsertScan(String docId, Map<String, dynamic> scanData) async {
+  Future<Result<void>> upsertScan(
+      String docId, Map<String, dynamic> scanData) async {
     try {
-      await _firestoreService.upsertScan(docId, scanData).timeout(const Duration(seconds: 4));
+      await _firestoreService
+          .upsertScan(docId, scanData)
+          .timeout(const Duration(seconds: 4));
       final intId = int.tryParse(docId);
       if (intId != null) {
         await _dbHelper.markDetectionSynced(intId);
@@ -100,7 +105,9 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return upsertScan(docId, scanData);
     }
     try {
-      await _firestoreService.uploadScan(scanData).timeout(const Duration(seconds: 4));
+      await _firestoreService
+          .uploadScan(scanData)
+          .timeout(const Duration(seconds: 4));
       return Result.success(null);
     } catch (e) {
       await _enqueue(PendingSyncType.scanUpload, scanData);
@@ -121,7 +128,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   }
 
   @override
-  Future<Result<void>> updateUserProfile(String uid, Map<String, dynamic> data) async {
+  Future<Result<void>> updateUserProfile(
+      String uid, Map<String, dynamic> data) async {
     try {
       await _firestoreService.updateUserProfile(uid, data);
       return Result.success(null);
@@ -146,23 +154,27 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   Future<Result<void>> submitOutbreakReport(Map<String, dynamic> data) async {
     final userId = data['userId'] as String?;
     if (userId == null || userId.trim().isEmpty) {
-      return Result.error(const AuthFailure('You must be signed in to submit an outbreak report.'));
+      return Result.error(const AuthFailure(
+          'You must be signed in to submit an outbreak report.'));
     }
     try {
-      await _firestoreService.submitOutbreakReport(data).timeout(const Duration(seconds: 4));
+      await _firestoreService
+          .submitOutbreakReport(data)
+          .timeout(const Duration(seconds: 4));
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.submitOutbreakReport permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.submitOutbreakReport permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       // Queue for retry when connectivity is restored or if network call times out.
       await _enqueue(PendingSyncType.outbreakReport, data);
-      AppLogger.w('CommunityRepo.submitOutbreakReport timeout/offline — queued: $e');
+      AppLogger.w(
+          'CommunityRepo.submitOutbreakReport timeout/offline — queued: $e');
       return Result.success(null); // Optimistic: the user sees "reported".
     }
   }
-
 
   @override
   Future<Result<void>> verifyOutbreakReport({
@@ -194,9 +206,12 @@ class CommunityRepositoryImpl implements ICommunityRepository {
     String? modelVersion,
   }) async {
     String? remoteUrl = imagePath;
-    if (imagePath != null && imagePath.isNotEmpty && !imagePath.startsWith('http')) {
+    if (imagePath != null &&
+        imagePath.isNotEmpty &&
+        !imagePath.startsWith('http')) {
       try {
-        remoteUrl = await _imageUploadService.uploadImage(imagePath, userId: userId);
+        remoteUrl =
+            await _imageUploadService.uploadImage(imagePath, userId: userId);
       } catch (e) {
         // Image upload failed — enqueue to offline sync queue so drainPendingSync retries image upload
         await _enqueue(PendingSyncType.feedbackCorrection, {
@@ -208,7 +223,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
           'confidence': confidence,
           'modelVersion': modelVersion,
         });
-        AppLogger.w('CommunityRepo.submitFeedback image upload failed — queued: $e');
+        AppLogger.w(
+            'CommunityRepo.submitFeedback image upload failed — queued: $e');
         return Result.success(null);
       }
     }
@@ -226,7 +242,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.submitFeedback permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.submitFeedback permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       await _enqueue(PendingSyncType.feedbackCorrection, {
@@ -253,7 +270,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
     String remoteUrl = imagePath;
     if (imagePath.isNotEmpty && !imagePath.startsWith('http')) {
       try {
-        remoteUrl = await _imageUploadService.uploadImage(imagePath, userId: userId);
+        remoteUrl =
+            await _imageUploadService.uploadImage(imagePath, userId: userId);
       } catch (e) {
         await _enqueue(PendingSyncType.cropNotFound, {
           'userId': userId,
@@ -276,7 +294,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.submitCropNotFound permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.submitCropNotFound permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       await _enqueue(PendingSyncType.cropNotFound, {
@@ -291,13 +310,15 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   }
 
   @override
-  Future<Result<void>> submitTrainingCandidate(Map<String, dynamic> candidateData) async {
+  Future<Result<void>> submitTrainingCandidate(
+      Map<String, dynamic> candidateData) async {
     final imagePath = candidateData['imagePath'] as String? ?? '';
     final userId = candidateData['userId'] as String? ?? '';
     var cloudUrl = imagePath;
     if (imagePath.isNotEmpty && !imagePath.startsWith('http')) {
       try {
-        cloudUrl = await _imageUploadService.uploadImage(imagePath, userId: userId);
+        cloudUrl =
+            await _imageUploadService.uploadImage(imagePath, userId: userId);
       } catch (e) {
         await _enqueue(PendingSyncType.trainingCandidate, candidateData);
         AppLogger.w('submitTrainingCandidate image upload failed — queued: $e');
@@ -305,7 +326,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       }
     }
 
-    final payload = Map<String, dynamic>.from(candidateData)..['imagePath'] = cloudUrl;
+    final payload = Map<String, dynamic>.from(candidateData)
+      ..['imagePath'] = cloudUrl;
 
     try {
       await _firestoreService.submitTrainingCandidate(payload);
@@ -324,7 +346,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
     String? reason,
   }) async {
     if (reporterId.isEmpty) {
-      return Result.error(const AuthFailure('You must be signed in to report a post.'));
+      return Result.error(
+          const AuthFailure('You must be signed in to report a post.'));
     }
     try {
       await _firestoreService.reportPost(
@@ -335,7 +358,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
       return Result.success(null);
     } catch (e) {
       if (!_isTransientError(e)) {
-        AppLogger.e('CommunityRepo.reportPost permanent failure — not queuing: $e');
+        AppLogger.e(
+            'CommunityRepo.reportPost permanent failure — not queuing: $e');
         return Result.error(ServerFailure(e.toString()));
       }
       await _enqueue(PendingSyncType.reportedPost, {
@@ -377,7 +401,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
     return true;
   }
 
-  Future<void> _enqueue(PendingSyncType type, Map<String, dynamic> payload) async {
+  Future<void> _enqueue(
+      PendingSyncType type, Map<String, dynamic> payload) async {
     final db = await _dbHelper.database;
     await PendingSyncQueue.enqueue(db, type: type, payload: payload);
   }
@@ -399,7 +424,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
                   userId: payload['userId'] as String?,
                 );
                 // Update SQLite queue payload with remote URL in-place for idempotency
-                final updatedPayload = Map<String, dynamic>.from(payload)..['imageUri'] = remoteUrl;
+                final updatedPayload = Map<String, dynamic>.from(payload)
+                  ..['imageUri'] = remoteUrl;
                 await PendingSyncQueue.updatePayload(db, rowId, updatedPayload);
               } catch (e) {
                 AppLogger.e('CommunityRepo drain: image upload failed: $e');
@@ -425,15 +451,21 @@ class CommunityRepositoryImpl implements ICommunityRepository {
           case PendingSyncType.feedbackCorrection:
             final localImg = payload['imagePath'] as String?;
             var cloudUrl = localImg;
-            if (localImg != null && localImg.isNotEmpty && !localImg.startsWith('http')) {
+            if (localImg != null &&
+                localImg.isNotEmpty &&
+                !localImg.startsWith('http')) {
               try {
-                cloudUrl = await _imageUploadService.uploadImage(localImg, userId: payload['userId'] as String?);
+                cloudUrl = await _imageUploadService.uploadImage(localImg,
+                    userId: payload['userId'] as String?);
               } catch (e) {
-                AppLogger.w('CommunityRepo drain: feedback image upload failed: $e');
+                AppLogger.w(
+                    'CommunityRepo drain: feedback image upload failed: $e');
                 return false; // Keep in queue to retry next time
               }
             }
-            if (cloudUrl != null && cloudUrl.isNotEmpty && !cloudUrl.startsWith('http')) {
+            if (cloudUrl != null &&
+                cloudUrl.isNotEmpty &&
+                !cloudUrl.startsWith('http')) {
               return false; // Don't write local path to Firestore
             }
             await _firestoreService.submitFeedback(
@@ -456,9 +488,11 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             var cloudUrl = localImg;
             if (localImg.isNotEmpty && !localImg.startsWith('http')) {
               try {
-                cloudUrl = await _imageUploadService.uploadImage(localImg, userId: payload['userId'] as String?);
+                cloudUrl = await _imageUploadService.uploadImage(localImg,
+                    userId: payload['userId'] as String?);
               } catch (e) {
-                AppLogger.w('CommunityRepo drain: cropNotFound image upload failed: $e');
+                AppLogger.w(
+                    'CommunityRepo drain: cropNotFound image upload failed: $e');
                 return false;
               }
             }
@@ -473,7 +507,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             );
             return true;
           case PendingSyncType.scanUpload:
-            final docId = payload['id']?.toString() ?? payload['timestamp']?.toString();
+            final docId =
+                payload['id']?.toString() ?? payload['timestamp']?.toString();
             if (docId != null && docId.isNotEmpty) {
               await _firestoreService.upsertScan(docId, payload);
               final intId = int.tryParse(docId);
@@ -489,7 +524,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             return true;
           case PendingSyncType.treatmentUpdate:
             final treatmentId = payload['id'] as String;
-            final updateData = Map<String, dynamic>.from(payload['data'] as Map);
+            final updateData =
+                Map<String, dynamic>.from(payload['data'] as Map);
             await _firestoreService.updateTreatment(treatmentId, updateData);
             return true;
           case PendingSyncType.treatmentDelete:
@@ -500,16 +536,19 @@ class CommunityRepositoryImpl implements ICommunityRepository {
             var cloudUrl = localImg;
             if (localImg.isNotEmpty && !localImg.startsWith('http')) {
               try {
-                cloudUrl = await _imageUploadService.uploadImage(localImg, userId: payload['userId'] as String?);
+                cloudUrl = await _imageUploadService.uploadImage(localImg,
+                    userId: payload['userId'] as String?);
               } catch (e) {
-                AppLogger.w('CommunityRepo drain: trainingCandidate image upload failed: $e');
+                AppLogger.w(
+                    'CommunityRepo drain: trainingCandidate image upload failed: $e');
                 return false;
               }
             }
             if (cloudUrl.isNotEmpty && !cloudUrl.startsWith('http')) {
               return false;
             }
-            final finalPayload = Map<String, dynamic>.from(payload)..['imagePath'] = cloudUrl;
+            final finalPayload = Map<String, dynamic>.from(payload)
+              ..['imagePath'] = cloudUrl;
             await _firestoreService.submitTrainingCandidate(finalPayload);
             return true;
           case PendingSyncType.reportedPost:
@@ -527,7 +566,8 @@ class CommunityRepositoryImpl implements ICommunityRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getPendingSyncItems(PendingSyncType type) async {
+  Future<List<Map<String, dynamic>>> getPendingSyncItems(
+      PendingSyncType type) async {
     final db = await _dbHelper.database;
     return PendingSyncQueue.getPendingItems(db, type: type);
   }

@@ -11,7 +11,7 @@ class TtsManager {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final GhanaNlpService _ghanaNlp = GhanaNlpService();
-  
+
   // Speech Cache
   final Map<String, File> _speechCache = {};
 
@@ -32,7 +32,7 @@ class TtsManager {
     await _initFuture;
 
     final cacheKey = "${text.hashCode}_$languageCode";
-    
+
     // Check Cache [Priority 5]
     if (_speechCache.containsKey(cacheKey)) {
       AppLogger.d('TTS cache hit: $text');
@@ -48,7 +48,7 @@ class TtsManager {
       case "ee":
       case "dag":
         useKhaya = true;
-        locale = "en-GB"; 
+        locale = "en-GB";
         break;
       case "fr":
         locale = "fr-FR";
@@ -62,14 +62,16 @@ class TtsManager {
 
     if (useKhaya) {
       try {
-        final audioFile = await _ghanaNlp.synthesize(text, language: languageCode);
+        final audioFile =
+            await _ghanaNlp.synthesize(text, language: languageCode);
         if (audioFile != null) {
           _speechCache[cacheKey] = audioFile; // Save to cache
           await _audioPlayer.play(DeviceFileSource(audioFile.path));
           return;
         }
       } catch (e) {
-        AppLogger.w('Ghana NLP synthesis failed, falling back to local TTS: $e');
+        AppLogger.w(
+            'Ghana NLP synthesis failed, falling back to local TTS: $e');
         // Fall back to native TTS below
       }
     }

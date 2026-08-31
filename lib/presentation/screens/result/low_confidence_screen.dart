@@ -13,6 +13,7 @@ import '../../../core/di/service_locator.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../../data/remote/firebase_auth_service.dart';
 import '../../../data/remote/gemini_cloud_ai_service.dart';
+import '../../../domain/models/cloud_ai_analysis_result.dart';
 import '../../../domain/models/community_post.dart';
 import '../../../domain/models/disease_risk.dart';
 import '../../../core/utils/risk_weighted_classifier.dart';
@@ -27,6 +28,7 @@ const int _kMaxAngles = 3; // total shots including the first one
 class LowConfidenceScreen extends StatefulWidget {
   final double confidence;
   final String imagePath;
+
   /// Top-3 candidates from the model on the initial scan.  Empty on fallback.
   final List<TopCandidate> topCandidates;
   final List<DiseaseRisk>? regionalRisks;
@@ -55,14 +57,14 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
   bool _isCloudAnalyzing = false;
   bool _isEscalating = false;
   final Set<String> _selectedSymptoms = {};
+  CloudAiAnalysisResult? _cloudResult;
+  String? _cloudError;
 
   @override
   void initState() {
     super.initState();
     _allConfidences = [widget.confidence];
-    final initialCandidates = widget.topCandidates.isNotEmpty
-        ? List<TopCandidate>.from(widget.topCandidates)
-        : _getFallbackTopCandidates();
+    final initialCandidates = List<TopCandidate>.from(widget.topCandidates);
 
     List<DiseaseRisk> risks = widget.regionalRisks ?? const [];
     if (risks.isEmpty) {
@@ -70,8 +72,10 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
         final homeProvider = context.read<HomeProvider>();
         if (homeProvider.weeklyRisks.isNotEmpty) {
           risks = homeProvider.weeklyRisks;
-        } else if (homeProvider.weather != null && homeProvider.weather!.daily.isNotEmpty) {
-          final region = homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
+        } else if (homeProvider.weather != null &&
+            homeProvider.weather!.daily.isNotEmpty) {
+          final region =
+              homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
           risks = AgriWeatherUtils.assessWeeklyRisks(
             homeProvider.weather!.daily,
             outbreaks: homeProvider.outbreaks,
@@ -82,30 +86,32 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
     }
 
     // Regional Outbreak Risk-Weighted adjustment
-    final regionalRiskAdjusted = RiskWeightedClassifier.adjustCandidatesWithRegionalRisk(
+    final regionalRiskAdjusted =
+        RiskWeightedClassifier.adjustCandidatesWithRegionalRisk(
       candidates: initialCandidates,
       regionalRisks: risks,
     );
 
     _allPhotosCandidates = [regionalRiskAdjusted];
     _recomputeSoftVotingCandidates();
-  }
 
-  List<TopCandidate> _getFallbackTopCandidates() {
-    final conf = widget.confidence > 0 ? widget.confidence : 0.0;
-    return [
-      (label: 'Unidentified', confidence: conf),
-    ];
+    // Auto-trigger Gemini Cloud AI fallback if below threshold (0.60)
+    if (widget.confidence < CropDiseaseClassifier.confidenceThreshold) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _requestCloudAiAnalysis();
+        }
+      });
+    }
   }
 
   void _recomputeSoftVotingCandidates() {
-    final fallback = widget.topCandidates.isNotEmpty
-        ? List<TopCandidate>.from(widget.topCandidates)
-        : _getFallbackTopCandidates();
     _mergedCandidates = CropDiseaseClassifier.computeSoftVotingCandidates(
       _allPhotosCandidates,
-      fallbackCandidates: fallback,
     );
+    if (_mergedCandidates.isEmpty && widget.topCandidates.isNotEmpty) {
+      _mergedCandidates = List<TopCandidate>.from(widget.topCandidates);
+    }
   }
 
   double get _averageConfidence =>
@@ -192,7 +198,10 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
   Future<void> _requestCloudAiAnalysis() async {
     if (_isCloudAnalyzing) return;
-    setState(() => _isCloudAnalyzing = true);
+    setState(() {
+      _isCloudAnalyzing = true;
+      _cloudError = null;
+    });
 
     try {
       final geminiService = sl<GeminiCloudAiService>();
@@ -206,33 +215,29 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
       setState(() {
         _isCloudAnalyzing = false;
-        if (_mergedCandidates.isNotEmpty) {
-          final boostedConfidence = cloudResult.confidence.clamp(0.0, 0.98);
-          _allConfidences[0] = boostedConfidence;
-          _mergedCandidates[0] = (label: cloudResult.label, confidence: boostedConfidence);
-        }
+        _cloudResult = cloudResult;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Gemini Cloud AI completed visual audit: ${cloudResult.label} (${(cloudResult.confidence * 100).toStringAsFixed(0)}%)'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isCloudAnalyzing = false);
+      setState(() {
+        _isCloudAnalyzing = false;
+        _cloudError = e.toString();
+      });
+    }
+  }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gemini Cloud AI fallback: $e'),
-          backgroundColor: Colors.orange.shade800,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
-        ),
-      );
+  Future<void> _acceptCloudResult(CloudAiAnalysisResult result) async {
+    final scannerProvider = context.read<ScannerProvider>();
+    final detection = await scannerProvider.saveMergedScan(
+      imagePath: widget.imagePath,
+      diseaseLabel: result.label,
+      confidence: result.confidence,
+      topCandidates: _mergedCandidates,
+      isDegraded: false,
+    );
+    if (!mounted) return;
+    if (detection != null) {
+      context.replace('/result/${detection.id}');
     }
   }
 
@@ -256,7 +261,8 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
         userId: user?.uid ?? 'anonymous',
         author: user?.displayName ?? 'Local Farmer',
         tag: 'Expert Escalation',
-        body: 'Low-confidence AI scan ($topLabel). Requesting expert verification from extension officers or community agronomists.',
+        body:
+            'Low-confidence AI scan ($topLabel). Requesting expert verification from extension officers or community agronomists.',
         imageUri: widget.imagePath,
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
@@ -268,7 +274,8 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Escalation request submitted to Extension Officers & Community Experts!'),
+          content: Text(
+              'Escalation request submitted to Extension Officers & Community Experts!'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -321,9 +328,10 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'Refine Diagnosis with Symptoms',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const Spacer(),
                       IconButton(
@@ -352,13 +360,11 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                         selectedColor: colors.primary.withValues(alpha: 0.2),
                         checkmarkColor: colors.primary,
                         labelStyle: TextStyle(
-                          color: isSelected
-                              ? colors.primary
-                              : colors.onBackground,
+                          color:
+                              isSelected ? colors.primary : colors.onBackground,
                           fontSize: 12,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                         onSelected: (selected) {
                           setModalState(() {
@@ -418,7 +424,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -427,13 +433,14 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              final detection = await context.read<ScannerProvider>().saveMergedScan(
-                    imagePath: widget.imagePath,
-                    diseaseLabel: candidate.label,
-                    confidence: candidate.confidence,
-                    topCandidates: _mergedCandidates,
-                    isDegraded: false,
-                  );
+              final detection =
+                  await context.read<ScannerProvider>().saveMergedScan(
+                        imagePath: widget.imagePath,
+                        diseaseLabel: candidate.label,
+                        confidence: candidate.confidence,
+                        topCandidates: _mergedCandidates,
+                        isDegraded: false,
+                      );
               if (mounted && detection != null) {
                 context.replace('/result/${detection.id}');
               } else if (mounted) {
@@ -469,7 +476,8 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
       'status': 'pending_review',
     };
 
-    unawaited(sl<ICommunityRepository>().submitTrainingCandidate(candidateData));
+    unawaited(
+        sl<ICommunityRepository>().submitTrainingCandidate(candidateData));
   }
 
   // ─── Build ───────────────────────────────────────────────────────────────
@@ -530,122 +538,182 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                         size: 56, color: colors.lowConfidence),
                     const SizedBox(height: 16),
 
-                    // ── Main confidence card ────────────────────────────────
-                    CropGuardCard(
-                      backgroundColor: colors.lowConfidenceBg,
-                      borderColor: colors.lowConfidence,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(context.l10n.lowConfidenceResultTitle,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(color: colors.lowConfidence)),
-                          const SizedBox(height: 8),
-                          Text(
-                            context.l10n.lowConfidenceExplanation(pct),
-                            style: Theme.of(context).textTheme.bodyMedium,
+                    // ── 1. PRIMARY RECOMMENDED SECTION: Gemini Cloud AI ──
+                    if (_isCloudAnalyzing)
+                      CropGuardCard(
+                        backgroundColor: colors.surface,
+                        borderColor: colors.primary.withValues(alpha: 0.4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      colors.primary),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Consulting Gemini Cloud AI...',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: colors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Auditing low-confidence scan with multimodal pathology model',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: colors.onBackgroundSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                          ConfidenceBar(
-                            confidence: avgConfidence,
-                            color: colors.lowConfidence,
-                          ),
-                          // Angle progress pill — only once a retry has been done
-                          if (_anglesCaptured > 1) ...[
-                            const SizedBox(height: 10),
-                            _AnglePill(
-                              captured: _anglesCaptured,
-                              total: _kMaxAngles,
-                              color: colors.lowConfidence,
+                        ),
+                      )
+                    else if (_cloudResult != null)
+                      _CloudAiResultCard(
+                        result: _cloudResult!,
+                        colors: colors,
+                        onAccept: () => _acceptCloudResult(_cloudResult!),
+                      )
+                    else if (_cloudError != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colors.warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: colors.warning.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.cloud_off,
+                                size: 20, color: colors.warning),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Cloud AI unavailable (offline or unconfigured). Showing on-device preliminary results below.',
+                                style: TextStyle(
+                                    fontSize: 12, color: colors.onBackground),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _requestCloudAiAnalysis,
+                              child: Text(context.l10n.retry),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── Top-3 candidates card ───────────────────────────────
-                    if (_mergedCandidates.isNotEmpty)
-                      _TopCandidatesCard(
-                        candidates: _mergedCandidates,
-                        colors: colors,
-                        onSelectCandidate: _confirmCandidate,
+                        ),
                       ),
 
                     const SizedBox(height: 16),
 
-                    // ── Fallback Helpers Row (Cloud AI & Symptom Refiner) ───
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(color: colors.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                    // ── 2. SUBORDINATE SECTION: On-Device Model (Collapsed ExpansionTile) ──
+                    Theme(
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
+                      child: CropGuardCard(
+                        backgroundColor: colors.surface,
+                        padding: EdgeInsets.zero,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ExpansionTile(
+                            initiallyExpanded: false,
+                            tilePadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 4),
+                            childrenPadding:
+                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            leading: Icon(Icons.memory_outlined,
+                                size: 22, color: colors.lowConfidence),
+                            title: Text(
+                              'On-Device Preliminary Guess ($pct% - Low Confidence)',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.onBackground,
+                                  ),
                             ),
-                            icon: _isCloudAnalyzing
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))
-                                : Icon(Icons.auto_awesome,
-                                    size: 18, color: colors.primary),
-                            label: Text(
-                              _isCloudAnalyzing
-                                  ? 'Analyzing...'
-                                  : 'Gemini Cloud AI',
+                            subtitle: Text(
+                              'Local model estimate below 0.60 threshold (unverified)',
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: colors.primary,
+                                fontSize: 11,
+                                color: colors.onBackgroundSecondary,
                               ),
                             ),
-                            onPressed: _isCloudAnalyzing
-                                ? null
-                                : _requestCloudAiAnalysis,
+                            children: [
+                              Text(
+                                context.l10n.lowConfidenceExplanation(pct),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 10),
+                              ConfidenceBar(
+                                confidence: avgConfidence,
+                                color: colors.lowConfidence,
+                              ),
+                              if (_anglesCaptured > 1) ...[
+                                const SizedBox(height: 8),
+                                _AnglePill(
+                                  captured: _anglesCaptured,
+                                  total: _kMaxAngles,
+                                  color: colors.lowConfidence,
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              if (_mergedCandidates.isNotEmpty)
+                                _TopCandidatesCard(
+                                  candidates: _mergedCandidates,
+                                  colors: colors,
+                                  onSelectCandidate: _confirmCandidate,
+                                ),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 38),
+                                  side: BorderSide(color: colors.border),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                icon: Icon(Icons.tune_rounded,
+                                    size: 16, color: colors.primary),
+                                label: Text(
+                                  _selectedSymptoms.isEmpty
+                                      ? 'Refine Symptoms'
+                                      : 'Symptoms Filter (${_selectedSymptoms.length})',
+                                  style: TextStyle(
+                                      fontSize: 12, color: colors.primary),
+                                ),
+                                onPressed: _showSymptomRefinerModal,
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(color: colors.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            icon: Icon(Icons.tune_rounded,
-                                size: 18, color: colors.primary),
-                            label: Text(
-                              _selectedSymptoms.isEmpty
-                                  ? 'Refine Symptoms'
-                                  : 'Symptoms (${_selectedSymptoms.length})',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: colors.primary,
-                              ),
-                            ),
-                            onPressed: _showSymptomRefinerModal,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
 
-                    // ── Agronomist Escalation Fallback Button ────────────────
+                    const SizedBox(height: 16),
+
+                    // ── 3. Human Agronomist Escalation Button ────────────────
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
                           side: BorderSide(color: colors.info),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -655,15 +723,16 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2))
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
                             : Icon(Icons.contact_support_outlined,
                                 size: 18, color: colors.info),
                         label: Text(
                           _isEscalating
                               ? 'Submitting Request...'
-                              : 'Escalate to Agronomist Expert',
+                              : 'Escalate to Agronomist Expert Review',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: colors.info,
                           ),
@@ -674,32 +743,54 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
                     const SizedBox(height: 16),
 
-                    Text(
-                      context.l10n.lowConfidenceTips,
-                      style: TextStyle(
-                          color: colors.onBackgroundSecondary,
-                          fontSize: 14,
-                          height: 1.6),
-                      textAlign: TextAlign.center,
+                    // ── 4. Persistent Scope Disclaimer (Task 3) ──────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.shield_outlined,
+                              size: 16, color: colors.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'CropGuard identifies known crop leaf diseases from photos. It is not validated for other subjects and should not be the sole basis for treatment decisions.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.onBackgroundSecondary,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
 
-                    // ── Multi-angle retry button ────────────────────────────
+                    const SizedBox(height: 20),
+
+                    // ── 5. Multi-angle retry button ────────────────────────────
                     if (_canAddAngle)
                       PrimaryButton(
                         text: _isCapturing
                             ? context.l10n.analysing
                             : _anglesCaptured == 1
                                 ? context.l10n.addAnotherAngle
-                                : context.l10n.addAngle(
-                                    _anglesCaptured + 1, _kMaxAngles),
+                                : context.l10n
+                                    .addAngle(_anglesCaptured + 1, _kMaxAngles),
                         icon: _isCapturing
                             ? Icons.hourglass_top
                             : Icons.add_a_photo,
-                        onPressed: _isCapturing ? null : _captureAdditionalAngle,
+                        onPressed:
+                            _isCapturing ? null : _captureAdditionalAngle,
                       )
                     else
-                      // All angles used — simple restart to scanner
                       PrimaryButton(
                         text: context.l10n.tryAgain,
                         icon: Icons.camera_alt,
@@ -708,7 +799,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
                     const SizedBox(height: 12),
 
-                    // ── Community / fallback buttons ────────────────────────
+                    // ── 6. Community / fallback buttons ────────────────────────
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48),
@@ -719,8 +810,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                       ),
                       icon: const Icon(Icons.forum_outlined, size: 18),
                       label: Text(context.l10n.postToCommunity,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.bold)),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () => context.push('/community'),
                     ),
                     const SizedBox(height: 12),
@@ -738,7 +828,6 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                         onPressed: () => _showReportDialog(context),
                       )
                     else
-                      // ── Post-report: loop-closing link ──────────────────
                       _ReportSentBanner(onViewSubmissions: () {
                         context.push('/submissions');
                       }),
@@ -800,12 +889,10 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
               final failMsg = context.l10n.submitReportFailed;
               final uid = sl<FirebaseAuthService>().currentUserId;
               if (uid.isEmpty) {
-                messenger
-                    .showSnackBar(SnackBar(content: Text(failMsg)));
+                messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                 return;
               }
-              final res =
-                  await sl<ICommunityRepository>().submitCropNotFound(
+              final res = await sl<ICommunityRepository>().submitCropNotFound(
                 userId: uid,
                 suggestedCrop: crop,
                 observedSymptoms: symptoms,
@@ -820,8 +907,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                 (_) {
                   // Surface the failure so the user can retry instead of the
                   // report silently disappearing.
-                  messenger
-                      .showSnackBar(SnackBar(content: Text(failMsg)));
+                  messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                 },
               );
             },
@@ -952,9 +1038,8 @@ class _TopCandidatesCard extends StatelessWidget {
                             color: isTop
                                 ? colors.lowConfidence
                                 : colors.onBackgroundSecondary,
-                            fontWeight: isTop
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                            fontWeight:
+                                isTop ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -981,6 +1066,166 @@ class _TopCandidatesCard extends StatelessWidget {
               ),
             );
           }),
+        ],
+      ),
+    );
+  }
+}
+
+/// Card displaying the primary Gemini Cloud AI recommended diagnosis.
+class _CloudAiResultCard extends StatelessWidget {
+  final CloudAiAnalysisResult result;
+  final CropColors colors;
+  final VoidCallback onAccept;
+
+  const _CloudAiResultCard({
+    required this.result,
+    required this.colors,
+    required this.onAccept,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final confPct = (result.confidence * 100).toInt();
+
+    return CropGuardCard(
+      backgroundColor: colors.surface,
+      borderColor: colors.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Recommendation header badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 14, color: colors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Gemini Cloud AI Recommended',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: colors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '$confPct% Confidence',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Primary headline disease label
+          Text(
+            result.label,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colors.onBackground,
+                ),
+          ),
+          const SizedBox(height: 8),
+
+          // Confidence Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: result.confidence,
+              backgroundColor: colors.border,
+              valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Symptoms summary
+          if (result.symptoms.isNotEmpty) ...[
+            Text(
+              'Observed Pathological Symptoms:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colors.onBackground,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...result.symptoms.map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, right: 6),
+                        child:
+                            Icon(Icons.circle, size: 6, color: colors.primary),
+                      ),
+                      Expanded(
+                        child: Text(
+                          s,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onBackgroundSecondary,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+            const SizedBox(height: 10),
+          ],
+
+          // Root cause
+          if (result.rootCause.isNotEmpty) ...[
+            Text(
+              'Underlying Root Cause:',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colors.onBackground,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              result.rootCause,
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.onBackgroundSecondary,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Primary Action: Accept & Save
+          PrimaryButton(
+            text: 'Accept & Save Cloud Diagnosis',
+            icon: Icons.check_circle_outline,
+            onPressed: onAccept,
+          ),
         ],
       ),
     );
@@ -1029,17 +1274,15 @@ class _ReportSentBanner extends StatelessWidget {
             child: TextButton.icon(
               style: TextButton.styleFrom(
                 foregroundColor: Colors.green.shade700,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
               ),
-              icon: const Icon(Icons.assignment_turned_in_outlined,
-                  size: 16),
+              icon: const Icon(Icons.assignment_turned_in_outlined, size: 16),
               label: Text(
                 context.l10n.viewMySubmissions,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               onPressed: onViewSubmissions,
             ),

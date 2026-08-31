@@ -7,8 +7,10 @@ abstract class IAuthRepository {
   bool get isSignedIn;
   bool get isAnonymous;
 
-  Future<Result<AppUser>> signIn({required String email, required String password});
-  Future<Result<AppUser>> register({required String email, required String password, required String name});
+  Future<Result<AppUser>> signIn(
+      {required String email, required String password});
+  Future<Result<AppUser>> register(
+      {required String email, required String password, required String name});
   Future<Result<void>> signInWithGoogle();
   Future<Result<void>> signInAnonymously();
   Future<Result<void>> signOut();
@@ -26,4 +28,9 @@ abstract class IAuthRepository {
 
   Future<Result<void>> updateDisplayName(String name);
   Future<Result<void>> updatePhotoUrl(String url);
+
+  bool get hasPasswordProvider;
+  bool get hasGoogleProvider;
+  Future<Result<void>> reauthenticateWithPassword(String password);
+  Future<Result<void>> reauthenticateWithGoogle();
 }

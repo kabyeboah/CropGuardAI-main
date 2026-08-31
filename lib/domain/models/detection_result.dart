@@ -125,7 +125,10 @@ class DetectionResult {
       isHealthy: (map['isHealthy'] as int? ?? 0) == 1,
       cropType: map['cropType'] as String? ?? '',
       cause: map['cause'] as String? ?? '',
-      treatments: (map['treatments'] as String? ?? '').split('||').where((s) => s.isNotEmpty).toList(),
+      treatments: (map['treatments'] as String? ?? '')
+          .split('||')
+          .where((s) => s.isNotEmpty)
+          .toList(),
       timestamp: map['timestamp'] as int? ?? 0,
       isDegraded: (map['isDegraded'] as int? ?? 0) == 1,
       modelVersion: map['modelVersion'] as String?,

@@ -12,6 +12,18 @@
 	<array>
 		<string>fetch</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs</string>
+				<string>cropguard</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -44,6 +56,11 @@
 	<string>CropGuard AI uses your location to show nearby disease outbreak reports and provide localised weather advice.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CropGuard AI accesses your photo library so you can select crop images for disease analysis.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CropGuard AI uses the microphone for voice dictation in Ghanaian languages including Twi, Ewe, and Dagbani to help farmers record crop observations hands-free.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>CropGuard AI uses speech recognition to transcribe your spoken farm notes and crop observations in Ghanaian languages.</string>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

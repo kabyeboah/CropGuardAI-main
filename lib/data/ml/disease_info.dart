@@ -1,6 +1,6 @@
 /// Dart equivalent of DiseaseInfo.kt + DiseaseDatabase object.
 /// Contains metadata for disease classes output by ML models.
-/// Note: Crops not yet present in the trained model (labels_verified.txt) are retained as documented future expansion targets — see MODEL_EXPANSION_GUIDE.md
+/// Note: Crops not yet present in the trained model (labels.txt) are retained as documented future expansion targets — see MODEL_EXPANSION_GUIDE.md
 library;
 
 class DiseaseInfoEntry {
@@ -11,6 +11,8 @@ class DiseaseInfoEntry {
   final String severity; // early | moderate | severe | healthy
   final bool isHealthy;
   final List<String> treatments;
+  final String sourceBasis;
+  final String? safetyPrecautions;
 
   const DiseaseInfoEntry({
     required this.label,
@@ -20,6 +22,9 @@ class DiseaseInfoEntry {
     required this.severity,
     required this.isHealthy,
     required this.treatments,
+    this.sourceBasis = 'CABI Plantwise & MoFA Ghana PPRSD Guidelines',
+    this.safetyPrecautions =
+        'Wear recommended PPE (gloves, nose mask, eye protection) during preparation and spraying. Observe pre-harvest intervals (PHI).',
   });
 }
 
@@ -27,9 +32,7 @@ class DiseaseDatabase {
   static Map<String, DiseaseInfoEntry>? _entriesMap;
 
   static Map<String, DiseaseInfoEntry> get _entries {
-    _entriesMap ??= {
-      for (final e in _rawEntries) e.label: e
-    };
+    _entriesMap ??= {for (final e in _rawEntries) e.label: e};
     return _entriesMap!;
   }
 
@@ -1419,7 +1422,8 @@ class DiseaseDatabase {
       label: 'Mango___Bacterial_Canker',
       displayName: 'Mango Bacterial Canker',
       cropType: 'Mango',
-      cause: 'Bacterial infection by Xanthomonas campestris pv. mangiferaeindicae',
+      cause:
+          'Bacterial infection by Xanthomonas campestris pv. mangiferaeindicae',
       severity: 'severe',
       isHealthy: false,
       treatments: [
@@ -1529,13 +1533,13 @@ class DiseaseDatabase {
     ),
 
     // ─────────────────────────────────────────────────────────────────────
-    // Entries below cover all labels present in labels_verified.txt (Verified model, 51 classes)
+    // Entries below cover all labels present in labels.txt (Production model, 51 classes)
     // that were previously missing from DiseaseDatabase, causing those predictions
     // to fall through to the generic Unknown path with no treatment info.
-    // Label keys match labels_verified.txt exactly (case-sensitive).
+    // Label keys match labels.txt exactly (case-sensitive).
     // ─────────────────────────────────────────────────────────────────────
 
-    // ─── Banana (V3 labels) ───────────────────────────────────────────────
+    // ─── Banana ──────────────────────────────────────────────────────────
     DiseaseInfoEntry(
       label: 'Banana___Cordana',
       displayName: 'Banana Cordana Leaf Spot',
@@ -1837,7 +1841,8 @@ class DiseaseDatabase {
       label: 'Maize___Leaf_Blight',
       displayName: 'Maize Southern Leaf Blight',
       cropType: 'Maize',
-      cause: 'Fungal infection by Cochliobolus heterostrophus (Helminthosporium maydis)',
+      cause:
+          'Fungal infection by Cochliobolus heterostrophus (Helminthosporium maydis)',
       severity: 'moderate',
       isHealthy: false,
       treatments: [
@@ -1910,7 +1915,8 @@ class DiseaseDatabase {
       label: 'Rice___Brown_Spot',
       displayName: 'Rice Brown Spot',
       cropType: 'Rice',
-      cause: 'Fungal infection by Cochliobolus miyabeanus (Helminthosporium oryzae)',
+      cause:
+          'Fungal infection by Cochliobolus miyabeanus (Helminthosporium oryzae)',
       severity: 'moderate',
       isHealthy: false,
       treatments: [
@@ -1951,7 +1957,8 @@ class DiseaseDatabase {
       label: 'Rice___Leaf_Scald',
       displayName: 'Rice Leaf Scald',
       cropType: 'Rice',
-      cause: 'Fungal infection by Microdochium oryzae (Helminthosporium sigmoideum)',
+      cause:
+          'Fungal infection by Microdochium oryzae (Helminthosporium sigmoideum)',
       severity: 'moderate',
       isHealthy: false,
       treatments: [
@@ -2008,7 +2015,8 @@ class DiseaseDatabase {
       label: 'Sugarcane___Rust',
       displayName: 'Sugarcane Rust',
       cropType: 'Sugarcane',
-      cause: 'Fungal infection by Puccinia melanocephala (brown rust) or P. kuehnii (orange rust)',
+      cause:
+          'Fungal infection by Puccinia melanocephala (brown rust) or P. kuehnii (orange rust)',
       severity: 'moderate',
       isHealthy: false,
       treatments: [
@@ -2051,7 +2059,8 @@ class DiseaseDatabase {
       label: 'Tomato___Leaf_Blight',
       displayName: 'Tomato Leaf Blight',
       cropType: 'Tomato',
-      cause: 'Fungal infection by Alternaria solani (early blight) or Phytophthora infestans (late blight)',
+      cause:
+          'Fungal infection by Alternaria solani (early blight) or Phytophthora infestans (late blight)',
       severity: 'severe',
       isHealthy: false,
       treatments: [
@@ -2065,7 +2074,8 @@ class DiseaseDatabase {
       label: 'Tomato___Leaf_Curl',
       displayName: 'Tomato Leaf Curl',
       cropType: 'Tomato',
-      cause: 'Tomato Yellow Leaf Curl Virus (TYLCV) — whitefly (Bemisia tabaci) transmitted',
+      cause:
+          'Tomato Yellow Leaf Curl Virus (TYLCV) — whitefly (Bemisia tabaci) transmitted',
       severity: 'severe',
       isHealthy: false,
       treatments: [
@@ -2093,7 +2103,8 @@ class DiseaseDatabase {
       label: 'Tomato___Verticillium_Wilt',
       displayName: 'Tomato Verticillium Wilt',
       cropType: 'Tomato',
-      cause: 'Soilborne fungal infection by Verticillium dahliae or V. albo-atrum',
+      cause:
+          'Soilborne fungal infection by Verticillium dahliae or V. albo-atrum',
       severity: 'severe',
       isHealthy: false,
       treatments: [
@@ -2105,24 +2116,28 @@ class DiseaseDatabase {
     ),
   ];
 
-
   static DiseaseInfoEntry getInfo(String label) {
-    return _entries[label] ?? DiseaseInfoEntry(
-        label: label,
-        displayName: label.replaceAll('___', ' ').replaceAll('_', ' '),
-        cropType: 'Unknown',
-        cause: 'Unknown cause',
-        severity: 'unclear',
-        isHealthy: false,
-        treatments: ['Consult an agricultural extension officer.'],
-      );
+    return _entries[label] ??
+        DiseaseInfoEntry(
+          label: label,
+          displayName: label.replaceAll('___', ' ').replaceAll('_', ' '),
+          cropType: 'Unknown',
+          cause: 'Unknown cause',
+          severity: 'unclear',
+          isHealthy: false,
+          treatments: ['Consult an agricultural extension officer.'],
+          sourceBasis: 'MoFA Ghana Agricultural Extension & PPRSD Guidelines',
+          safetyPrecautions:
+              'Always wear PPE when applying crop treatments. Consult your local extension officer for verified field guidance.',
+        );
   }
 
   static List<String> getAllLabels() {
     return _entries.keys.toList();
   }
 
-  static List<DiseaseInfoEntry> getAllDiseases() => List.unmodifiable(_entries.values);
+  static List<DiseaseInfoEntry> getAllDiseases() =>
+      List.unmodifiable(_entries.values);
 
   static List<DiseaseInfoEntry> getByCategory(String cropType) {
     return _entries.values

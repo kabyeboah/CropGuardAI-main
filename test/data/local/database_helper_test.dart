@@ -90,10 +90,10 @@ void main() {
 
       final trend = await db.getDailyTrend(days: 7, userId: 'alice');
 
-      final healthy = trend.fold<int>(
-          0, (sum, row) => sum + (row['healthyCount'] as int));
-      final diseased = trend.fold<int>(
-          0, (sum, row) => sum + (row['diseasedCount'] as int));
+      final healthy =
+          trend.fold<int>(0, (sum, row) => sum + (row['healthyCount'] as int));
+      final diseased =
+          trend.fold<int>(0, (sum, row) => sum + (row['diseasedCount'] as int));
 
       expect(healthy, 1);
       expect(diseased, 1);

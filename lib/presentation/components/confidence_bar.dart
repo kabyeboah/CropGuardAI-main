@@ -31,8 +31,7 @@ class _ConfidenceBarState extends State<ConfidenceBar>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _animation =
-        Tween<double>(begin: 0, end: widget.confidence).animate(
+    _animation = Tween<double>(begin: 0, end: widget.confidence).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
     _controller.forward();
@@ -42,10 +41,9 @@ class _ConfidenceBarState extends State<ConfidenceBar>
   void didUpdateWidget(ConfidenceBar old) {
     super.didUpdateWidget(old);
     if (old.confidence != widget.confidence) {
-      _animation =
-          Tween<double>(begin: _animation.value, end: widget.confidence)
-              .animate(CurvedAnimation(
-                  parent: _controller, curve: Curves.easeOut));
+      _animation = Tween<double>(
+              begin: _animation.value, end: widget.confidence)
+          .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
       _controller
         ..reset()
         ..forward();
@@ -97,7 +95,8 @@ class _ConfidenceBarState extends State<ConfidenceBar>
                 backgroundColor: const Color(0xFFE0E0E0),
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
                 semanticsLabel: context.l10n.aiConfidence,
-                semanticsValue: '${LocaleFormatter.formatNumber(context, pct)}%',
+                semanticsValue:
+                    '${LocaleFormatter.formatNumber(context, pct)}%',
               ),
             );
           },

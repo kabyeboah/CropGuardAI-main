@@ -28,7 +28,8 @@ void main() {
     computedAt: DateTime.now(),
   );
 
-  test('should return RiskAssessment from repository when call is successful', () async {
+  test('should return RiskAssessment from repository when call is successful',
+      () async {
     when(() => mockRepository.getRiskForLocation(
           lat: 6.6666,
           lon: -1.6163,

@@ -50,313 +50,322 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return ScreenSecurityHelper(
       child: Scaffold(
         backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.surface,
-        leading: provider.exportMode
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: context.l10n.cancelSelection,
-                onPressed: provider.exitExportMode,
-              )
-            : null,
-        title: provider.exportMode
-            ? Text(context.l10n.selectedCount(provider.exportSelectedIds.length),
-                style: Theme.of(context).textTheme.titleLarge)
-            : Text(context.l10n.scanHistoryTitle,
-                style: Theme.of(context).textTheme.titleLarge),
-        actions: provider.exportMode
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf),
-                  tooltip: context.l10n.exportSelected,
-                  onPressed: provider.exportSelectedIds.isEmpty
-                      ? null
-                      : () async {
+        appBar: AppBar(
+          backgroundColor: colors.surface,
+          leading: provider.exportMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: context.l10n.cancelSelection,
+                  onPressed: provider.exitExportMode,
+                )
+              : null,
+          title: provider.exportMode
+              ? Text(
+                  context.l10n.selectedCount(provider.exportSelectedIds.length),
+                  style: Theme.of(context).textTheme.titleLarge)
+              : Text(context.l10n.scanHistoryTitle,
+                  style: Theme.of(context).textTheme.titleLarge),
+          actions: provider.exportMode
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.picture_as_pdf),
+                    tooltip: context.l10n.exportSelected,
+                    onPressed: provider.exportSelectedIds.isEmpty
+                        ? null
+                        : () async {
+                            await ScanReportPdfExporter.shareMonthlyReport(
+                                provider.exportSelectedScans);
+                          },
+                  ),
+                ]
+              : [
+                  if (provider.filtered.isNotEmpty)
+                    Semantics(
+                      label: context.l10n.monthlySummaryReport,
+                      button: true,
+                      child: IconButton(
+                        icon: const Icon(Icons.summarize_outlined),
+                        tooltip: context.l10n.monthlySummary,
+                        onPressed: () async {
                           await ScanReportPdfExporter.shareMonthlyReport(
-                              provider.exportSelectedScans);
+                              provider.filtered);
                         },
+                      ),
+                    ),
+                  PopupMenuButton<HistorySort>(
+                    icon: const Icon(Icons.sort),
+                    tooltip: context.l10n.sortTooltip,
+                    onSelected: provider.setSort,
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: HistorySort.dateNewest,
+                        child: Text(context.l10n.sortNewest),
+                      ),
+                      PopupMenuItem(
+                        value: HistorySort.dateOldest,
+                        child: Text(context.l10n.sortOldest),
+                      ),
+                      PopupMenuItem(
+                        value: HistorySort.confidenceDesc,
+                        child: Text(context.l10n.sortMostConfident),
+                      ),
+                      PopupMenuItem(
+                        value: HistorySort.confidenceAsc,
+                        child: Text(context.l10n.sortLeastConfident),
+                      ),
+                      PopupMenuItem(
+                        value: HistorySort.cropType,
+                        child: Text(context.l10n.sortByCrop),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      provider.comparisonMode
+                          ? Icons.close
+                          : Icons.compare_arrows,
+                      color: provider.comparisonMode
+                          ? colors.primary
+                          : colors.onBackground,
+                    ),
+                    onPressed: provider.toggleComparisonMode,
+                    tooltip: context.l10n.comparisonModeLabel,
+                  ),
+                ],
+        ),
+        body: Column(
+          children: [
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                onChanged: provider.setSearch,
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchHistoryHint,
+                  prefixIcon: Icon(Icons.search, color: colors.muted),
+                  filled: true,
+                  fillColor: colors.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: colors.border),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
-              ]
-            : [
-                if (provider.filtered.isNotEmpty)
-                  Semantics(
-                    label: context.l10n.monthlySummaryReport,
-                    button: true,
-                    child: IconButton(
-                      icon: const Icon(Icons.summarize_outlined),
-                      tooltip: context.l10n.monthlySummary,
+              ),
+            ),
+
+            // Health filter chips + date range
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  ...HistoryFilter.values.map((f) {
+                    final labels = {
+                      HistoryFilter.all: context.l10n.all,
+                      HistoryFilter.healthy: context.l10n.healthy,
+                      HistoryFilter.diseased: context.l10n.diseased,
+                    };
+                    final isSelected = provider.filter == f;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(labels[f]!),
+                        selected: isSelected,
+                        onSelected: (_) => provider.setFilter(f),
+                        selectedColor: colors.primary,
+                        labelStyle: TextStyle(
+                          color:
+                              isSelected ? Colors.white : colors.onBackground,
+                        ),
+                        checkmarkColor: Colors.white,
+                      ),
+                    );
+                  }),
+                  // Date range picker chip
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ActionChip(
+                      avatar: Icon(
+                        Icons.date_range,
+                        size: 16,
+                        color: (provider.dateFrom != null ||
+                                provider.dateTo != null)
+                            ? Colors.white
+                            : colors.onBackground,
+                      ),
+                      label: Text(
+                        provider.dateFrom != null || provider.dateTo != null
+                            ? '${provider.dateFrom != null ? LocaleFormatter.formatMonthDay(context, provider.dateFrom!) : '…'} → ${provider.dateTo != null ? LocaleFormatter.formatMonthDay(context, provider.dateTo!) : '…'}'
+                            : context.l10n.dateRange,
+                      ),
+                      backgroundColor:
+                          (provider.dateFrom != null || provider.dateTo != null)
+                              ? colors.primary
+                              : null,
+                      labelStyle: TextStyle(
+                        color: (provider.dateFrom != null ||
+                                provider.dateTo != null)
+                            ? Colors.white
+                            : colors.onBackground,
+                      ),
                       onPressed: () async {
-                        await ScanReportPdfExporter.shareMonthlyReport(
-                            provider.filtered);
+                        final range = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange: provider.dateFrom != null &&
+                                  provider.dateTo != null
+                              ? DateTimeRange(
+                                  start: provider.dateFrom!,
+                                  end: provider.dateTo!)
+                              : null,
+                        );
+                        if (range != null) {
+                          await provider.setDateRange(range.start, range.end);
+                        }
                       },
                     ),
                   ),
-                PopupMenuButton<HistorySort>(
-                  icon: const Icon(Icons.sort),
-                  tooltip: context.l10n.sortTooltip,
-                  onSelected: provider.setSort,
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: HistorySort.dateNewest,
-                      child: Text(context.l10n.sortNewest),
+                  if (provider.hasActiveFilters)
+                    ActionChip(
+                      avatar: const Icon(Icons.clear, size: 16),
+                      label: Text(context.l10n.clear),
+                      onPressed: provider.clearFilters,
                     ),
-                    PopupMenuItem(
-                      value: HistorySort.dateOldest,
-                      child: Text(context.l10n.sortOldest),
-                    ),
-                    PopupMenuItem(
-                      value: HistorySort.confidenceDesc,
-                      child: Text(context.l10n.sortMostConfident),
-                    ),
-                    PopupMenuItem(
-                      value: HistorySort.confidenceAsc,
-                      child: Text(context.l10n.sortLeastConfident),
-                    ),
-                    PopupMenuItem(
-                      value: HistorySort.cropType,
-                      child: Text(context.l10n.sortByCrop),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: Icon(
-                    provider.comparisonMode
-                        ? Icons.close
-                        : Icons.compare_arrows,
-                    color: provider.comparisonMode
-                        ? colors.primary
-                        : colors.onBackground,
-                  ),
-                  onPressed: provider.toggleComparisonMode,
-                  tooltip: context.l10n.comparisonModeLabel,
-                ),
-              ],
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              onChanged: provider.setSearch,
-              decoration: InputDecoration(
-                hintText: context.l10n.searchHistoryHint,
-                prefixIcon: Icon(Icons.search, color: colors.muted),
-                filled: true,
-                fillColor: colors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: colors.border),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ],
               ),
             ),
-          ),
+            const SizedBox(height: 4),
 
-          // Health filter chips + date range
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                ...HistoryFilter.values.map((f) {
-                  final labels = {
-                    HistoryFilter.all: context.l10n.all,
-                    HistoryFilter.healthy: context.l10n.healthy,
-                    HistoryFilter.diseased: context.l10n.diseased,
-                  };
-                  final isSelected = provider.filter == f;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(labels[f]!),
-                      selected: isSelected,
-                      onSelected: (_) => provider.setFilter(f),
-                      selectedColor: colors.primary,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : colors.onBackground,
+            // Crop type filter chips (derived from scan history)
+            if (provider.availableCropTypes.isNotEmpty)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: provider.availableCropTypes.map((cropType) {
+                    final isSelected =
+                        provider.cropTypeFilter.contains(cropType);
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(cropType,
+                            style: const TextStyle(fontSize: 12)),
+                        selected: isSelected,
+                        onSelected: (_) => provider.setCropTypeFilter(cropType),
+                        selectedColor: colors.accent,
+                        labelStyle: TextStyle(
+                          color:
+                              isSelected ? Colors.white : colors.onBackground,
+                          fontSize: 12,
+                        ),
+                        checkmarkColor: Colors.white,
+                        visualDensity: VisualDensity.compact,
                       ),
-                      checkmarkColor: Colors.white,
-                    ),
-                  );
-                }),
-                // Date range picker chip
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ActionChip(
-                    avatar: Icon(
-                      Icons.date_range,
-                      size: 16,
-                      color: (provider.dateFrom != null || provider.dateTo != null)
-                          ? Colors.white
-                          : colors.onBackground,
-                    ),
-                    label: Text(
-                      provider.dateFrom != null || provider.dateTo != null
-                          ? '${provider.dateFrom != null ? LocaleFormatter.formatMonthDay(context, provider.dateFrom!) : '…'} → ${provider.dateTo != null ? LocaleFormatter.formatMonthDay(context, provider.dateTo!) : '…'}'
-                          : context.l10n.dateRange,
-                    ),
-                    backgroundColor:
-                        (provider.dateFrom != null || provider.dateTo != null)
-                            ? colors.primary
-                            : null,
-                    labelStyle: TextStyle(
-                      color: (provider.dateFrom != null || provider.dateTo != null)
-                          ? Colors.white
-                          : colors.onBackground,
-                    ),
-                    onPressed: () async {
-                      final range = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                        initialDateRange: provider.dateFrom != null && provider.dateTo != null
-                            ? DateTimeRange(start: provider.dateFrom!, end: provider.dateTo!)
-                            : null,
-                      );
-                      if (range != null) {
-                        await provider.setDateRange(range.start, range.end);
-                      }
-                    },
-                  ),
+                    );
+                  }).toList(),
                 ),
-                if (provider.hasActiveFilters)
-                  ActionChip(
-                    avatar: const Icon(Icons.clear, size: 16),
-                    label: Text(context.l10n.clear),
-                    onPressed: provider.clearFilters,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 4),
+              )
+            else
+              const SizedBox(height: 8),
 
-          // Crop type filter chips (derived from scan history)
-          if (provider.availableCropTypes.isNotEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children: provider.availableCropTypes.map((cropType) {
-                  final isSelected = provider.cropTypeFilter.contains(cropType);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(cropType, style: const TextStyle(fontSize: 12)),
-                      selected: isSelected,
-                      onSelected: (_) => provider.setCropTypeFilter(cropType),
-                      selectedColor: colors.accent,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : colors.onBackground,
-                        fontSize: 12,
-                      ),
-                      checkmarkColor: Colors.white,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  );
-                }).toList(),
-              ),
-            )
-          else
-            const SizedBox(height: 8),
-
-          // Results list
-          Expanded(
-            child: provider.isLoading
-                ? Center(
-                    child:
-                        CircularProgressIndicator(color: colors.primary))
-                : provider.filtered.isEmpty
-                    ? _EmptyHistory()
-                    : RefreshIndicator(
-                        onRefresh: () => provider.load(reset: true),
-                        child: ListView.separated(
-                          controller: _scrollController,
-                          // Bottom inset so the last row clears the docked scan
-                          // FAB that overlays the body above the BottomAppBar.
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                          itemCount: provider.filtered.length + (provider.isLoadingMore ? 1 : 0),
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (_, i) {
-                            if (i == provider.filtered.length) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-                            final r = provider.filtered[i];
-                            return _HistoryTile(
-                              result: r,
-                              comparisonMode: provider.comparisonMode,
-                              selected: provider.selectedIds.contains(r.id),
-                              exportMode: provider.exportMode,
-                              exportSelected:
-                                  provider.exportSelectedIds.contains(r.id),
-                              onLongPress: provider.comparisonMode ||
-                                      provider.exportMode
-                                  ? null
-                                  : () => provider.enterExportMode(r.id),
-                              onTap: () {
-                                if (provider.exportMode) {
-                                  provider.toggleExportSelection(r.id);
-                                } else if (provider.comparisonMode) {
-                                  provider.toggleSelection(r.id);
-                                } else {
-                                  context.push('/result/${r.id}');
-                                }
-                              },
-                              onDelete: () {
-                                final deletedItem = r;
-                                provider.deleteResult(r.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(context.l10n.scanDeleted),
-                                    action: SnackBarAction(
-                                      label: context.l10n.undo,
-                                      onPressed: () =>
-                                          provider.restoreDetection(deletedItem),
-                                    ),
-                                    duration: const Duration(seconds: 5),
+            // Results list
+            Expanded(
+              child: provider.isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(color: colors.primary))
+                  : provider.filtered.isEmpty
+                      ? _EmptyHistory()
+                      : RefreshIndicator(
+                          onRefresh: () => provider.load(reset: true),
+                          child: ListView.separated(
+                            controller: _scrollController,
+                            // Bottom inset so the last row clears the docked scan
+                            // FAB that overlays the body above the BottomAppBar.
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                            itemCount: provider.filtered.length +
+                                (provider.isLoadingMore ? 1 : 0),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (_, i) {
+                              if (i == provider.filtered.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
                                   ),
                                 );
-                              },
-                            );
-                          },
+                              }
+                              final r = provider.filtered[i];
+                              return _HistoryTile(
+                                result: r,
+                                comparisonMode: provider.comparisonMode,
+                                selected: provider.selectedIds.contains(r.id),
+                                exportMode: provider.exportMode,
+                                exportSelected:
+                                    provider.exportSelectedIds.contains(r.id),
+                                onLongPress: provider.comparisonMode ||
+                                        provider.exportMode
+                                    ? null
+                                    : () => provider.enterExportMode(r.id),
+                                onTap: () {
+                                  if (provider.exportMode) {
+                                    provider.toggleExportSelection(r.id);
+                                  } else if (provider.comparisonMode) {
+                                    provider.toggleSelection(r.id);
+                                  } else {
+                                    context.push('/result/${r.id}');
+                                  }
+                                },
+                                onDelete: () {
+                                  final deletedItem = r;
+                                  provider.deleteResult(r.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(context.l10n.scanDeleted),
+                                      action: SnackBarAction(
+                                        label: context.l10n.undo,
+                                        onPressed: () => provider
+                                            .restoreDetection(deletedItem),
+                                      ),
+                                      duration: const Duration(seconds: 5),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-          ),
-        ],
-      ),
-      floatingActionButton: provider.exportMode &&
-              provider.exportSelectedIds.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                await ScanReportPdfExporter.shareMonthlyReport(
-                    provider.exportSelectedScans);
-              },
-              label:
-                  Text(context.l10n.exportCount(provider.exportSelectedIds.length)),
-              icon: const Icon(Icons.picture_as_pdf),
-              backgroundColor: colors.primary,
-              foregroundColor: Colors.white,
-            )
-          : provider.comparisonMode && provider.selectedIds.length == 2
-              ? FloatingActionButton.extended(
-                  onPressed: () => _showComparisonDialog(context, provider),
-                  label: Text(context.l10n.compareScans),
-                  icon: const Icon(Icons.compare),
-                  backgroundColor: colors.primary,
-                  foregroundColor: Colors.white,
-                )
-              : null,
+            ),
+          ],
+        ),
+        floatingActionButton: provider.exportMode &&
+                provider.exportSelectedIds.isNotEmpty
+            ? FloatingActionButton.extended(
+                onPressed: () async {
+                  await ScanReportPdfExporter.shareMonthlyReport(
+                      provider.exportSelectedScans);
+                },
+                label: Text(context.l10n
+                    .exportCount(provider.exportSelectedIds.length)),
+                icon: const Icon(Icons.picture_as_pdf),
+                backgroundColor: colors.primary,
+                foregroundColor: Colors.white,
+              )
+            : provider.comparisonMode && provider.selectedIds.length == 2
+                ? FloatingActionButton.extended(
+                    onPressed: () => _showComparisonDialog(context, provider),
+                    label: Text(context.l10n.compareScans),
+                    icon: const Icon(Icons.compare),
+                    backgroundColor: colors.primary,
+                    foregroundColor: Colors.white,
+                  )
+                : null,
       ),
     );
   }
@@ -430,8 +439,8 @@ class _HistoryTile extends StatelessWidget {
                         width: 56,
                         height: 56,
                         color: colors.surfaceVariant,
-                        child:
-                            Icon(Icons.image_not_supported, color: colors.muted),
+                        child: Icon(Icons.image_not_supported,
+                            color: colors.muted),
                       ),
               ),
               const SizedBox(width: 12),
@@ -447,11 +456,9 @@ class _HistoryTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     Text(result.cropType,
-                        style: TextStyle(
-                            color: colors.muted, fontSize: 12)),
+                        style: TextStyle(color: colors.muted, fontSize: 12)),
                     Text(date,
-                        style: TextStyle(
-                            color: colors.muted, fontSize: 11)),
+                        style: TextStyle(color: colors.muted, fontSize: 11)),
                   ],
                 ),
               ),
@@ -477,11 +484,9 @@ class _HistoryTile extends StatelessWidget {
                   else
                     SeverityBadge(severity: result.severity),
                   const SizedBox(height: 4),
-                  Text(
-                      '${(result.confidence * 100).toInt()}%',
+                  Text('${(result.confidence * 100).toInt()}%',
                       style: TextStyle(
-                          color: colors.onBackgroundSecondary,
-                          fontSize: 11)),
+                          color: colors.onBackgroundSecondary, fontSize: 11)),
                 ],
               ),
               if (exportMode)

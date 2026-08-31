@@ -157,8 +157,12 @@ class LoginProvider extends ChangeNotifier {
     if (e.contains('wrong-password') || e.contains('invalid-credential')) {
       return 'Incorrect email or password.';
     }
-    if (e.contains('user-not-found')) return 'No account found with that email.';
-    if (e.contains('network-request-failed')) return 'No internet connection.';
+    if (e.contains('user-not-found')) {
+      return 'No account found with that email.';
+    }
+    if (e.contains('network-request-failed')) {
+      return 'No internet connection.';
+    }
     return 'Sign-in failed. Please try again.';
   }
 }

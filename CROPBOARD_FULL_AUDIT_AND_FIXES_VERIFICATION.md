@@ -9,12 +9,12 @@
 
 ## Executive Summary & Fix Status Overview
 
-| Status Category | Count | Description |
-|---|---|---|
-| **FIXED** | **47** | Verified resolved in source code with passing unit/widget/integration tests. |
-| **PARTIALLY DONE / MITIGATED** | **6** | Architecture/tooling in place; dependent on external field dataset, live backend secret provisioning, or upstream Flutter/plugin release cycles. |
-| **NOT FIXED / INTENTIONALLY DEFERRED** | **2** | Known limitations documented (e.g., Swift Package Manager plugin upstream adoption, physical hardware microphone test harness). |
-| **TOTAL AUDITED FIXES** | **55** | Complete audit coverage across ML Core, Scanner, Auth, Database, Cloud, Security, and UI. |
+| Status Category | Count | Description | [CURRENT]
+|---|---|---| [CURRENT]
+| **FIXED** | **47** | Verified resolved in source code with passing unit/widget/integration tests. [CURRENT] | [CURRENT]
+| **PARTIALLY DONE / MITIGATED** | **6** | Architecture/tooling in place; dependent on external field dataset, live backend secret provisioning, or upstream Flutter/plugin release cycles. [CURRENT] | [CURRENT]
+| **NOT FIXED / INTENTIONALLY DEFERRED** | **2** | Known limitations documented (e.g., Swift Package Manager plugin upstream adoption, physical hardware microphone test harness). [CURRENT] | [CURRENT]
+| **TOTAL AUDITED FIXES** | **55** | Complete audit coverage across ML Core, Scanner, Auth, Database, Cloud, Security, and UI. [CURRENT] | [CURRENT]
 
 ---
 
@@ -382,63 +382,63 @@
 
 ## Complete 55-Fix Status Matrix
 
-| Fix # | Summary | Category | Status |
-|---|---|---|---|
-| **1** | Shipped V1 model label mismatch (54 vs 93) | ML Pipeline | **FIXED** |
-| **2** | V2 model TensorFlow Flex-op failure | ML Pipeline | **FIXED** |
-| **3** | Native Firebase config provisioning in CI | Build / CI | **PARTIALLY DONE** |
-| **4** | Real Ghanaian farmer dataset evaluation | ML Evaluation | **PARTIALLY DONE** |
-| **5** | OOD gate permanent no-op | ML Pipeline | **PARTIALLY DONE** |
-| **6** | Firestore security rules read blocks on submissions | Security | **FIXED** |
-| **7** | Duplicate Firestore doc creation on online scans | Cloud Data | **FIXED** |
-| **8** | FCM token sync on user sign-in | Push Notifications | **FIXED** |
-| **9** | Treatment tracker guest mode exception | Auth / State | **FIXED** |
-| **10** | Unbounded background sync full-table re-upload | Background Sync | **FIXED** |
-| **11** | Registration failure reporting on name timeout | Auth | **FIXED** |
-| **12** | Unrecognized sync queue operation misrouting | Offline Queue | **FIXED** |
-| **13** | User work loss on sign-out queue clear | Offline Queue | **FIXED** |
-| **14** | Multi-angle soft-voting fusion discard at save | Scanner | **FIXED** |
-| **15** | Regional risk boost fake hardcoded data | Risk Engine | **FIXED** |
-| **16** | Low-confidence fallback cocoa disease hardcoding | Scanner | **FIXED** |
-| **17** | Argmax single-result soft-voting bug | ML Pipeline | **FIXED** |
-| **18** | Model preloading latency stall | ML Pipeline | **FIXED** |
-| **19** | Self-testing unit test in soft-voting | Testing | **FIXED** |
-| **20** | Misleading Bayesian claim in RiskWeightedClassifier | Documentation | **FIXED** |
-| **21** | Android target platform prioritization | Platform | **FIXED** |
-| **22** | Tensor shape vs label count runtime assertion | ML Pipeline | **FIXED** |
-| **23** | Android `minSdkVersion` compatibility | Native Android | **FIXED** |
-| **24** | Notification ID collision every 100 seconds | Notifications | **FIXED** |
-| **25** | Rooted-device dialog hardcoded English text | Localization | **FIXED** |
-| **26** | Forced-update dialog screen lockup | UI Flow | **FIXED** |
-| **27** | CI Android build job failure | Build / CI | **FIXED** |
-| **28** | README setup instructions & project ID | Documentation | **FIXED** |
-| **29** | Raw exception leaks in UI SnackBar | UI / Error Handling | **FIXED** |
-| **30** | Permanent deletion on treatment step swipe | UI / UX | **FIXED** |
-| **31** | Scan-complete audio feedback no-op | Audio / Feedback | **FIXED** |
-| **32** | Continuous 30s connectivity probe data usage | Network | **FIXED** |
-| **33** | Temp image file storage leak | Local Storage | **FIXED** |
-| **34** | Fake "Report Post" community moderation | Community | **FIXED** |
-| **35** | Per-prediction model version provenance | ML Pipeline | **FIXED** |
-| **36** | Synthetic "Check for updates" in Settings | Settings | **FIXED** |
-| **37** | Model fallback telemetry logging | Analytics | **FIXED** |
-| **38** | Duplicate asset loading in ResultScreen | Presentation | **FIXED** |
-| **39** | Unbounded queries in `getReporterTrustStats` | Firestore | **FIXED** |
-| **40** | Unbounded `treatmentsStream` query | Firestore | **FIXED** |
-| **41** | Sequential delete loop in account deletion | Firestore | **FIXED** |
-| **42** | Premature Auth deletion on failed data purge | Auth / Data | **FIXED** |
-| **43** | Storage retry on permanent 403 errors | Cloud Storage | **FIXED** |
-| **44** | Weak 6-character registration password floor | Security | **FIXED** |
-| **45** | Training notebook metadata export bug | ML Tooling | **FIXED** |
-| **46** | Missing microphone permissions in manifests | Permissions | **FIXED** |
-| **47** | Double normalization in `evaluate_model.py` | ML Tooling | **FIXED** |
-| **48** | Silent lockup on empty camera list | Scanner | **FIXED** |
-| **49** | Silent catch in Submissions screen | Presentation | **FIXED** |
-| **50** | Deprecated SPM compatibility in 5 plugins | iOS Native | **NOT FIXED / DEFERRED** |
-| **51** | App lock & biometric failure hardening | Security | **FIXED** |
-| **52** | Deep link open-redirect protection | Routing / Security | **FIXED** |
-| **53** | Outbreak geo-radius Haversine calculation | Outbreak Alerts | **FIXED** |
-| **54** | Offline weather SQLite caching | Weather | **FIXED** |
-| **55** | Separation of ML confidence from disease severity | Pathology Domain | **FIXED** |
+| Fix # | Summary | Category | Status | [CURRENT]
+|---|---|---|---| [CURRENT]
+| **1** | Shipped V1 model label mismatch (54 vs 93) | ML Pipeline | **FIXED** | [CURRENT]
+| **2** | V2 model TensorFlow Flex-op failure | ML Pipeline | **FIXED** | [CURRENT]
+| **3** | Native Firebase config provisioning in CI | Build / CI | **PARTIALLY DONE** | [CURRENT]
+| **4** | Real Ghanaian farmer dataset evaluation | ML Evaluation | **PARTIALLY DONE** | [CURRENT]
+| **5** | OOD gate permanent no-op | ML Pipeline | **PARTIALLY DONE** | [CURRENT]
+| **6** | Firestore security rules read blocks on submissions | Security | **FIXED** | [CURRENT]
+| **7** | Duplicate Firestore doc creation on online scans | Cloud Data | **FIXED** | [CURRENT]
+| **8** | FCM token sync on user sign-in | Push Notifications | **FIXED** | [CURRENT]
+| **9** | Treatment tracker guest mode exception | Auth / State | **FIXED** | [CURRENT]
+| **10** | Unbounded background sync full-table re-upload | Background Sync | **FIXED** | [CURRENT]
+| **11** | Registration failure reporting on name timeout | Auth | **FIXED** | [CURRENT]
+| **12** | Unrecognized sync queue operation misrouting | Offline Queue | **FIXED** | [CURRENT]
+| **13** | User work loss on sign-out queue clear | Offline Queue | **FIXED** | [CURRENT]
+| **14** | Multi-angle soft-voting fusion discard at save | Scanner | **FIXED** | [CURRENT]
+| **15** | Regional risk boost fake hardcoded data | Risk Engine | **FIXED** | [CURRENT]
+| **16** | Low-confidence fallback cocoa disease hardcoding | Scanner | **FIXED** | [CURRENT]
+| **17** | Argmax single-result soft-voting bug | ML Pipeline | **FIXED** | [CURRENT]
+| **18** | Model preloading latency stall | ML Pipeline | **FIXED** | [CURRENT]
+| **19** | Self-testing unit test in soft-voting | Testing | **FIXED** | [CURRENT]
+| **20** | Misleading Bayesian claim in RiskWeightedClassifier | Documentation | **FIXED** | [CURRENT]
+| **21** | Android target platform prioritization | Platform | **FIXED** | [CURRENT]
+| **22** | Tensor shape vs label count runtime assertion | ML Pipeline | **FIXED** | [CURRENT]
+| **23** | Android `minSdkVersion` compatibility | Native Android | **FIXED** | [CURRENT]
+| **24** | Notification ID collision every 100 seconds | Notifications | **FIXED** | [CURRENT]
+| **25** | Rooted-device dialog hardcoded English text | Localization | **FIXED** | [CURRENT]
+| **26** | Forced-update dialog screen lockup | UI Flow | **FIXED** | [CURRENT]
+| **27** | CI Android build job failure | Build / CI | **FIXED** | [CURRENT]
+| **28** | README setup instructions & project ID | Documentation | **FIXED** | [CURRENT]
+| **29** | Raw exception leaks in UI SnackBar | UI / Error Handling | **FIXED** | [CURRENT]
+| **30** | Permanent deletion on treatment step swipe | UI / UX | **FIXED** | [CURRENT]
+| **31** | Scan-complete audio feedback no-op | Audio / Feedback | **FIXED** | [CURRENT]
+| **32** | Continuous 30s connectivity probe data usage | Network | **FIXED** | [CURRENT]
+| **33** | Temp image file storage leak | Local Storage | **FIXED** | [CURRENT]
+| **34** | Fake "Report Post" community moderation | Community | **FIXED** | [CURRENT]
+| **35** | Per-prediction model version provenance | ML Pipeline | **FIXED** | [CURRENT]
+| **36** | Synthetic "Check for updates" in Settings | Settings | **FIXED** | [CURRENT]
+| **37** | Model fallback telemetry logging | Analytics | **FIXED** | [CURRENT]
+| **38** | Duplicate asset loading in ResultScreen | Presentation | **FIXED** | [CURRENT]
+| **39** | Unbounded queries in `getReporterTrustStats` | Firestore | **FIXED** | [CURRENT]
+| **40** | Unbounded `treatmentsStream` query | Firestore | **FIXED** | [CURRENT]
+| **41** | Sequential delete loop in account deletion | Firestore | **FIXED** | [CURRENT]
+| **42** | Premature Auth deletion on failed data purge | Auth / Data | **FIXED** | [CURRENT]
+| **43** | Storage retry on permanent 403 errors | Cloud Storage | **FIXED** | [CURRENT]
+| **44** | Weak 6-character registration password floor | Security | **FIXED** | [CURRENT]
+| **45** | Training notebook metadata export bug | ML Tooling | **FIXED** | [CURRENT]
+| **46** | Missing microphone permissions in manifests | Permissions | **FIXED** | [CURRENT]
+| **47** | Double normalization in `evaluate_model.py` | ML Tooling | **FIXED** | [CURRENT]
+| **48** | Silent lockup on empty camera list | Scanner | **FIXED** | [CURRENT]
+| **49** | Silent catch in Submissions screen | Presentation | **FIXED** | [CURRENT]
+| **50** | Deprecated SPM compatibility in 5 plugins | iOS Native | **NOT FIXED / DEFERRED** | [DEPRECATED]
+| **51** | App lock & biometric failure hardening | Security | **FIXED** | [CURRENT]
+| **52** | Deep link open-redirect protection | Routing / Security | **FIXED** | [CURRENT]
+| **53** | Outbreak geo-radius Haversine calculation | Outbreak Alerts | **FIXED** | [CURRENT]
+| **54** | Offline weather SQLite caching | Weather | **FIXED** | [CURRENT]
+| **55** | Separation of ML confidence from disease severity | Pathology Domain | **FIXED** | [CURRENT]
 
 ---
 

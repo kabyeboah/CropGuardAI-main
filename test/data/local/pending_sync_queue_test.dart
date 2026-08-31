@@ -138,7 +138,9 @@ void main() {
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
-    test('clear with abandonedOnly true only removes abandoned items, preserving in-flight scans', () async {
+    test(
+        'clear with abandonedOnly true only removes abandoned items, preserving in-flight scans',
+        () async {
       await PendingSyncQueue.enqueue(
         db,
         type: PendingSyncType.scanUpload,
@@ -150,7 +152,8 @@ void main() {
         payload: {'id': 'post_1'},
       );
       // Mark one item as abandoned
-      await db.update('pending_sync', {'status': 'abandoned'}, where: 'id = ?', whereArgs: [1]);
+      await db.update('pending_sync', {'status': 'abandoned'},
+          where: 'id = ?', whereArgs: [1]);
 
       expect(await PendingSyncQueue.pendingCount(db), 1);
       final allRowsBefore = await db.query('pending_sync');
@@ -186,7 +189,8 @@ void main() {
       expect(await PendingSyncQueue.pendingCount(db), 1);
     });
 
-    test('drainWithTimeout executes drain and handles timeout gracefully', () async {
+    test('drainWithTimeout executes drain and handles timeout gracefully',
+        () async {
       await PendingSyncQueue.enqueue(
         db,
         type: PendingSyncType.communityPost,
@@ -235,11 +239,14 @@ void main() {
       final rows = await db.query('pending_sync');
       final id = rows.first['id'] as int;
       await PendingSyncQueue.updatePayload(db, id, {'v': 99});
-      final updated = await db.query('pending_sync', where: 'id = ?', whereArgs: [id]);
+      final updated =
+          await db.query('pending_sync', where: 'id = ?', whereArgs: [id]);
       expect(updated.first['payload'], contains('99'));
     });
 
-    test('sanitizePayload converts non-JSON encodable values (DateTime, sentinels, nested objects) to primitive strings', () {
+    test(
+        'sanitizePayload converts non-JSON encodable values (DateTime, sentinels, nested objects) to primitive strings',
+        () {
       final now = DateTime.now();
       final sanitized = PendingSyncQueue.sanitizePayload({
         'string': 'abc',
@@ -260,7 +267,9 @@ void main() {
       expect(sanitized['list'], [now.toIso8601String(), 'text']);
     });
 
-    test('drain marks unrecognized operation types as abandoned without invoking handler', () async {
+    test(
+        'drain marks unrecognized operation types as abandoned without invoking handler',
+        () async {
       // Insert a row with an unknown/obsolete type directly into the table
       await db.insert('pending_sync', {
         'type': 'legacyDeprecatedType_v1',

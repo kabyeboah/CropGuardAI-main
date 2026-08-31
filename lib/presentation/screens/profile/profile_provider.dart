@@ -23,8 +23,7 @@ class ProfileStats {
     this.warningScans = 0,
   });
 
-  double get healthScore =>
-      totalScans > 0 ? healthyScans / totalScans : 0;
+  double get healthScore => totalScans > 0 ? healthyScans / totalScans : 0;
   int get diseasesCaught => diseasedScans + warningScans;
 }
 
@@ -36,7 +35,8 @@ class ProfileProvider extends ChangeNotifier {
   final ImageUploadService _uploader;
   StreamSubscription<ConnectionStatus>? _connectivitySub;
 
-  ProfileProvider(this._repository, this._authRepository, this._connectivity, this._uploader) {
+  ProfileProvider(this._repository, this._authRepository, this._connectivity,
+      this._uploader) {
     _connectivitySub = _connectivity.statusStream.listen((status) {
       connectionStatus = status;
       notifyListeners();
@@ -108,7 +108,6 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-
   void setHighQualityScans(bool v) {
     highQualityScans = v;
     _repository.setHighQualityScans(v);
@@ -160,7 +159,8 @@ class ProfileProvider extends ChangeNotifier {
     isSyncingPhoto = true;
     notifyListeners();
     try {
-      final url = await _uploader.uploadImage(localPath, userId: _authRepository.currentUser?.id);
+      final url = await _uploader.uploadImage(localPath,
+          userId: _authRepository.currentUser?.id);
       await _authRepository.updatePhotoUrl(url);
     } catch (e, st) {
       // Non-fatal: the picture is already set locally. Log for diagnostics.
@@ -188,7 +188,9 @@ class ProfileProvider extends ChangeNotifier {
   /// Strips the leading "Exception:" noise so the user sees a clean reason.
   String _readableError(Object e) {
     final msg = e.toString();
-    return msg.startsWith('Exception: ') ? msg.substring('Exception: '.length) : msg;
+    return msg.startsWith('Exception: ')
+        ? msg.substring('Exception: '.length)
+        : msg;
   }
 
   String? profileError;
@@ -212,7 +214,8 @@ class ProfileProvider extends ChangeNotifier {
     final nameResult = await _authRepository.updateDisplayName(trimmedName);
     if (!nameResult.isSuccess) {
       AppLogger.e('Update display name failed', nameResult.failure);
-      profileError = 'Could not update display name: ${nameResult.failure?.message ?? 'unknown error'}';
+      profileError =
+          'Could not update display name: ${nameResult.failure?.message ?? 'unknown error'}';
       isSavingProfile = false;
       notifyListeners();
       return false;

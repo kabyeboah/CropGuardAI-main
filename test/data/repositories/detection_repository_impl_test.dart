@@ -53,7 +53,8 @@ void main() {
     });
 
     test('saveDetection returns error on cache/db failure', () async {
-      when(() => mockDb.insertDetection(any())).thenThrow(Exception('DB Error'));
+      when(() => mockDb.insertDetection(any()))
+          .thenThrow(Exception('DB Error'));
 
       final res = await repository.saveDetection(_kDetection);
 
@@ -83,7 +84,8 @@ void main() {
     });
 
     test('getFields returns success with list', () async {
-      when(() => mockDb.getFields(userId: any(named: 'userId'))).thenAnswer((_) async => [_kField]);
+      when(() => mockDb.getFields(userId: any(named: 'userId')))
+          .thenAnswer((_) async => [_kField]);
 
       final res = await repository.getFields(userId: 'u1');
 
@@ -105,8 +107,8 @@ void main() {
     });
 
     test('markDetectionSynced calls dbHelper and returns success', () async {
-      when(() => mockDb.markDetectionSynced(any(), syncedAt: any(named: 'syncedAt')))
-          .thenAnswer((_) async {});
+      when(() => mockDb.markDetectionSynced(any(),
+          syncedAt: any(named: 'syncedAt'))).thenAnswer((_) async {});
 
       final res = await repository.markDetectionSynced(1);
 
@@ -115,13 +117,14 @@ void main() {
     });
 
     test('markDetectionsSynced calls dbHelper and returns success', () async {
-      when(() => mockDb.markDetectionsSynced(any(), syncedAt: any(named: 'syncedAt')))
-          .thenAnswer((_) async {});
+      when(() => mockDb.markDetectionsSynced(any(),
+          syncedAt: any(named: 'syncedAt'))).thenAnswer((_) async {});
 
       final res = await repository.markDetectionsSynced([1, 2]);
 
       expect(res.isSuccess, isTrue);
-      verify(() => mockDb.markDetectionsSynced([1, 2], syncedAt: null)).called(1);
+      verify(() => mockDb.markDetectionsSynced([1, 2], syncedAt: null))
+          .called(1);
     });
   });
 }

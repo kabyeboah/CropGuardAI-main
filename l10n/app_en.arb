@@ -1,47 +1,89 @@
 {
   "appTitle": "CropGuard AI",
   "outbreakConfirm": "Confirm",
-  "@outbreakConfirm": {"description": "Confirm outbreak report"},
+  "@outbreakConfirm": {
+    "description": "Confirm outbreak report"
+  },
   "outbreakFlagIncorrect": "Flag Incorrect",
-  "@outbreakFlagIncorrect": {"description": "Flag outbreak report as incorrect"},
+  "@outbreakFlagIncorrect": {
+    "description": "Flag outbreak report as incorrect"
+  },
   "outbreakZoomToOutbreak": "Zoom to outbreak",
-  "@outbreakZoomToOutbreak": {"description": "Zoom to outbreak location"},
+  "@outbreakZoomToOutbreak": {
+    "description": "Zoom to outbreak location"
+  },
   "outbreakNearbyDetectedTitle": "Nearby Outbreak Detected",
-  "@outbreakNearbyDetectedTitle": {"description": "Title when nearby outbreak is detected"},
+  "@outbreakNearbyDetectedTitle": {
+    "description": "Title when nearby outbreak is detected"
+  },
   "outbreakSubmitAnyway": "Submit Anyway",
-  "@outbreakSubmitAnyway": {"description": "Submit report anyway"},
+  "@outbreakSubmitAnyway": {
+    "description": "Submit report anyway"
+  },
   "outbreakConfirmExisting": "Confirm Existing",
-  "@outbreakConfirmExisting": {"description": "Confirm existing outbreak report"},
+  "@outbreakConfirmExisting": {
+    "description": "Confirm existing outbreak report"
+  },
   "outbreakRetryMap": "Retry Map",
-  "@outbreakRetryMap": {"description": "Retry loading outbreak map"},
+  "@outbreakRetryMap": {
+    "description": "Retry loading outbreak map"
+  },
   "reportToOutbreakMap": "Report to Outbreak Map",
-  "@reportToOutbreakMap": {"description": "Report disease to outbreak map"},
+  "@reportToOutbreakMap": {
+    "description": "Report disease to outbreak map"
+  },
   "postToCommunity": "Post to Community",
-  "@postToCommunity": {"description": "Post disease to community"},
+  "@postToCommunity": {
+    "description": "Post disease to community"
+  },
   "scanEngineUnavailable": "Scan Engine Unavailable",
-  "@scanEngineUnavailable": {"description": "Scan engine unavailable message"},
+  "@scanEngineUnavailable": {
+    "description": "Scan engine unavailable message"
+  },
   "askCommunity": "Ask Community",
-  "@askCommunity": {"description": "Ask community button"},
+  "@askCommunity": {
+    "description": "Ask community button"
+  },
   "outbreakAddPhoto": "Add Photo",
-  "@outbreakAddPhoto": {"description": "Add photo button"},
+  "@outbreakAddPhoto": {
+    "description": "Add photo button"
+  },
   "securityWarningTitle": "Security Warning",
-  "@securityWarningTitle": {"description": "Security warning dialog title"},
+  "@securityWarningTitle": {
+    "description": "Security warning dialog title"
+  },
   "securityWarningBody": "CropGuard AI has detected that your device is rooted or jailbroken. Running on a compromised operating system increases the risk of exposing your personal data, location history, and scan reports. Please proceed with caution.",
-  "@securityWarningBody": {"description": "Security warning dialog message body when device is rooted or jailbroken"},
+  "@securityWarningBody": {
+    "description": "Security warning dialog message body when device is rooted or jailbroken"
+  },
   "proceedAnyway": "Proceed Anyway",
-  "@proceedAnyway": {"description": "Proceed anyway button"},
+  "@proceedAnyway": {
+    "description": "Proceed anyway button"
+  },
   "showPasswordTooltip": "Show password",
-  "@showPasswordTooltip": {"description": "Show password tooltip"},
+  "@showPasswordTooltip": {
+    "description": "Show password tooltip"
+  },
   "hidePasswordTooltip": "Hide password",
-  "@hidePasswordTooltip": {"description": "Hide password tooltip"},
+  "@hidePasswordTooltip": {
+    "description": "Hide password tooltip"
+  },
   "torchOnTooltip": "Turn flashlight on",
-  "@torchOnTooltip": {"description": "Turn flashlight on tooltip"},
+  "@torchOnTooltip": {
+    "description": "Turn flashlight on tooltip"
+  },
   "torchOffTooltip": "Turn flashlight off",
-  "@torchOffTooltip": {"description": "Turn flashlight off tooltip"},
+  "@torchOffTooltip": {
+    "description": "Turn flashlight off tooltip"
+  },
   "batchModeOnTooltip": "Turn on batch scanning",
-  "@batchModeOnTooltip": {"description": "Turn on batch scanning tooltip"},
+  "@batchModeOnTooltip": {
+    "description": "Turn on batch scanning tooltip"
+  },
   "batchModeOffTooltip": "Turn off batch scanning",
-  "@batchModeOffTooltip": {"description": "Turn off batch scanning tooltip"},
+  "@batchModeOffTooltip": {
+    "description": "Turn off batch scanning tooltip"
+  },
   "home": "Home",
   "scan": "Scan",
   "history": "History",
@@ -60,7 +102,6 @@
   "more": "More",
   "offlineBanner": "You are offline — using local data",
   "weakConnectionBanner": "Weak connection — some features may be slow",
-
   "cancel": "Cancel",
   "delete": "Delete",
   "save": "Save",
@@ -73,7 +114,6 @@
   "undo": "Undo",
   "discard": "Discard",
   "and": "and",
-
   "settingsSubtitle": "App preferences & data",
   "myProfile": "My Profile",
   "sectionDisplay": "Display",
@@ -106,7 +146,6 @@
   "reauthDescription": "Re-enter your credentials to permanently delete your account.",
   "deletePermanently": "DELETE PERMANENTLY",
   "confirmWithGoogle": "Confirm with Google",
-
   "editProfile": "Edit Profile",
   "displayName": "Display name",
   "yourName": "Your name",
@@ -119,7 +158,6 @@
   "diseases": "Diseases",
   "diseaseAlerts": "Disease Alerts",
   "highQualityScans": "High Quality Scans",
-
   "community": "Community",
   "outbreakMap": "Outbreak Map",
   "reportDiseaseHere": "Report Disease Here",
@@ -130,14 +168,12 @@
   "failedToSubmitReport": "Failed to submit report.",
   "submitReport": "Submit Report",
   "additionalNotes": "Additional notes (optional)",
-
   "diseaseLibrary": "Disease Library",
   "diseaseLibrarySubtitle": "Browse all supported crops and their known diseases",
   "searchCropOrDisease": "Search crop or disease…",
   "noDiseasesMatchSearch": "No diseases match your search.",
   "causeLabel": "Cause",
   "treatmentLabel": "Treatment",
-
   "farmHealthScore": "Farm Health Score",
   "healthy": "Healthy",
   "diseased": "Diseased",
@@ -160,22 +196,27 @@
   "addedToBatch": "Added to batch ({count})",
   "@addedToBatch": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "analyseBatch": "Analyse batch ({count})",
   "@analyseBatch": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "batchImages": "{count} images",
   "@batchImages": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "scanCropTitle": "Scan Crop",
   "cameraRequiredTitle": "Camera & Storage Access Required",
   "cameraRequiredDesc": "To detect crop diseases, CropGuard AI needs permission to use your camera to scan leaves, and access your gallery to upload existing crop photos.",
@@ -198,13 +239,16 @@
   "qualityPlacement": "Placement",
   "qualityGood": "Good",
   "qualityFair": "Fair",
-  "qualityPoor": "Poor",
-
+  "qualityPoor": "Poor image quality detected.",
   "healthyCropTitle": "Healthy Crop",
   "diseaseDetectedTitle": "Disease Detected",
   "imageUnavailable": "Image no longer available",
   "cropCareTips": "Crop Care Tips",
   "treatmentSteps": "Treatment Steps",
+  "treatmentAdvisoryDisclaimer": "Treatment recommendations are advisory and not a substitute for an agricultural extension officer's guidance.",
+  "@treatmentAdvisoryDisclaimer": {
+    "description": "Advisory disclaimer displayed alongside treatment and pesticide recommendations"
+  },
   "bestSprayWindow": "Best Spray Window",
   "requestExpertHelp": "Request Expert Help",
   "scanAnotherCrop": "Scan Another Crop",
@@ -224,9 +268,7 @@
   "cropNameLabel": "Crop Name (e.g. Cocoa, Cashew)",
   "symptomsObservedLabel": "Symptoms observed",
   "symptomsHint": "e.g. brown spots, wilting leaves…",
-
   "analysingDesc": "Running AI disease detection on your crop image.",
-
   "scanHistoryTitle": "Scan History",
   "searchHistoryHint": "Search by crop or disease…",
   "filterAll": "All",
@@ -246,7 +288,6 @@
   "cancelSelection": "Cancel selection",
   "noScansFound": "No scans found",
   "noScansFoundDesc": "Scan a crop to build your history",
-
   "shareUpdate": "Share an update",
   "farmUpdate": "What's happening on your farm?",
   "uploadingImage": "Uploading image…",
@@ -257,7 +298,6 @@
   "reportPost": "Report Post",
   "reportPostConfirm": "Are you sure you want to report this post for inappropriate content?",
   "report": "Report",
-
   "communitySubtitle": "Connect with other farmers",
   "diseaseLibrarySubtitleMore": "Learn about crop threats",
   "outbreakMapSubtitle": "See nearby disease reports",
@@ -270,7 +310,6 @@
   "settingsSubtitleMore": "Language, display, and data",
   "aboutCropGuard": "About CropGuard AI",
   "aboutCropGuardDesc": "CropGuard AI is your assistant for healthier crops.",
-
   "welcomeBack": "Welcome Back",
   "loginSubtitle": "Sign in to your CropGuard account",
   "enterEmailFirst": "Please enter your email first",
@@ -278,9 +317,7 @@
   "signInWithGoogle": "Sign in with Google",
   "noAccountPrompt": "Don't have an account?",
   "keepGuestScansTitle": "Keep your guest scans?",
-  "discard": "Discard",
   "keepScans": "Keep Scans",
-
   "createAccount": "Create Account",
   "registerSubtitle": "Join CropGuard AI today",
   "fullName": "Full Name",
@@ -292,7 +329,6 @@
   "strengthFair": "Fair",
   "strengthStrong": "Strong",
   "strengthVeryStrong": "Very Strong",
-
   "batchScanSummary": "Batch Scan Summary",
   "aggregatedResult": "Aggregated Result",
   "individualLeafResults": "Individual Leaf Results",
@@ -301,10 +337,11 @@
   "percentConfidence": "{pct}% confidence",
   "@percentConfidence": {
     "placeholders": {
-      "pct": {"type": "int"}
+      "pct": {
+        "type": "int"
+      }
     }
   },
-
   "lowConfidenceTitle": "Low Confidence",
   "lowConfidenceResultTitle": "Low Confidence Result",
   "tryAgain": "Try Again",
@@ -313,75 +350,89 @@
   "reportMissingCropDesc": "What crop are you scanning? This helps us train our AI.",
   "cropNameSimpleLabel": "Crop Name",
   "observedSymptomsLabel": "Observed Symptoms (optional)",
-
   "diseaseLabel": "Disease",
   "diseaseNameLabel": "Disease name",
   "diseaseNameHint": "Type the disease name",
   "diseaseNameRequired": "Please type the disease name.",
-
   "diseaseRiskWeekTitle": "Disease Risk This Week",
   "diseaseRiskWeekSubtitle": "Weather-based outlook — inspect early.",
   "diseaseRiskLowMessage": "Low disease risk this week based on the forecast. Keep up routine scouting.",
-  "riskLevelHigh": "HIGH",
-  "riskLevelModerate": "MODERATE",
-  "riskLevelLow": "LOW",
-
+  "riskLevelHigh": "High Risk",
+  "riskLevelModerate": "Moderate Risk",
+  "riskLevelLow": "Low Risk",
   "cropTomato": "Tomato",
   "cropCocoa": "Cocoa",
   "cropMaize": "Maize",
   "cropRice": "Rice",
-
   "riskNameLateBlight": "Late Blight",
   "riskNameEarlyBlight": "Early Blight",
   "riskNameBlackPod": "Black Pod",
   "riskNameLeafBlightRust": "Leaf Blight / Rust",
   "riskNameRiceBlast": "Rice Blast",
-
   "riskReasonLateBlight": "Humid ({hum}%) and mild ({temp}°C) conditions favour late blight.",
   "@riskReasonLateBlight": {
     "placeholders": {
-      "hum": {"type": "int"},
-      "temp": {"type": "int"}
+      "hum": {
+        "type": "int"
+      },
+      "temp": {
+        "type": "int"
+      }
     }
   },
   "riskReasonEarlyBlight": "Warm ({temp}°C) and moist ({hum}%) — watch for early blight spots.",
   "@riskReasonEarlyBlight": {
     "placeholders": {
-      "hum": {"type": "int"},
-      "temp": {"type": "int"}
+      "hum": {
+        "type": "int"
+      },
+      "temp": {
+        "type": "int"
+      }
     }
   },
   "riskReasonBlackPod": "Prolonged wet weather ({hum}% humidity) raises black pod risk.",
   "@riskReasonBlackPod": {
     "placeholders": {
-      "hum": {"type": "int"}
+      "hum": {
+        "type": "int"
+      }
     }
   },
   "riskReasonLeafBlightRust": "Humid ({hum}%), warm ({temp}°C) spells favour leaf blight and rust.",
   "@riskReasonLeafBlightRust": {
     "placeholders": {
-      "hum": {"type": "int"},
-      "temp": {"type": "int"}
+      "hum": {
+        "type": "int"
+      },
+      "temp": {
+        "type": "int"
+      }
     }
   },
   "riskReasonRiceBlast": "Wet, warm ({temp}°C) conditions are ideal for rice blast.",
   "@riskReasonRiceBlast": {
     "placeholders": {
-      "temp": {"type": "int"}
+      "temp": {
+        "type": "int"
+      }
     }
   },
-
   "sevenDayForecast": "7-Day Forecast",
   "plantedOn": "Planted: {date}",
   "@plantedOn": {
     "placeholders": {
-      "date": {"type": "String"}
+      "date": {
+        "type": "String"
+      }
     }
   },
   "weatherUnavailable": "Weather unavailable: {error}",
   "@weatherUnavailable": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "noScansYet": "No scans yet",
@@ -392,7 +443,9 @@
   "reportsCount": "{count} reports",
   "@reportsCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "treatmentPlanAdded": "Treatment plan added",
@@ -400,13 +453,17 @@
   "selectedCount": "{count} selected",
   "@selectedCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "exportCount": "Export ({count})",
   "@exportCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "notifications": "Notifications",
@@ -429,7 +486,6 @@
   "aboutSubtitleVersion": "App version, terms, and privacy",
   "settingsSubtitleShort": "Display and data",
   "mainNavigation": "Main navigation",
-
   "permissionCamera": "Camera",
   "permissionLocation": "Location",
   "privacyLastUpdated": "Last updated: May 2025",
@@ -458,14 +514,18 @@
   "resendIn": "Resend in {seconds}s",
   "@resendIn": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "appTagline": "Smart crop disease detection",
   "lowConfidenceExplanation": "The AI detected a possible disease but is only {pct}% confident. This result may not be accurate.",
   "@lowConfidenceExplanation": {
     "placeholders": {
-      "pct": {"type": "int"}
+      "pct": {
+        "type": "int"
+      }
     }
   },
   "lowConfidenceTips": "For a more accurate result, try:\n• Taking a clearer, closer photo\n• Ensuring good lighting\n• Focusing on a single leaf with visible symptoms",
@@ -483,19 +543,25 @@
   "milestoneFertilizer": "Fertilizer reminder in {days}d",
   "@milestoneFertilizer": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "milestoneHealthCheck": "Health check in {days}d",
   "@milestoneHealthCheck": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "milestoneHarvestWindow": "Harvest window in {days}d",
   "@milestoneHarvestWindow": {
     "placeholders": {
-      "days": {"type": "int"}
+      "days": {
+        "type": "int"
+      }
     }
   },
   "milestoneHarvestReached": "Harvest window reached",
@@ -511,27 +577,33 @@
   "qualityTooDark": "Image is too dark. Please use more light or the torch.",
   "qualityTooBright": "Image is too bright. Please avoid direct glare.",
   "qualityTooSmall": "Image resolution is too low.",
-  "qualityPoor": "Poor image quality detected.",
   "downloadFailed": "Could not download image (HTTP {code}).",
   "@downloadFailed": {
     "placeholders": {
-      "code": {"type": "int"}
+      "code": {
+        "type": "int"
+      }
     }
   },
   "batchPartial": "Analysed {analysed} of {total} images.",
   "@batchPartial": {
     "placeholders": {
-      "analysed": {"type": "int"},
-      "total": {"type": "int"}
+      "analysed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "seasonalCalendar": "Seasonal Calendar: {status}",
   "@seasonalCalendar": {
     "placeholders": {
-      "status": {"type": "String"}
+      "status": {
+        "type": "String"
+      }
     }
   },
-
   "badgeFirstScanTitle": "First Scan",
   "badgeFirstScanDesc": "Complete your first crop scan",
   "badgeScanStreakTitle": "Scan Streak",
@@ -548,18 +620,16 @@
   "badgeQuickResponderDesc": "Act on one plan quickly",
   "badgeMapReporterTitle": "Map Reporter",
   "badgeMapReporterDesc": "Submit 3 outbreak reports",
-
   "privacySection1Title": "1. Information We Collect",
-  "privacySection1Body": "CropGuard AI collects the following information: account email and display name, crop scan images processed locally on your device, and aggregate usage analytics (no personal data). We do not sell your data.",
+  "privacySection1Body": "CropGuard AI collects: account email and display name (if signed in), crop images processed on-device, coarsened location coordinates (~1.1 km grid) to deliver microclimate weather and regional outbreak alerts without exposing exact farm boundaries, and aggregate usage telemetry. We do not sell your personal data.",
   "privacySection2Title": "2. How We Use Your Data",
-  "privacySection2Body": "Your data is used to provide the disease detection service, improve model accuracy through anonymised feedback, and deliver expert consultation requests. Scan images are never transmitted to external servers without your explicit consent.",
-  "privacySection3Title": "3. Data Storage",
-  "privacySection3Body": "Scan results are stored locally on your device using SQLite. Cloud sync is optional and gated behind authentication. You can delete all local data at any time from Settings → Clear Scan History.",
+  "privacySection2Body": "Your data is used to provide on-device disease diagnosis, localized spray and weather advisories, community outbreak mapping, and expert consultation. Scan images and exact farm locations are never shared publicly.",
+  "privacySection3Title": "3. Data Storage & Retention",
+  "privacySection3Body": "Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.",
   "privacySection4Title": "4. Third-Party Services",
-  "privacySection4Body": "We use Firebase for authentication and optional cloud sync (governed by Google's Privacy Policy). We do not share data with any other third parties.",
+  "privacySection4Body": "We use Firebase for secure authentication and optional sync (governed by Google's Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.",
   "privacySection5Title": "5. Contact",
-  "privacySection5Body": "For privacy enquiries, contact privacy@cropguardai.com.",
-
+  "privacySection5Body": "For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.",
   "termsSection1Title": "1. Acceptance of Terms",
   "termsSection1Body": "By using CropGuard AI, you agree to these Terms of Service. If you disagree with any part, please do not use the application.",
   "termsSection2Title": "2. Medical / Agronomical Disclaimer",
@@ -601,7 +671,6 @@
   "dontHaveAccount": "Don't have an account? ",
   "exampleName": "e.g. Kofi Mensah",
   "diseaseOther": "Other",
-  "batchAnalysisFailed": "Batch analysis failed",
   "closeComparison": "Close Comparison",
   "severityLabel": "Severity",
   "scanDateLabel": "Scan Date",
@@ -612,28 +681,42 @@
   "badgesUnlocked": "{unlocked} / {total} unlocked",
   "@badgesUnlocked": {
     "placeholders": {
-      "unlocked": {"type": "int"},
-      "total": {"type": "int"}
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "unreadCount": "{count} unread",
   "@unreadCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "treatmentSubtitle": "{pending} pending • {completed} done",
   "@treatmentSubtitle": {
     "placeholders": {
-      "pending": {"type": "int"},
-      "completed": {"type": "int"}
+      "pending": {
+        "type": "int"
+      },
+      "completed": {
+        "type": "int"
+      }
     }
   },
   "plantedDayLabel": "Planted {date} · Day {day}",
   "@plantedDayLabel": {
     "placeholders": {
-      "date": {"type": "String"},
-      "day": {"type": "int"}
+      "date": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
     }
   },
   "couldNotIdentify": "Could not identify this plant — please retake the photo in good lighting, closer to the leaf.",
@@ -645,30 +728,37 @@
   "scanSummaryHealthy": "{disease} looks healthy.",
   "@scanSummaryHealthy": {
     "placeholders": {
-      "disease": {"type": "String"}
+      "disease": {
+        "type": "String"
+      }
     }
   },
   "scanSummaryDiseased": "{disease} detected.",
   "@scanSummaryDiseased": {
     "placeholders": {
-      "disease": {"type": "String"}
+      "disease": {
+        "type": "String"
+      }
     }
   },
   "ttsResultSummary": "{disease}. Severity is {severity}. Treatment steps: {treatments}",
   "@ttsResultSummary": {
     "placeholders": {
-      "disease": {"type": "String"},
-      "severity": {"type": "String"},
-      "treatments": {"type": "String"}
+      "disease": {
+        "type": "String"
+      },
+      "severity": {
+        "type": "String"
+      },
+      "treatments": {
+        "type": "String"
+      }
     }
   },
   "riskForecastTitle": "Outbreak Risk Forecast",
   "riskForecastSubtitle": "Proactive per-region disease outbreak risk score",
   "riskForecastLoading": "Calculating regional outbreak risk...",
   "riskLevelNone": "No Elevated Risk",
-  "riskLevelLow": "Low Risk",
-  "riskLevelModerate": "Moderate Risk",
-  "riskLevelHigh": "High Risk",
   "confidenceLabel": "Confidence",
   "confidenceInsufficientData": "Insufficient Data",
   "confidenceLow": "Low Confidence",
@@ -682,67 +772,133 @@
   "verificationsGivenLabel": "Verifications Given",
   "trustScoreLabel": "Trust Score",
   "reporterTrustExplanation": "Your community outbreak reports and verifications directly weight the regional risk engine.",
-
   "addAnotherAngle": "Add Another Angle",
-  "@addAnotherAngle": {"description": "Button to add a second photo from a different angle on the low-confidence screen"},
+  "@addAnotherAngle": {
+    "description": "Button to add a second photo from a different angle on the low-confidence screen"
+  },
   "addAngle": "Add Angle {current} of {total}",
   "@addAngle": {
     "description": "Button label showing which angle is being captured",
     "placeholders": {
-      "current": {"type": "int"},
-      "total": {"type": "int"}
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "anglesCapturePill": "{captured} of {total} angles captured",
   "@anglesCapturePill": {
     "description": "Small pill inside the confidence card showing multi-angle progress",
     "placeholders": {
-      "captured": {"type": "int"},
-      "total": {"type": "int"}
+      "captured": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "topGuesses": "Top Guesses",
-  "@topGuesses": {"description": "Section header for the top-3 model predictions card"},
+  "@topGuesses": {
+    "description": "Section header for the top-3 model predictions card"
+  },
   "viewMySubmissions": "View my submissions",
-  "@viewMySubmissions": {"description": "Link shown after a crop-not-found report is submitted"},
+  "@viewMySubmissions": {
+    "description": "Link shown after a crop-not-found report is submitted"
+  },
   "mySubmissions": "My Submissions",
-  "@mySubmissions": {"description": "Title for the My Submissions tile in the More screen"},
+  "@mySubmissions": {
+    "description": "Title for the My Submissions tile in the More screen"
+  },
   "mySubmissionsSubtitle": "Track your expert & missing-crop reports",
   "deleteTreatmentPlanTitle": "Delete Treatment Plan?",
-  "@deleteTreatmentPlanTitle": {"description": "Title for delete treatment plan confirmation dialog"},
+  "@deleteTreatmentPlanTitle": {
+    "description": "Title for delete treatment plan confirmation dialog"
+  },
   "deleteTreatmentPlanBody": "This will permanently delete the treatment plan for \"{planName}\" and all its steps.",
   "@deleteTreatmentPlanBody": {
     "description": "Body message for delete treatment plan confirmation dialog",
     "placeholders": {
-      "planName": {"type": "String"}
+      "planName": {
+        "type": "String"
+      }
     }
   },
   "deleteTreatmentStepTitle": "Delete Treatment Step?",
-  "@deleteTreatmentStepTitle": {"description": "Title for delete treatment step confirmation dialog"},
+  "@deleteTreatmentStepTitle": {
+    "description": "Title for delete treatment step confirmation dialog"
+  },
   "deleteTreatmentStepBody": "This will permanently delete the step \"{stepName}\".",
   "@deleteTreatmentStepBody": {
     "description": "Body message for delete treatment step confirmation dialog",
     "placeholders": {
-      "stepName": {"type": "String"}
+      "stepName": {
+        "type": "String"
+      }
     }
   },
   "syncPending": "Pending",
-  "@syncPending": {"description": "Sync badge status label for pending sync"},
+  "@syncPending": {
+    "description": "Sync badge status label for pending sync"
+  },
   "syncSyncing": "Syncing",
-  "@syncSyncing": {"description": "Sync badge status label for ongoing sync"},
+  "@syncSyncing": {
+    "description": "Sync badge status label for ongoing sync"
+  },
   "syncFailed": "Failed",
-  "@syncFailed": {"description": "Sync badge status label for failed sync"},
+  "@syncFailed": {
+    "description": "Sync badge status label for failed sync"
+  },
   "syncDeliveryFailed": "Delivery Failed",
-  "@syncDeliveryFailed": {"description": "Sync badge status label for abandoned sync after max retries"},
+  "@syncDeliveryFailed": {
+    "description": "Sync badge status label for abandoned sync after max retries"
+  },
   "syncSynced": "Synced",
-  "@syncSynced": {"description": "Sync badge status label for successfully synced item"},
+  "@syncSynced": {
+    "description": "Sync badge status label for successfully synced item"
+  },
   "updateRequiredTitle": "Update Required",
-  "@updateRequiredTitle": {"description": "Title for force-update dialog"},
+  "@updateRequiredTitle": {
+    "description": "Title for force-update dialog"
+  },
   "updateRequiredBody": "A newer version of CropGuard AI is available and required to continue. Please update the app from the store.",
-  "@updateRequiredBody": {"description": "Body text for force-update dialog"},
+  "@updateRequiredBody": {
+    "description": "Body text for force-update dialog"
+  },
   "updateNow": "Update Now",
-  "@updateNow": {"description": "Button label to open app store for update"},
+  "@updateNow": {
+    "description": "Button label to open app store for update"
+  },
   "scanEngineUnavailableDesc": "The scan engine couldn't start on this device. You can ask the farming community for disease identification.",
-  "@scanEngineUnavailableDesc": {"description": "Description in scan engine unavailable dialog"}
+  "@scanEngineUnavailableDesc": {
+    "description": "Description in scan engine unavailable dialog"
+  },
+  "statusAtRisk": "At Risk",
+  "gpsDisabledWarning": "Device location service is turned off. Please enable GPS in device settings.",
+  "outbreakVerifiedSuccess": "Outbreak verified successfully.",
+  "outbreakVerifyFailed": "Failed to verify outbreak.",
+  "outbreakFlaggedSuccess": "Outbreak flagged as incorrect.",
+  "outbreakFlagFailed": "Failed to flag outbreak.",
+  "signInRequiredToReport": "You must be signed in to submit a report.",
+  "locationUnavailable": "Location unavailable.",
+  "sortMostCases": "Sort: Most Cases",
+  "sortMostRecent": "Sort: Most Recent",
+  "sortClosest": "Sort: Closest",
+  "communityReportPostReason": "Report spam, harassment, or inaccurate farming advice",
+  "communityBlockUserReason": "Hide all current and future posts from this user",
+  "block": "Block",
+  "galleryPermissionError": "Failed to access gallery. Check photo permissions in Settings.",
+  "voiceDictationTwiOnly": "Voice dictation currently supports Twi (tw). Switch language in Settings.",
+  "voiceDictationTranscribed": "Transcribed ({lang}):",
+  "@voiceDictationTranscribed": {
+    "description": "Label for voice transcribed text with language tag",
+    "placeholders": {
+      "lang": {
+        "type": "String"
+      }
+    }
+  },
+  "loading": "Loading..."
 }
-

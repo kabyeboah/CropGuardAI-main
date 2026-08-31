@@ -37,140 +37,145 @@ class SettingsScreen extends StatelessWidget {
                 ),
           backgroundColor: colors.surface,
           title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.settings,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(l10n.settingsSubtitle,
+                  style: TextStyle(
+                      color: colors.onBackgroundSecondary, fontSize: 12)),
+            ],
+          ),
+        ),
+        body: ListView(
           children: [
-            Text(l10n.settings,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            Text(l10n.settingsSubtitle,
-                style: TextStyle(
-                    color: colors.onBackgroundSecondary, fontSize: 12)),
+            _ActionRow(
+              label: l10n.myProfile,
+              onTap: () => context.push('/profile'),
+            ),
+            // Display section
+            _SectionHeader(l10n.sectionDisplay),
+            _ThemeModeRow(
+              value: provider.themeMode,
+              onChanged: provider.setThemeMode,
+              labelLight: l10n.themeLight,
+              labelAuto: l10n.themeAuto,
+              labelDark: l10n.themeDark,
+              themeLabel: l10n.theme,
+            ),
+            _ToggleRow(
+              label: l10n.largeTextMode,
+              value: provider.largeTextMode,
+              onChanged: provider.setLargeTextMode,
+            ),
+            _ToggleRow(
+              label: l10n.showConfidenceScore,
+              value: provider.showConfidence,
+              onChanged: provider.setShowConfidence,
+            ),
+            _ToggleRow(
+              label: l10n.notifications,
+              value: provider.notificationsEnabled,
+              onChanged: provider.setNotificationsEnabled,
+            ),
+            _ToggleRow(
+              label: l10n.shareAnalytics,
+              value: provider.analyticsEnabled,
+              onChanged: provider.setAnalyticsEnabled,
+            ),
+            if (provider.biometricAvailable)
+              _ToggleRow(
+                label: l10n.biometricLock,
+                value: provider.biometricLockEnabled,
+                onChanged: provider.setBiometricLockEnabled,
+              ),
+            _LanguageRow(
+              label: l10n.language,
+              value: provider.locale?.languageCode,
+              onChanged: provider.setLocale,
+            ),
+
+            // Model & data section
+            _SectionHeader(l10n.sectionModelData),
+            _InfoRow(
+              label: l10n.modelVersion,
+              value: provider.modelVersionLabel,
+              badge: l10n.modelVersionActive,
+            ),
+            _InfoRow(
+              label: context.l10n.supportedCrops,
+              value:
+                  '51 disease classes verified across Ghanaian staple & regional crops.',
+            ),
+            _ActionRow(
+              label: provider.isCheckingUpdates
+                  ? l10n.checkingUpdates
+                  : l10n.checkUpdates,
+              trailing: provider.isCheckingUpdates
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colors.primary,
+                      ),
+                    )
+                  : null,
+              onTap: provider.isCheckingUpdates
+                  ? null
+                  : () async {
+                      await provider.checkForModelUpdates();
+                      if (context.mounted &&
+                          provider.updateMessageCode != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(provider.updateMessageCode!
+                                .resolve(context.l10n)),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    },
+            ),
+            _ActionRow(
+              label: l10n.clearScanHistory,
+              color: colors.diseaseRed,
+              onTap: () => _confirmClear(context, provider),
+            ),
+            _ActionRow(
+              label: l10n.deleteAccount,
+              color: colors.diseaseRed,
+              onTap: () => _confirmDelete(context, provider),
+            ),
+
+            // About section
+            _SectionHeader(l10n.sectionAbout),
+            _InfoRow(
+              label: l10n.appVersion,
+              value: provider.appVersionLabel,
+            ),
+            _InfoRow(
+              label: context.l10n.disclaimerLabel,
+              value: l10n.disclaimer,
+            ),
+            _ActionRow(
+              label: l10n.privacyPolicy,
+              onTap: () => context.push('/privacy_policy'),
+            ),
+            _ActionRow(
+              label: l10n.termsOfService,
+              onTap: () => context.push('/terms_of_service'),
+            ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
-      body: ListView(
-        children: [
-          _ActionRow(
-            label: l10n.myProfile,
-            onTap: () => context.push('/profile'),
-          ),
-          // Display section
-          _SectionHeader(l10n.sectionDisplay),
-          _ThemeModeRow(
-            value: provider.themeMode,
-            onChanged: provider.setThemeMode,
-            labelLight: l10n.themeLight,
-            labelAuto: l10n.themeAuto,
-            labelDark: l10n.themeDark,
-            themeLabel: l10n.theme,
-          ),
-          _ToggleRow(
-            label: l10n.largeTextMode,
-            value: provider.largeTextMode,
-            onChanged: provider.setLargeTextMode,
-          ),
-          _ToggleRow(
-            label: l10n.showConfidenceScore,
-            value: provider.showConfidence,
-            onChanged: provider.setShowConfidence,
-          ),
-          _ToggleRow(
-            label: l10n.notifications,
-            value: provider.notificationsEnabled,
-            onChanged: provider.setNotificationsEnabled,
-          ),
-          _ToggleRow(
-            label: l10n.shareAnalytics,
-            value: provider.analyticsEnabled,
-            onChanged: provider.setAnalyticsEnabled,
-          ),
-          if (provider.biometricAvailable)
-            _ToggleRow(
-              label: l10n.biometricLock,
-              value: provider.biometricLockEnabled,
-              onChanged: provider.setBiometricLockEnabled,
-            ),
-          _LanguageRow(
-            label: l10n.language,
-            value: provider.locale?.languageCode,
-            onChanged: provider.setLocale,
-          ),
-
-          // Model & data section
-          _SectionHeader(l10n.sectionModelData),
-          _InfoRow(
-            label: l10n.modelVersion,
-            value: provider.modelVersionLabel,
-            badge: l10n.modelVersionActive,
-          ),
-          _InfoRow(
-            label: context.l10n.supportedCrops,
-            value: '51 disease classes verified across Ghanaian staple & regional crops.',
-          ),
-          _ActionRow(
-            label: provider.isCheckingUpdates ? l10n.checkingUpdates : l10n.checkUpdates,
-            trailing: provider.isCheckingUpdates
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.primary,
-                    ),
-                  )
-                : null,
-            onTap: provider.isCheckingUpdates
-                ? null
-                : () async {
-                    await provider.checkForModelUpdates();
-                    if (context.mounted && provider.updateMessageCode != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(provider.updateMessageCode!.resolve(context.l10n)),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  },
-          ),
-          _ActionRow(
-            label: l10n.clearScanHistory,
-            color: colors.diseaseRed,
-            onTap: () => _confirmClear(context, provider),
-          ),
-          _ActionRow(
-            label: l10n.deleteAccount,
-            color: colors.diseaseRed,
-            onTap: () => _confirmDelete(context, provider),
-          ),
-
-          // About section
-          _SectionHeader(l10n.sectionAbout),
-          _InfoRow(
-            label: l10n.appVersion,
-            value: provider.appVersionLabel,
-          ),
-          _InfoRow(
-            label: context.l10n.disclaimerLabel,
-            value: l10n.disclaimer,
-          ),
-          _ActionRow(
-            label: l10n.privacyPolicy,
-            onTap: () => context.push('/privacy_policy'),
-          ),
-          _ActionRow(
-            label: l10n.termsOfService,
-            onTap: () => context.push('/terms_of_service'),
-          ),
-
-          const SizedBox(height: 40),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
   void _confirmClear(BuildContext context, SettingsProvider provider) {
     final l10n = context.l10n;
@@ -181,8 +186,7 @@ class SettingsScreen extends StatelessWidget {
         content: Text(l10n.clearHistoryBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel)),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () {
               provider.clearHistory();
@@ -206,8 +210,7 @@ class SettingsScreen extends StatelessWidget {
         content: Text(l10n.deleteAccountBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel)),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -221,7 +224,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _finalDeleteConfirmation(BuildContext context, SettingsProvider provider) {
+  void _finalDeleteConfirmation(
+      BuildContext context, SettingsProvider provider) {
     final auth = sl<FirebaseAuthService>();
     _showReauthAndDeleteDialog(context, provider, auth);
   }
@@ -239,7 +243,8 @@ class SettingsScreen extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: Text(l10n.confirmDeletion,
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  color: Colors.red, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -290,8 +295,7 @@ class SettingsScreen extends StatelessWidget {
                           Navigator.pop(ctx);
                           context.go('/login');
                         },
-                        password:
-                            auth.hasPasswordProvider ? password : null,
+                        password: auth.hasPasswordProvider ? password : null,
                         reauthWithGoogle:
                             auth.hasGoogleProvider && password.isEmpty,
                       );
@@ -332,9 +336,7 @@ class _ToggleRow extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   const _ToggleRow(
-      {required this.label,
-      required this.value,
-      required this.onChanged});
+      {required this.label, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -348,15 +350,13 @@ class _ToggleRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(label,
-                    style: Theme.of(context).textTheme.bodyLarge),
+                Text(label, style: Theme.of(context).textTheme.bodyLarge),
                 Switch(value: value, onChanged: onChanged),
               ],
             ),
           ),
         ),
-        Divider(height: 0, color: colors.divider,
-            indent: 16, endIndent: 16),
+        Divider(height: 0, color: colors.divider, indent: 16, endIndent: 16),
       ],
     );
   }
@@ -396,8 +396,7 @@ class _ActionRow extends StatelessWidget {
             ),
           ),
         ),
-        Divider(height: 0, color: colors.divider,
-            indent: 16, endIndent: 16),
+        Divider(height: 0, color: colors.divider, indent: 16, endIndent: 16),
       ],
     );
   }
@@ -540,8 +539,7 @@ class _InfoRow extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(label,
-                      style: Theme.of(context).textTheme.bodyLarge),
+                  Text(label, style: Theme.of(context).textTheme.bodyLarge),
                   if (badge != null) ...[
                     const SizedBox(width: 8),
                     Container(
@@ -562,13 +560,11 @@ class _InfoRow extends StatelessWidget {
               ),
               Text(value,
                   style: TextStyle(
-                      color: colors.onBackgroundSecondary,
-                      fontSize: 13)),
+                      color: colors.onBackgroundSecondary, fontSize: 13)),
             ],
           ),
         ),
-        Divider(height: 0, color: colors.divider,
-            indent: 16, endIndent: 16),
+        Divider(height: 0, color: colors.divider, indent: 16, endIndent: 16),
       ],
     );
   }

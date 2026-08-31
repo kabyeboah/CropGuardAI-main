@@ -3,6 +3,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_map/flutter_map.dart';
 
+import '../config/app_secrets.dart';
+
 /// Dedicated on-disk cache for map tiles, separate from the default image
 /// cache. Sized generously (the default 200-object limit evicts tiles almost
 /// immediately) so a usefully large area stays available offline.
@@ -18,6 +20,11 @@ class MapTileCacheManager {
       maxNrOfCacheObjects: 3000,
     ),
   );
+
+  /// Empties the map tile disk cache.
+  static Future<void> clearCache() async {
+    await instance.emptyCache();
+  }
 }
 
 /// A [flutter_map] tile provider that caches map tiles to disk via
@@ -36,9 +43,14 @@ class CachedTileProvider extends TileProvider {
 
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    final effectiveHeaders = Map<String, String>.from(headers);
+    if (!effectiveHeaders.containsKey('User-Agent')) {
+      effectiveHeaders['User-Agent'] = AppSecrets.osmUserAgent;
+    }
+
     return CachedNetworkImageProvider(
       getTileUrl(coordinates, options),
-      headers: headers,
+      headers: effectiveHeaders,
       cacheManager: MapTileCacheManager.instance,
     );
   }

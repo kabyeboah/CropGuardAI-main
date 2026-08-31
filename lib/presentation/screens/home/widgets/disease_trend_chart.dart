@@ -56,7 +56,9 @@ class DiseaseTrendChart extends StatelessWidget {
                 reservedSize: 22,
                 getTitlesWidget: (v, _) {
                   final i = v.toInt();
-                  if (i < 0 || i >= trend.length) return const SizedBox.shrink();
+                  if (i < 0 || i >= trend.length) {
+                    return const SizedBox.shrink();
+                  }
                   final day = trend[i]['day']?.toString() ?? '';
                   final short = day.length >= 5 ? day.substring(5) : day;
                   return Text(short,

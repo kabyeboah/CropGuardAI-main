@@ -9,12 +9,50 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
-import '../../core/di/service_locator.dart';
-import '../../core/utils/analytics_service.dart';
 import '../../core/utils/app_logger.dart';
-import '../../core/utils/classifier_health_service.dart';
 import '../../core/utils/image_quality_analyzer.dart';
+import '../../core/utils/image_safety_utils.dart';
 import 'disease_info.dart';
+
+// ── Explicit ML Exceptions ───────────────────────────────────────────────────
+
+/// Base class for all ML-related operational exceptions.
+class MLException implements Exception {
+  final String message;
+  final String code;
+  const MLException(this.message, {this.code = 'ML_FAILURE'});
+
+  @override
+  String toString() => '$code: $message';
+}
+
+/// Thrown when asset loading or TFLite interpreter initialization fails.
+class ModelLoadException extends MLException {
+  const ModelLoadException(super.message) : super(code: 'MODEL_LOAD_FAILED');
+}
+
+/// Thrown when tensor dimensions, shapes, or types violate the metadata contract.
+class ModelContractException extends MLException {
+  const ModelContractException(super.message)
+      : super(code: 'MODEL_CONTRACT_FAILED');
+}
+
+/// Thrown when image data cannot be read, decoded, or preprocessed.
+class ModelInputException extends MLException {
+  const ModelInputException(super.message) : super(code: 'MODEL_INPUT_INVALID');
+}
+
+/// Thrown when TFLite inference fails during interpreter runtime execution.
+class ModelInferenceException extends MLException {
+  const ModelInferenceException(super.message)
+      : super(code: 'MODEL_INFERENCE_FAILED');
+}
+
+/// Thrown when label definitions mismatch the model output class count.
+class LabelContractException extends MLException {
+  const LabelContractException(super.message)
+      : super(code: 'LABEL_CONTRACT_FAILED');
+}
 
 /// A single entry in the top-N candidate list returned by inference.
 typedef TopCandidate = ({String label, double confidence});
@@ -26,12 +64,15 @@ class ClassificationResult {
   final bool isHealthy;
   final DiseaseInfoEntry diseaseInfo;
   final ImageQualityResult? qualityResult;
+
+  /// Indicates confidence abstention (true when topScore < confidenceThreshold,
+  /// meaning the real model ran successfully but confidence was insufficient for
+  /// standalone diagnosis, triggering multi-angle or cloud escalation).
   final bool isDegraded;
   final bool engineUnavailable;
-  final bool isOutOfDistribution;
   final String? modelVersion;
-  /// Top-3 predictions from the model in descending confidence order.
-  /// Empty on degraded / fallback paths — we never fabricate candidates.
+
+  /// Authentic top-N predictions from the model in descending confidence order.
   final List<TopCandidate> topCandidates;
 
   const ClassificationResult({
@@ -42,7 +83,6 @@ class ClassificationResult {
     this.qualityResult,
     this.isDegraded = false,
     this.engineUnavailable = false,
-    this.isOutOfDistribution = false,
     this.modelVersion,
     this.topCandidates = const [],
   });
@@ -68,27 +108,36 @@ class _PreprocessingInput {
 class _PreprocessingResult {
   final Float32List? inputTensor;
   final ImageQualityResult qualityResult;
-  final double greenRatio;
 
   const _PreprocessingResult({
     this.inputTensor,
     required this.qualityResult,
-    this.greenRatio = 0.0,
   });
 }
 
 /// Runs inside a `compute()` isolate — decodes, performs quality checks, and resizes.
 _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   img.Image? raw;
-  if (input.imageFileBytes != null) {
-    raw = img.decodeImage(input.imageFileBytes!);
-  } else if (input.rgbaBytes != null && input.width > 0 && input.height > 0) {
-    raw = img.Image.fromBytes(
-      width: input.width,
-      height: input.height,
-      bytes: input.rgbaBytes!.buffer,
-      format: img.Format.uint8,
-      numChannels: 4,
+  try {
+    if (input.imageFileBytes != null) {
+      raw = ImageSafetyUtils.safeDecodeAndOrient(input.imageFileBytes!);
+    } else if (input.rgbaBytes != null && input.width > 0 && input.height > 0) {
+      raw = img.Image.fromBytes(
+        width: input.width,
+        height: input.height,
+        bytes: input.rgbaBytes!.buffer,
+        format: img.Format.uint8,
+        numChannels: 4,
+      );
+    }
+  } catch (e) {
+    AppLogger.w('CropDiseaseClassifier: safeDecodeAndOrient failed: $e');
+    return const _PreprocessingResult(
+      inputTensor: null,
+      qualityResult: ImageQualityResult(
+        false,
+        ImageQualityIssue.blurry,
+      ),
     );
   }
   if (raw == null) {
@@ -113,33 +162,6 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   const inputSize = CropDiseaseClassifier.inputSize;
   final resized = img.copyResize(raw, width: inputSize, height: inputSize);
 
-  int plantPixels = 0;
-  int totalPixels = 0;
-  final step = max(1, inputSize ~/ 50);
-  for (var y = 0; y < inputSize; y += step) {
-    for (var x = 0; x < inputSize; x += step) {
-      final pixel = resized.getPixel(x, y);
-      totalPixels++;
-      final r = pixel.r;
-      final g = pixel.g;
-      final b = pixel.b;
-      
-      // 1. Green leaf tissue
-      final isGreen = g > r && g > b && g > 25;
-      // 2. Yellowing leaf / Chlorosis (high R & G, lower B)
-      final isYellow = r >= 40 && g >= 40 && b < min(r, g) * 0.95;
-      // 3. Brown necrosis / leaf spot / pod / tuber / wood
-      final isBrown = r > 35 && g > 20 && b < r * 0.85 && (r - b) > 10;
-      // 4. Red/orange rust / rot
-      final isRust = r > 50 && r > g * 1.1 && r > b * 1.3;
-
-      if (isGreen || isYellow || isBrown || isRust) {
-        plantPixels++;
-      }
-    }
-  }
-  final greenRatio = totalPixels > 0 ? plantPixels / totalPixels : 0.0;
-
   // Build contiguous [1 * 128 * 128 * 3] float tensor — RAW [0, 255].
   // The V3 model has an internal Rescaling layer (x/127.5 - 1).
   // Dart must NOT divide by 255 here — doing so produces inputs in
@@ -158,7 +180,6 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   return _PreprocessingResult(
     inputTensor: inputTensor,
     qualityResult: qualityCheck,
-    greenRatio: greenRatio,
   );
 }
 
@@ -167,9 +188,7 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
 ///
 /// [calibrationTemperature] is loaded from `model_metadata.json`
 /// (`calibration_temperature` key). The model outputs raw logits; this
-/// function applies temperature scaling then softmax unconditionally —
-/// do NOT use the old heuristic (`maxLogit > 1.0`) because a well-calibrated
-/// model's logits can be in any range and will break the heuristic.
+/// function applies temperature scaling then softmax unconditionally.
 ({
   String label,
   double confidence,
@@ -181,39 +200,48 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
   double calibrationTemperature,
 ) {
   if (labels.isEmpty) {
-    return (label: 'Unknown', confidence: 0.0, top3: const []);
+    throw const LabelContractException('Labels list is empty.');
   }
 
   final outputShape = interpreter.getOutputTensor(0).shape;
   final numClasses = outputShape.last;
 
-  assert(
-    numClasses == labels.length,
-    'CropDiseaseClassifier: label count (${labels.length}) does not match '
-    'model output classes ($numClasses). Restore the correct labels file.',
-  );
+  if (numClasses != labels.length) {
+    throw LabelContractException(
+      'CropDiseaseClassifier: label count (${labels.length}) does not match '
+      'model output classes ($numClasses).',
+    );
+  }
 
   final outputBuffer = [List.filled(numClasses, 0.0)];
   final reshapedInput = inputTensor.reshape(
       [1, CropDiseaseClassifier.inputSize, CropDiseaseClassifier.inputSize, 3]);
-  interpreter.run(reshapedInput, outputBuffer);
+
+  try {
+    interpreter.run(reshapedInput, outputBuffer);
+  } catch (e) {
+    throw ModelInferenceException(
+        'TFLite interpreter.run execution failed: $e');
+  }
 
   final logits = outputBuffer[0];
+  if (logits.length != labels.length) {
+    throw ModelContractException(
+      'Output logits count (${logits.length}) does not match labels count (${labels.length}).',
+    );
+  }
 
   // Unconditional temperature-scaled softmax.
   // scaled_i = logit_i / calibrationTemperature  →  probabilities = softmax(scaled)
   // calibrationTemperature = 1.3409 (from model_metadata.json).
-  // The heuristic guard (maxLogit > 1.0) has been deliberately removed:
-  // a calibrated model's job is to produce logits that don't look obviously raw,
-  // so the old guard would silently skip temperature scaling on exactly the scans
-  // where it matters most.
   final temp = calibrationTemperature > 0 ? calibrationTemperature : 1.0;
   final scaled = logits.map((l) => l / temp).toList();
   final maxScaled = scaled.reduce((a, b) => a > b ? a : b);
   var expSum = 0.0;
   final exps = List<double>.filled(scaled.length, 0.0);
   for (var i = 0; i < scaled.length; i++) {
-    exps[i] = exp(scaled[i] - maxScaled); // subtract max for numerical stability
+    exps[i] =
+        exp(scaled[i] - maxScaled); // subtract max for numerical stability
     expSum += exps[i];
   }
   final probabilities = exps.map((e) => expSum > 0 ? e / expSum : 0.0).toList();
@@ -224,13 +252,14 @@ _PreprocessingResult _preprocessImageIsolate(_PreprocessingInput input) {
 
   final topIndex = indices[0];
   final topScore = probabilities[topIndex];
-  final topLabel = topIndex < labels.length ? labels[topIndex] : 'Unknown';
+  final topLabel = labels[topIndex];
 
-  // Top-3 candidates (skip 'Unknown' entries).
+  // Top-3 candidates.
   final top3 = indices
       .take(3)
-      .where((i) => i < labels.length && labels[i] != 'Unknown')
-      .map<TopCandidate>((i) => (label: labels[i], confidence: probabilities[i]))
+      .where((i) => i < labels.length)
+      .map<TopCandidate>(
+          (i) => (label: labels[i], confidence: probabilities[i]))
       .toList();
 
   return (label: topLabel, confidence: topScore, top3: top3);
@@ -272,14 +301,6 @@ class CropDiseaseClassifier {
   }
 
   /// Creates an [Interpreter] for [modelBytes] using hardware acceleration if
-  /// available, with a transparent CPU-only fallback.
-  ///
-  /// On iOS, `tflite_flutter` bundles the Metal and CoreML delegates and
-  /// attempts to use them by default. On the Simulator (or devices where the
-  /// Metal delegate cannot be initialised) this throws
-  /// "Invalid argument(s): Unable to create interpreter". We catch that and
-  /// retry with a plain CPU-only interpreter so the app keeps working.
-  /// Creates an [Interpreter] for [modelBytes] using hardware acceleration if
   /// available, with transparent CPU options and zero-option fallbacks.
   Interpreter _createInterpreter(Uint8List modelBytes) {
     // Attempt 1: Hardware acceleration default (Metal/CoreML on iOS, NNAPI on Android)
@@ -294,7 +315,8 @@ class CropDiseaseClassifier {
         unawaited(FirebaseCrashlytics.instance.recordError(
           e,
           null,
-          reason: 'TFLite hardware delegate failed — falling back to CPU options',
+          reason:
+              'TFLite hardware delegate failed — falling back to CPU options',
           fatal: false,
         ));
       } catch (_) {}
@@ -315,7 +337,8 @@ class CropDiseaseClassifier {
         unawaited(FirebaseCrashlytics.instance.recordError(
           e,
           null,
-          reason: 'TFLite CPU options failed — falling back to raw Interpreter.fromBuffer',
+          reason:
+              'TFLite CPU options failed — falling back to raw Interpreter.fromBuffer',
           fatal: false,
         ));
       } catch (_) {}
@@ -329,79 +352,16 @@ class CropDiseaseClassifier {
     ByteData? modelData;
     Uint8List? modelBytes;
 
-    // Stage 1: Load verified asset files
-    try {
-      modelData = await rootBundle.load('assets/cropguard_plant_disease_verified.tflite');
-      _labels = _parseLabels(await rootBundle.loadString('assets/labels_verified.txt'));
-      modelBytes = Uint8List.fromList(
-        modelData.buffer.asUint8List(modelData.offsetInBytes, modelData.lengthInBytes),
-      );
-    } catch (e, stack) {
-      _isLoaded = false;
-      _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: verified asset load failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e, stack,
-          reason: 'TFLite model load failure (Stage 1: asset load) — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
-      return;
-    }
+    int expectedInputSize = inputSize;
+    int expectedNumClasses = 51;
 
-    // Stage 2: Create interpreter
-    try {
-      _interpreter = _createInterpreter(modelBytes);
-    } catch (e, stack) {
-      _isLoaded = false;
-      _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: interpreter creation failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e, stack,
-          reason: 'TFLite model load failure (Stage 2: interpreter creation) — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
-      return;
-    }
-
-    // Stage 3: Allocate tensors & align labels
-    try {
-      _interpreter!.allocateTensors();
-      final numClasses = _interpreter!.getOutputTensor(0).shape.last;
-      if (_labels.length != numClasses) {
-        AppLogger.w(
-          'CropDiseaseClassifier: label count (${_labels.length}) does not match model output classes ($numClasses). Truncating/adjusting.',
-        );
-        if (_labels.length > numClasses) {
-          _labels = _labels.sublist(0, numClasses);
-        } else {
-          while (_labels.length < numClasses) {
-            _labels.add('Unknown_Class_${_labels.length}');
-          }
-        }
-      }
-    } catch (e, stack) {
-      _isLoaded = false;
-      _engineAvailable = false;
-      AppLogger.e('CropDiseaseClassifier: tensor allocation failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e, stack,
-          reason: 'TFLite model load failure (Stage 3: tensor allocation) — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
-      return;
-    }
-
-    // Load metadata version and calibration temperature
+    // Stage 1: Load metadata
     try {
       final jsonStr = await rootBundle.loadString('assets/model_metadata.json');
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-      modelVersion = map['version']?.toString() ?? '3.0';
+      modelVersion = map['version']?.toString() ?? '2026.08.28';
+      expectedInputSize = (map['input_size'] as num?)?.toInt() ?? inputSize;
+      expectedNumClasses = (map['num_classes'] as num?)?.toInt() ?? 51;
       final rawTemp = map['calibration_temperature'];
       if (rawTemp != null) {
         _calibrationTemperature = (rawTemp as num).toDouble();
@@ -409,9 +369,143 @@ class CropDiseaseClassifier {
           'CropDiseaseClassifier: calibration_temperature=$_calibrationTemperature',
         );
       }
-    } catch (_) {
-      modelVersion = '3.0';
-      // _calibrationTemperature keeps its default (1.3409) on error
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      AppLogger.e('CropDiseaseClassifier: metadata load failed', e, stack);
+      throw ModelContractException(
+          'Failed to load assets/model_metadata.json: $e');
+    }
+
+    // Stage 2: Load asset files
+    try {
+      modelData =
+          await rootBundle.load('assets/cropguard_plant_disease.tflite');
+      _labels = _parseLabels(await rootBundle.loadString('assets/labels.txt'));
+      modelBytes = Uint8List.fromList(
+        modelData.buffer
+            .asUint8List(modelData.offsetInBytes, modelData.lengthInBytes),
+      );
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      AppLogger.e(
+          'CropDiseaseClassifier: verified asset load failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e,
+          stack,
+          reason:
+              'TFLite model load failure (asset load) — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
+      throw ModelLoadException('Failed to load model or label assets: $e');
+    }
+
+    if (_labels.isEmpty) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      throw const LabelContractException('Loaded labels file is empty');
+    }
+    if (_labels.toSet().length != _labels.length) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      throw const LabelContractException(
+          'Duplicate labels found in labels file');
+    }
+
+    // Stage 3: Create interpreter
+    try {
+      _interpreter = _createInterpreter(modelBytes);
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      AppLogger.e(
+          'CropDiseaseClassifier: interpreter creation failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e,
+          stack,
+          reason:
+              'TFLite model load failure (interpreter creation) — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
+      throw ModelLoadException('Failed to create TFLite interpreter: $e');
+    }
+
+    // Stage 4: Allocate tensors & strictly enforce contracts
+    try {
+      _interpreter!.allocateTensors();
+
+      // Input tensor shape & type validation
+      final inputTensors = _interpreter!.getInputTensors();
+      if (inputTensors.isEmpty) {
+        throw const ModelContractException('Model has no input tensors');
+      }
+      final inputTensor = inputTensors[0];
+      final inShape = inputTensor.shape;
+      if (inShape.length != 4 ||
+          inShape[0] != 1 ||
+          inShape[1] != expectedInputSize ||
+          inShape[2] != expectedInputSize ||
+          inShape[3] != 3) {
+        throw ModelContractException(
+          'Model input tensor shape $inShape does not match metadata contract [1, $expectedInputSize, $expectedInputSize, 3]',
+        );
+      }
+      if (inputTensor.type != TensorType.float32) {
+        throw ModelContractException(
+          'Model input tensor type ${inputTensor.type} does not match expected float32',
+        );
+      }
+
+      // Output tensor shape & type validation
+      final outputTensors = _interpreter!.getOutputTensors();
+      if (outputTensors.isEmpty) {
+        throw const ModelContractException('Model has no output tensors');
+      }
+      final outputTensor = outputTensors[0];
+      final outShape = outputTensor.shape;
+      final numClasses = outShape.last;
+      if (outShape.length != 2 ||
+          outShape[0] != 1 ||
+          numClasses != expectedNumClasses) {
+        throw ModelContractException(
+          'Model output tensor shape $outShape does not match metadata contract [1, $expectedNumClasses]',
+        );
+      }
+      if (outputTensor.type != TensorType.float32) {
+        throw ModelContractException(
+          'Model output tensor type ${outputTensor.type} does not match expected float32',
+        );
+      }
+
+      // Exact label count match — NEVER silently truncate, NEVER synthesize synthetic labels
+      if (_labels.length != numClasses) {
+        throw LabelContractException(
+          'Label count (${_labels.length}) does not match model output classes ($numClasses).',
+        );
+      }
+    } catch (e, stack) {
+      _isLoaded = false;
+      _engineAvailable = false;
+      _interpreter?.close();
+      _interpreter = null;
+      AppLogger.e(
+          'CropDiseaseClassifier: tensor contract validation failed', e, stack);
+      try {
+        await FirebaseCrashlytics.instance.recordError(
+          e,
+          stack,
+          reason:
+              'TFLite tensor contract validation failure — engine marked unavailable',
+          fatal: false,
+        );
+      } catch (_) {}
+      if (e is MLException) rethrow;
+      throw ModelContractException('TFLite tensor contract error: $e');
     }
 
     _isLoaded = true;
@@ -425,129 +519,144 @@ class CropDiseaseClassifier {
   Future<ClassificationResult?> classifyFromPath(String imagePath) async {
     Uint8List? bytes;
     try {
-      bytes = await File(imagePath).readAsBytes();
-    } catch (e, stack) {
-      AppLogger.e('CropDiseaseClassifier: failed to read image file at $imagePath', e, stack);
-    }
-
-    if (!_isLoaded && _engineAvailable) await loadModel();
-
-    if (_isLoaded && _interpreter != null && bytes != null) {
-      try {
-        final prepResult = await compute(
-          _preprocessImageIsolate,
-          _PreprocessingInput(imageFileBytes: bytes),
-        );
-
-        if (prepResult.inputTensor != null) {
-          final singleResult = _runSingleModelOnMainThread(
-            _interpreter!,
-            _labels,
-            prepResult.inputTensor!,
-            _calibrationTemperature,
-          );
-          final topLabel = singleResult.label;
-          final topScore = singleResult.confidence;
-          final topCandidates = singleResult.top3;
-
-          final info = DiseaseDatabase.getInfo(topLabel);
-
-          final numClasses = _labels.isNotEmpty ? _labels.length : 51;
-          final isOod = prepResult.greenRatio < 0.05 || topScore < (2.0 / numClasses);
-
-          if (topScore >= confidenceThreshold && topLabel != 'Unknown' && !isOod) {
-            return ClassificationResult(
-              label: topLabel,
-              confidence: topScore,
-              isHealthy: info.isHealthy,
-              diseaseInfo: info,
-              qualityResult: prepResult.qualityResult,
-              isDegraded: false,
-              isOutOfDistribution: false,
-              modelVersion: modelVersion,
-              topCandidates: topCandidates,
-            );
-          }
-
-          // Below threshold or OOD — real model ran and produced a candidate.
-          // Return the real model's output marked as degraded so UI can handle low confidence / OOD.
-          return ClassificationResult(
-            label: topLabel,
-            confidence: topScore,
-            isHealthy: info.isHealthy,
-            diseaseInfo: info,
-            qualityResult: prepResult.qualityResult,
-            isDegraded: true,
-            isOutOfDistribution: isOod,
-            modelVersion: modelVersion,
-            topCandidates: topCandidates,
-          );
-        }
-      } catch (e) {
-        AppLogger.w('CropDiseaseClassifier: TFLite inference exception ($e), using visual fallback');
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        throw ModelInputException('Image file does not exist at $imagePath');
       }
+      bytes = await file.readAsBytes();
+    } catch (e, stack) {
+      AppLogger.e(
+          'CropDiseaseClassifier: failed to read image file at $imagePath',
+          e,
+          stack);
+      if (e is MLException) rethrow;
+      throw ModelInputException('Failed to read image file: $e');
     }
 
-    // Fallback: Engine unavailable or exception during prep/inference
-    return _fallbackVisualClassification(
-      imagePath,
-      bytes,
-      engineUnavailable: !_engineAvailable || !_isLoaded,
+    if (!_isLoaded) {
+      await loadModel();
+    }
+
+    if (!_isLoaded || _interpreter == null) {
+      throw const ModelLoadException(
+          'ML model is not loaded or engine is unavailable');
+    }
+
+    final prepResult = await compute(
+      _preprocessImageIsolate,
+      _PreprocessingInput(imageFileBytes: bytes),
+    );
+
+    if (!prepResult.qualityResult.isAcceptable) {
+      return ClassificationResult(
+        label: 'Unknown',
+        confidence: 0.0,
+        isHealthy: false,
+        diseaseInfo: DiseaseDatabase.getInfo('Unknown'),
+        qualityResult: prepResult.qualityResult,
+        isDegraded: true,
+        modelVersion: modelVersion,
+      );
+    }
+
+    if (prepResult.inputTensor == null) {
+      throw const ModelInputException(
+          'Failed to decode or preprocess image tensor');
+    }
+
+    final singleResult = _runSingleModelOnMainThread(
+      _interpreter!,
+      _labels,
+      prepResult.inputTensor!,
+      _calibrationTemperature,
+    );
+
+    final topLabel = singleResult.label;
+    final topScore = singleResult.confidence;
+    final topCandidates = singleResult.top3;
+    final info = DiseaseDatabase.getInfo(topLabel);
+    final isAbstained = topScore < confidenceThreshold || topLabel == 'Unknown';
+
+    return ClassificationResult(
+      label: topLabel,
+      confidence: topScore,
+      isHealthy: info.isHealthy,
+      diseaseInfo: info,
+      qualityResult: prepResult.qualityResult,
+      isDegraded: isAbstained,
+      modelVersion: modelVersion,
+      topCandidates: topCandidates,
     );
   }
 
   /// Classify from raw RGBA bytes (used for live camera frames).
   Future<ClassificationResult?> classifyFromBytes(
-      Uint8List rgbaBytes, int width, int height) async {
-    if (!_isLoaded && _engineAvailable) await loadModel();
-
-    if (_isLoaded && _interpreter != null) {
-      try {
-        final prepResult = await compute(
-          _preprocessImageIsolate,
-          _PreprocessingInput(
-            rgbaBytes: rgbaBytes,
-            width: width,
-            height: height,
-          ),
-        );
-
-        if (prepResult.inputTensor != null) {
-          final singleResult = _runSingleModelOnMainThread(
-            _interpreter!,
-            _labels,
-            prepResult.inputTensor!,
-            _calibrationTemperature,
-          );
-          final topLabel = singleResult.label;
-          final topScore = singleResult.confidence;
-          final topCandidates = singleResult.top3;
-
-          final info = DiseaseDatabase.getInfo(topLabel);
-          final isBelow = topScore < confidenceThreshold || topLabel == 'Unknown';
-          return ClassificationResult(
-            label: topLabel,
-            confidence: topScore,
-            isHealthy: info.isHealthy,
-            diseaseInfo: info,
-            qualityResult: prepResult.qualityResult,
-            isDegraded: isBelow,
-            modelVersion: modelVersion,
-            topCandidates: topCandidates,
-          );
-        }
-      } catch (e) {
-        AppLogger.w('CropDiseaseClassifier: classifyFromBytes exception ($e)');
-      }
+    Uint8List rgbaBytes,
+    int width,
+    int height,
+  ) async {
+    if (rgbaBytes.isEmpty || width <= 0 || height <= 0) {
+      throw const ModelInputException(
+          'Invalid raw byte dimensions for classification');
     }
 
-    return _fallbackVisualClassification(
-      'camera_frame.jpg',
-      rgbaBytes,
-      engineUnavailable: !_engineAvailable || !_isLoaded,
-      isRgbaRaw: true,
-      width: width,
-      height: height,
+    if (!_isLoaded) {
+      await loadModel();
+    }
+
+    if (!_isLoaded || _interpreter == null) {
+      throw const ModelLoadException(
+          'ML model is not loaded or engine is unavailable');
+    }
+
+    final prepResult = await compute(
+      _preprocessImageIsolate,
+      _PreprocessingInput(
+        rgbaBytes: rgbaBytes,
+        width: width,
+        height: height,
+      ),
+    );
+
+    if (!prepResult.qualityResult.isAcceptable) {
+      return ClassificationResult(
+        label: 'Unknown',
+        confidence: 0.0,
+        isHealthy: false,
+        diseaseInfo: DiseaseDatabase.getInfo('Unknown'),
+        qualityResult: prepResult.qualityResult,
+        isDegraded: true,
+        modelVersion: modelVersion,
+      );
+    }
+
+    if (prepResult.inputTensor == null) {
+      throw const ModelInputException(
+          'Failed to decode or preprocess raw image bytes');
+    }
+
+    final singleResult = _runSingleModelOnMainThread(
+      _interpreter!,
+      _labels,
+      prepResult.inputTensor!,
+      _calibrationTemperature,
+    );
+
+    final topLabel = singleResult.label;
+    final topScore = singleResult.confidence;
+    final topCandidates = singleResult.top3;
+    final info = DiseaseDatabase.getInfo(topLabel);
+    final isAbstained = topScore < confidenceThreshold || topLabel == 'Unknown';
+
+    return ClassificationResult(
+      label: topLabel,
+      confidence: topScore,
+      isHealthy: info.isHealthy,
+      diseaseInfo: info,
+      qualityResult: prepResult.qualityResult,
+      isDegraded: isAbstained,
+      modelVersion: modelVersion,
+      topCandidates: topCandidates,
     );
   }
 
@@ -557,124 +666,12 @@ class CropDiseaseClassifier {
     _isLoaded = false;
   }
 
-  /// Test seam: calls [_fallbackVisualClassification] directly so unit tests
-  /// can exercise the 0.30 / 0.45 heuristic confidence paths without needing
-  /// TFLite to be available.
-  ///
-  /// Pass [isRgbaRaw] = true with valid [width] and [height] to test the raw
-  /// RGBA branch (green-pixel ratio → 0.45). Pass [engineUnavailable] = true
-  /// to test the engine-absent path (confidence → 0.0).
-  @visibleForTesting
-  static Future<ClassificationResult> fallbackForTest(
-    Uint8List? bytes, {
-    bool engineUnavailable = false,
-    bool isRgbaRaw = false,
-    int width = 0,
-    int height = 0,
-  }) =>
-      _fallbackVisualClassification(
-        'test_path',
-        bytes,
-        engineUnavailable: engineUnavailable,
-        isRgbaRaw: isRgbaRaw,
-        width: width,
-        height: height,
-      );
-
-  /// The label used whenever the app cannot actually identify a crop or
-  /// disease from the image pixels. [DiseaseDatabase.getInfo] has no entry
-  /// for this key, so it falls through to its own honest default (cropType
-  /// 'Unknown', a generic "consult an extension officer" treatment) — see
-  /// disease_info.dart.
-  static const String _unidentifiedLabel = 'Unidentified';
-
-  /// Fallback path used ONLY when the TFLite engine could not be initialised on
-  /// this device or an unrecoverable inference error occurred.
-  ///
-  /// This version never invents a crop or disease name. It always returns
-  /// "Unidentified" with a confidence score below [confidenceThreshold] so it
-  /// routes safely to the low-confidence or abstain UI.
-  static Future<ClassificationResult> _fallbackVisualClassification(
-    String imagePath,
-    Uint8List? bytes, {
-    bool engineUnavailable = false,
-    List<TopCandidate> belowThresholdCandidates = const [],
-    bool isRgbaRaw = false,
-    int width = 0,
-    int height = 0,
-  }) async {
-    double fallbackConfidence = engineUnavailable ? 0.0 : 0.30;
-
-    if (!engineUnavailable && bytes != null && bytes.isNotEmpty) {
-      try {
-        img.Image? raw;
-        if (isRgbaRaw && width > 0 && height > 0) {
-          raw = img.Image.fromBytes(
-            width: width,
-            height: height,
-            bytes: bytes.buffer,
-            format: img.Format.uint8,
-            numChannels: 4,
-          );
-        } else {
-          raw = img.decodeImage(bytes);
-        }
-
-        if (raw != null) {
-          int greenPixels = 0;
-          int totalPixels = 0;
-
-          final stepX = max(1, raw.width ~/ 100);
-          final stepY = max(1, raw.height ~/ 100);
-
-          for (var y = 0; y < raw.height; y += stepY) {
-            for (var x = 0; x < raw.width; x += stepX) {
-              final pixel = raw.getPixel(x, y);
-              totalPixels++;
-              if (pixel.g > pixel.r && pixel.g > pixel.b && pixel.g > 40) {
-                greenPixels++;
-              }
-            }
-          }
-
-          if (totalPixels > 0 && greenPixels / totalPixels > 0.35) {
-            fallbackConfidence = 0.45;
-          }
-        }
-      } catch (e) {
-        AppLogger.w('CropDiseaseClassifier: visual feature extraction exception ($e)');
-      }
-    }
-
-    try {
-      if (sl.isRegistered<AnalyticsService>()) {
-        unawaited(sl<AnalyticsService>().logModelFallbackUsed(
-          reason: engineUnavailable ? 'engine_unavailable' : 'inference_exception',
-        ));
-      }
-      if (sl.isRegistered<ClassifierHealthService>()) {
-        sl<ClassifierHealthService>().updateHealth(
-          isHealthy: !engineUnavailable,
-          usedFallback: true,
-        );
-      }
-    } catch (_) {}
-
-    return _makeDegradedResult(
-      _unidentifiedLabel,
-      fallbackConfidence,
-      engineUnavailable: engineUnavailable,
-      topCandidates: belowThresholdCandidates,
-    );
-  }
-
   /// Computes fused soft-voting candidates across multiple photo candidate distributions.
   static List<TopCandidate> computeSoftVotingCandidates(
-    List<List<TopCandidate>> candidateLists, {
-    List<TopCandidate> fallbackCandidates = const [],
-  }) {
+    List<List<TopCandidate>> candidateLists,
+  ) {
     if (candidateLists.isEmpty || candidateLists.every((l) => l.isEmpty)) {
-      return fallbackCandidates;
+      return const [];
     }
 
     final scoreMap = <String, double>{};
@@ -690,7 +687,7 @@ class CropDiseaseClassifier {
     }
 
     if (count == 0 || scoreMap.isEmpty) {
-      return fallbackCandidates;
+      return const [];
     }
 
     final merged = scoreMap.entries.map((e) {
@@ -701,20 +698,20 @@ class CropDiseaseClassifier {
     return merged.take(3).toList();
   }
 
-  /// Averages a list of [ClassificationResult]s from multi-angle captures.
+  /// Averages a list of authentic [ClassificationResult]s from multi-angle captures.
   ///
   /// Combines candidate probabilities using soft-voting across angles,
   /// selects the top-scoring disease label, and computes the arithmetic mean
   /// confidence across inputs. Marks the result as [isDegraded] if any input was degraded.
-  static ClassificationResult averageResults(List<ClassificationResult> results) {
+  static ClassificationResult averageResults(
+      List<ClassificationResult> results) {
     assert(results.isNotEmpty, 'averageResults called with an empty list');
     if (results.length == 1) return results.first;
 
     final candidateLists = results.map((r) => r.topCandidates).toList();
     final merged = computeSoftVotingCandidates(candidateLists);
 
-    final best = results.reduce(
-        (a, b) => a.confidence >= b.confidence ? a : b);
+    final best = results.reduce((a, b) => a.confidence >= b.confidence ? a : b);
     final avgConfidence = merged.isNotEmpty
         ? merged.first.confidence
         : results.map((r) => r.confidence).reduce((a, b) => a + b) /
@@ -735,27 +732,4 @@ class CropDiseaseClassifier {
       topCandidates: merged,
     );
   }
-
-  /// Creates a [ClassificationResult] for the fallback heuristic classifier.
-  /// Results are marked [isDegraded] so the UI can display a
-  /// "Low confidence — retake photo" banner instead of showing full confidence.
-  static ClassificationResult _makeDegradedResult(
-    String label,
-    double confidence, {
-    bool engineUnavailable = false,
-    List<TopCandidate> topCandidates = const [],
-  }) {
-    final info = DiseaseDatabase.getInfo(label);
-    return ClassificationResult(
-      label: label,
-      confidence: confidence,
-      isHealthy: info.isHealthy,
-      diseaseInfo: info,
-      isDegraded: true,
-      engineUnavailable: engineUnavailable,
-      modelVersion: modelVersion,
-      topCandidates: topCandidates,
-    );
-  }
 }
-

@@ -14,7 +14,11 @@ void main() {
     isHealthy: false,
     cropType: 'Tomato',
     cause: 'Phytophthora infestans',
-    treatments: ['Remove infected leaves', 'Apply fungicide', 'Improve drainage'],
+    treatments: [
+      'Remove infected leaves',
+      'Apply fungicide',
+      'Improve drainage'
+    ],
     timestamp: 1700000000000,
   );
 

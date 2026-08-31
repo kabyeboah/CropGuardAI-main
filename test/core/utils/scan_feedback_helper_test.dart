@@ -11,7 +11,8 @@ void main() {
     setUp(() {
       systemChannelCalls.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, (MethodCall methodCall) async {
+          .setMockMethodCallHandler(SystemChannels.platform,
+              (MethodCall methodCall) async {
         systemChannelCalls.add(methodCall);
         return null;
       });

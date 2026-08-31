@@ -32,7 +32,9 @@ void main() {
       ),
     ];
 
-    test('should return empty risks when weather is clear and no outbreaks exist', () {
+    test(
+        'should return empty risks when weather is clear and no outbreaks exist',
+        () {
       final risks = AgriWeatherUtils.assessWeeklyRisks(
         dailyForecasts,
         outbreaks: [],
@@ -42,7 +44,9 @@ void main() {
       expect(risks, isEmpty);
     });
 
-    test('should upgrade risk level and set hasNearbyOutbreak to true when outbreak is verified in the region', () {
+    test(
+        'should upgrade risk level and set hasNearbyOutbreak to true when outbreak is verified in the region',
+        () {
       // 1. Arrange a mock outbreak that matches Tomato Late Blight, in 'Ashanti' region, verified (3 votes), less than 14 days old
       final verifiedOutbreak = {
         'id': 'outbreak_123',
@@ -62,13 +66,18 @@ void main() {
 
       // 3. Assert
       // Late Blight should be added due to nearby verified outbreak, even if humidity was low.
-      final blightRisk = risks.firstWhere((r) => r.type == DiseaseRiskType.lateBlight);
+      final blightRisk =
+          risks.firstWhere((r) => r.type == DiseaseRiskType.lateBlight);
       expect(blightRisk, isNotNull);
-      expect(blightRisk.level, equals(RiskLevel.moderate)); // Weather clear + outbreak present yields moderate
+      expect(
+          blightRisk.level,
+          equals(RiskLevel
+              .moderate)); // Weather clear + outbreak present yields moderate
       expect(blightRisk.hasNearbyOutbreak, isTrue);
     });
 
-    test('should ignore outbreaks from other regions or unverified outbreaks', () {
+    test('should ignore outbreaks from other regions or unverified outbreaks',
+        () {
       final unverifiedOutbreak = {
         'id': 'outbreak_456',
         'disease': 'Tomato Late Blight',

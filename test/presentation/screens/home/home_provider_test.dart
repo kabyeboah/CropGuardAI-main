@@ -14,9 +14,13 @@ import 'package:cropguard_flutter/domain/usecases/weather/get_weather_usecase.da
 import 'package:cropguard_flutter/presentation/screens/home/home_provider.dart';
 
 class _MockGetHomeDataUseCase extends Mock implements GetHomeDataUseCase {}
+
 class _MockGetWeatherUseCase extends Mock implements GetWeatherUseCase {}
+
 class _MockAuthRepo extends Mock implements IAuthRepository {}
+
 class _MockConnectivity extends Mock implements ConnectivityService {}
+
 class _MockCommunityRepo extends Mock implements ICommunityRepository {}
 
 void main() {
@@ -40,9 +44,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
 
-    when(() => mockConnectivity.statusStream).thenAnswer((_) => Stream.value(ConnectionStatus.online));
-    when(() => mockConnectivity.checkStatus()).thenAnswer((_) async => ConnectionStatus.online);
-    when(() => mockAuthRepo.currentUser).thenReturn(AppUser(id: 'user_1', email: 'e@mail.com', displayName: 'Farmer', isAnonymous: false));
+    when(() => mockConnectivity.statusStream)
+        .thenAnswer((_) => Stream.value(ConnectionStatus.online));
+    when(() => mockConnectivity.checkStatus())
+        .thenAnswer((_) async => ConnectionStatus.online);
+    when(() => mockAuthRepo.currentUser).thenReturn(AppUser(
+        id: 'user_1',
+        email: 'e@mail.com',
+        displayName: 'Farmer',
+        isAnonymous: false));
 
     when(() => mockGetHomeData(userId: any(named: 'userId'))).thenAnswer(
       (_) async => Result.success(HomeData(
@@ -52,9 +62,12 @@ void main() {
       )),
     );
 
-    when(() => mockCommunity.getOutbreakReports()).thenAnswer((_) async => Result.success([]));
+    when(() => mockCommunity.getOutbreakReports())
+        .thenAnswer((_) async => Result.success([]));
 
-    when(() => mockGetWeather.execute(latitude: any(named: 'latitude'), longitude: any(named: 'longitude'))).thenAnswer(
+    when(() => mockGetWeather.execute(
+        latitude: any(named: 'latitude'),
+        longitude: any(named: 'longitude'))).thenAnswer(
       (_) async => WeatherForecast(
         latitude: 6.6,
         longitude: -1.6,

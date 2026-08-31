@@ -32,9 +32,9 @@ class _AnalisingScreenState extends State<AnalisingScreen>
   @override
   void initState() {
     super.initState();
-    _spin = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat();
+    _spin =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat();
     _analyse();
   }
 
@@ -134,7 +134,8 @@ class _AnalisingScreenState extends State<AnalisingScreen>
     // Two-tier confidence gate:
     //   < 0.60  → low-confidence screen (candidates, Gemini Cloud AI, report form).
     //   ≥ 0.60  → full result screen.
-    const double kLowConfidenceThreshold = CropDiseaseClassifier.confidenceThreshold;
+    const double kLowConfidenceThreshold =
+        CropDiseaseClassifier.confidenceThreshold;
 
     if (result.confidence < kLowConfidenceThreshold) {
       List<DiseaseRisk>? regionalRisks;
@@ -142,8 +143,10 @@ class _AnalisingScreenState extends State<AnalisingScreen>
         final homeProvider = context.read<HomeProvider>();
         if (homeProvider.weeklyRisks.isNotEmpty) {
           regionalRisks = homeProvider.weeklyRisks;
-        } else if (homeProvider.weather != null && homeProvider.weather!.daily.isNotEmpty) {
-          final region = homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
+        } else if (homeProvider.weather != null &&
+            homeProvider.weather!.daily.isNotEmpty) {
+          final region =
+              homeProvider.weather!.latitude > 8.0 ? 'North' : 'South';
           regionalRisks = AgriWeatherUtils.assessWeeklyRisks(
             homeProvider.weather!.daily,
             outbreaks: homeProvider.outbreaks,
@@ -208,7 +211,8 @@ class _AnalisingScreenState extends State<AnalisingScreen>
                       children: [
                         RotationTransition(
                           turns: _spin,
-                          child: Icon(Icons.eco, size: 72, color: colors.primary),
+                          child:
+                              Icon(Icons.eco, size: 72, color: colors.primary),
                         ),
                         const SizedBox(height: 24),
                         Text(context.l10n.analysing,

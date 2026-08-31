@@ -1,50 +1,50 @@
 # CropGuard AI — Model Expansion Guide
 
-How to add new crop/disease classes to the TFLite model and update the app.
+How to add new crop/disease classes to the TFLite model and update the app. [CURRENT] [CURRENT]
 
 ---
 
 ## Overview
 
-The current model (`cropguard_plant_disease_verified.tflite`) covers **51 classes** across Ghana & Sub-Saharan regional crop types.
-Adding new classes requires four steps:
+The current model (`cropguard_plant_disease.tflite`) covers **51 classes** across Ghana & Sub-Saharan regional crop types. [CURRENT] [CURRENT]
+Adding new classes requires four steps: [CURRENT]
 
-1. [Collect images](#step-1--collect-images)
-2. [Organise the dataset](#step-2--organise-into-one-folder-structure)
-3. [Retrain and export](#step-3--retrain-in-google-colab)
-4. [Update the app](#step-4--update-the-app)
+1. [CURRENT] [CURRENT] [Collect images](#step-1--collect-images) [CURRENT]
+2. [CURRENT] [CURRENT] [Organise the dataset](#step-2--organise-into-one-folder-structure) [HISTORICAL]
+3. [CURRENT] [CURRENT] [Retrain and export](#step-3--retrain-in-google-colab) [CURRENT]
+4. [CURRENT] [CURRENT] [Update the app](#step-4--update-the-app) [CURRENT]
 
 ---
 
 ## Priority crops to add (Ghana / West Africa)
 
-| Crop | Diseases to include | Priority |
-|------|---------------------|----------|
-| **Mango** | Anthracnose, Powdery Mildew, Sooty Mould, Bacterial Canker | High |
-| **Pineapple** | Mealybug Wilt, Heart Rot, Fruitlet Core Rot | High |
-| **Citrus** (lime / lemon) | Black Spot, Scab, Greasy Spot | High |
-| **Garden Egg** | Phomopsis Blight, Leaf Spot, Mosaic Virus | Medium |
-| **Sweet Potato** | Leaf Curl, Alternaria Blight, Weevil Damage | Medium |
-| **Okra** | Yellow Vein Mosaic, Enation Leaf Curl | Medium |
-| **Sugarcane** | Red Rot, Smut, Grassy Shoot | Medium |
-| **Pawpaw / Papaya** | Ring Spot Virus, Powdery Mildew, Anthracnose | Medium |
-| **Watermelon** | Fusarium Wilt, Gummy Stem Blight, Downy Mildew | Low |
-| **Cabbage** | Black Rot, Clubroot, Diamondback Moth | Low |
+| Crop | Diseases to include | Priority | [CURRENT]
+|------|---------------------|----------| [CURRENT]
+| **Mango** | Anthracnose, Powdery Mildew, Sooty Mould, Bacterial Canker | High | [CURRENT]
+| **Pineapple** | Mealybug Wilt, Heart Rot, Fruitlet Core Rot | High | [CURRENT]
+| **Citrus** (lime / lemon) | Black Spot, Scab, Greasy Spot | High | [CURRENT]
+| **Garden Egg** | Phomopsis Blight, Leaf Spot, Mosaic Virus | Medium | [CURRENT]
+| **Sweet Potato** | Leaf Curl, Alternaria Blight, Weevil Damage | Medium | [CURRENT]
+| **Okra** | Yellow Vein Mosaic, Enation Leaf Curl | Medium | [CURRENT]
+| **Sugarcane** | Red Rot, Smut, Grassy Shoot | Medium | [CURRENT]
+| **Pawpaw / Papaya** | Ring Spot Virus, Powdery Mildew, Anthracnose | Medium | [CURRENT]
+| **Watermelon** | Fusarium Wilt, Gummy Stem Blight, Downy Mildew | Low | [CURRENT]
+| **Cabbage** | Black Rot, Clubroot, Diamondback Moth | Low | [CURRENT]
 
-Always include a `healthy` class for every crop you add.
+Always include a `healthy` class for every crop you add. [CURRENT] [CURRENT]
 
 ---
 
 ## Step 1 — Collect images
 
-You need at least **300–500 images per class**. Use the sources below.
+You need at least **300–500 images per class**. [CURRENT] [CURRENT] Use the sources below. [CURRENT]
 
 ### Option A — Kaggle (bulk download)
 
-1. Create a free account at [kaggle.com](https://www.kaggle.com).
-2. Go to **Account → API → Create New Token** — this downloads `kaggle.json`.
-3. Open [Google Colab](https://colab.research.google.com) and upload `kaggle.json`.
-4. Run the following cell:
+1. [CURRENT] [CURRENT] Create a free account at [kaggle.com](https://www.kaggle.com). [CURRENT]
+2. [CURRENT] [CURRENT] Go to **Account → API → Create New Token** — this downloads `kaggle.json`. [CURRENT]
+3. [CURRENT] [CURRENT] Open [Google Colab](https://colab.research.google.com) and upload `kaggle.json`. [CURRENT]
+4. [CURRENT] [CURRENT] Run the following cell: [CURRENT]
 
 ```python
 import os, subprocess
@@ -86,11 +86,11 @@ print('Done.')
 
 ### Option B — Roboflow Universe
 
-For crops not on Kaggle (garden egg, sugarcane, watermelon, cabbage):
+For crops not on Kaggle (garden egg, sugarcane, watermelon, cabbage): [CURRENT]
 
-1. Create a free account at [roboflow.com](https://roboflow.com).
-2. Go to **Settings → Roboflow API** and copy your API key.
-3. Run:
+1. [CURRENT] [CURRENT] Create a free account at [roboflow.com](https://roboflow.com). [CURRENT]
+2. [CURRENT] [CURRENT] Go to **Settings → Roboflow API** and copy your API key. [CURRENT]
+3. [CURRENT] [CURRENT] Run: [CURRENT]
 
 ```python
 subprocess.run(['pip', 'install', '-q', 'roboflow'])
@@ -116,17 +116,17 @@ for workspace, project_name in projects:
 
 ### Option C — Collect your own (recommended for Ghana-specific accuracy)
 
-Use a smartphone and photograph real diseased plants.
-Aim for varied lighting, angles, and growth stages.
-Minimum: **300 images per class**, split 80 % train / 20 % validation.
+Use a smartphone and photograph real diseased plants. [CURRENT] [CURRENT]
+Aim for varied lighting, angles, and growth stages. [CURRENT] [CURRENT]
+Minimum: **300 images per class**, split 80 % train / 20 % validation. [CURRENT] [CURRENT]
 
-You can label images for free at [app.roboflow.com](https://app.roboflow.com).
+You can label images for free at [app.roboflow.com](https://app.roboflow.com). [CURRENT] [CURRENT]
 
 ---
 
 ## Step 2 — Organise into one folder structure
 
-Training expects one sub-folder per class. Run this to merge all downloaded data:
+Training expects one sub-folder per class. [HISTORICAL] [HISTORICAL] Run this to merge all downloaded data: [CURRENT]
 
 ```python
 import shutil, pathlib
@@ -149,8 +149,8 @@ print('\n'.join(classes))
 
 **Naming convention for new folders:**
 
-Use `Crop___Disease` (triple underscore) for consistency with the newer half of
-the existing dataset:
+Use `Crop___Disease` (triple underscore) for consistency with the newer half of [CURRENT]
+the existing dataset: [CURRENT]
 
 ```
 Mango___Anthracnose/
@@ -160,14 +160,14 @@ Pineapple___Mealybug_Wilt/
 Pineapple___healthy/
 ```
 
-The folder name becomes the label string the model outputs, and must exactly
-match the `label:` field you add in `disease_info.dart` later.
+The folder name becomes the label string the model outputs, and must exactly [HISTORICAL]
+match the `label:` field you add in `disease_info.dart` later. [CURRENT] [CURRENT]
 
 ---
 
 ## Step 3 — Retrain in Google Colab
 
-> **Runtime:** Runtime → Change runtime type → **T4 GPU** (free tier is enough).
+> **Runtime:** Runtime → Change runtime type → **T4 GPU** (free tier is enough). [CURRENT] [CURRENT]
 
 ```python
 import tensorflow as tf
@@ -238,18 +238,18 @@ model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS_2)
 converter    = tf.lite.TFLiteConverter.from_keras_model(model)
 tflite_model = converter.convert()
 
-with open('/content/cropguard_plant_disease_verified.tflite', 'wb') as f:
+with open('/content/cropguard_plant_disease.tflite', 'wb') as f:
     f.write(tflite_model)
 
 # ── 7. Save labels in the exact same order as model output nodes ──────────────
-with open('/content/labels_verified.txt', 'w') as f:
+with open('/content/labels.txt', 'w') as f:
     f.write('\n'.join(class_names))
 
 print(f'✅  Exported {NUM_CLASSES} classes.')
-print('Download cropguard_plant_disease_verified.tflite and labels_verified.txt from Colab.')
+print('Download cropguard_plant_disease.tflite and labels.txt from Colab.')
 ```
 
-Download both files from the Colab file browser (left sidebar → Files).
+Download both files from the Colab file browser (left sidebar → Files). [CURRENT] [CURRENT]
 
 ---
 
@@ -258,18 +258,18 @@ Download both files from the Colab file browser (left sidebar → Files).
 ### 4a. Replace the model and labels
 
 ```
-assets/cropguard_plant_disease_verified.tflite  ← replace with the new file from Colab
-assets/labels_verified.txt                      ← replace with the new file from Colab
+assets/cropguard_plant_disease.tflite  ← replace with the new file from Colab
+assets/labels.txt                      ← replace with the new file from Colab
 ```
 
 ### 4b. Update model metadata
 
-Open `assets/model_metadata.json` and change `num_classes` to match your new count:
+Open `assets/model_metadata.json` and change `num_classes` to match your new count: [CURRENT]
 
 ```json
 {
   "model_name": "CropGuard Plant Disease Classifier",
-  "model_file": "cropguard_plant_disease_verified.tflite",
+  "model_file": "cropguard_plant_disease.tflite",
   "input_size": 128,
   "input_channels": 3,
   "normalize_mean": [0.0, 0.0, 0.0],
@@ -278,20 +278,20 @@ Open `assets/model_metadata.json` and change `num_classes` to match your new cou
   "version": "3.0",
   "architecture": "MobileNetV2",
   "confidence_threshold": 0.60,
-  "labels_file": "labels_verified.txt"
+  "labels_file": "labels.txt"
 }
 ```
 
 ### 4c. Find which labels need new database entries
 
-Add this temporarily to `main()` in `lib/main.dart`, after `setupServiceLocator()`:
+Add this temporarily to `main()` in `lib/main.dart`, after `setupServiceLocator()`: [CURRENT]
 
 ```dart
 import 'package:flutter/services.dart';
 import 'data/ml/disease_info.dart';
 
 // Inside main(), after setupServiceLocator():
-final raw = await rootBundle.loadString('assets/labels_verified.txt');
+final raw = await rootBundle.loadString('assets/labels.txt');
 final labels = raw.split('\n').where((l) => l.isNotEmpty).toList();
 for (final label in labels) {
   final info = DiseaseDatabase.getInfo(label);
@@ -301,19 +301,19 @@ for (final label in labels) {
 }
 ```
 
-Run `flutter run` and open the debug console. Every line printed is a label that
-needs a new entry.
+Run `flutter run` and open the debug console. [CURRENT] [CURRENT] Every line printed is a label that [CURRENT]
+needs a new entry. [CURRENT] [CURRENT]
 
 ### 4d. Add entries to `lib/data/ml/disease_info.dart`
 
-For each missing label, add a `DiseaseInfoEntry` block inside `_rawEntries`.
-Follow this template — the `label:` field must **exactly** match the string
-printed in the debug console:
+For each missing label, add a `DiseaseInfoEntry` block inside `_rawEntries`. [CURRENT] [CURRENT]
+Follow this template — the `label:` field must **exactly** match the string [CURRENT]
+printed in the debug console: [CURRENT]
 
 ```dart
 // ─── Mango ────────────────────────────────────────────────────────────────
 DiseaseInfoEntry(
-  label: 'Mango___Anthracnose',        // must match labels_verified.txt exactly
+  label: 'Mango___Anthracnose',        // must match labels.txt exactly
   displayName: 'Mango Anthracnose',
   cropType: 'Mango',
   cause: 'Fungal infection by Colletotrichum gloeosporioides',
@@ -342,14 +342,14 @@ DiseaseInfoEntry(
 
 ### 4e. Remove the debug check
 
-Delete the temporary `debugPrint` loop from `main.dart` before shipping.
+Delete the temporary `debugPrint` loop from `main.dart` before shipping. [CURRENT] [CURRENT]
 
 ### 4f. Bump the database version (only if you changed the SQLite schema)
 
-If you only added model classes and `disease_info.dart` entries — no SQLite
-changes — you can skip this. If you added new database columns, open
-`lib/data/local/database_helper.dart`, increment `_dbVersion`, and add a new
-migration block:
+If you only added model classes and `disease_info.dart` entries — no SQLite [CURRENT]
+changes — you can skip this. [CURRENT] [CURRENT] If you added new database columns, open [CURRENT]
+`lib/data/local/database_helper.dart`, increment `_dbVersion`, and add a new [CURRENT]
+migration block: [CURRENT]
 
 ```dart
 static const _dbVersion = 12; // was 11
@@ -364,16 +364,16 @@ if (oldVersion < 12) {
 
 ## Label naming rules
 
-Always name training folders consistently so `disease_info.dart` entries are
-predictable:
+Always name training folders consistently so `disease_info.dart` entries are [HISTORICAL]
+predictable: [CURRENT]
 
-| Pattern | Use for |
-|---------|---------|
-| `Crop___Disease` | All new crops you add |
-| `Crop___healthy` | The healthy class for every crop |
+| Pattern | Use for | [CURRENT]
+|---------|---------| [CURRENT]
+| `Crop___Disease` | All new crops you add | [CURRENT]
+| `Crop___healthy` | The healthy class for every crop | [CURRENT]
 
-Avoid spaces in folder names — use underscores. The folder name becomes the
-label string verbatim.
+Avoid spaces in folder names — use underscores. [HISTORICAL] [HISTORICAL] The folder name becomes the [HISTORICAL]
+label string verbatim. [CURRENT] [CURRENT]
 
 ---
 
@@ -383,8 +383,8 @@ label string verbatim.
 [ ] Collected 300+ images per new class (including a healthy class)
 [ ] All images organised into one folder per class
 [ ] Model trained and validated (aim for > 85 % validation accuracy)
-[ ] cropguard_plant_disease_verified.tflite replaced in assets/
-[ ] labels_verified.txt replaced in assets/
+[ ] cropguard_plant_disease.tflite replaced in assets/
+[ ] labels.txt replaced in assets/
 [ ] model_metadata.json num_classes updated
 [ ] disease_info.dart has one DiseaseInfoEntry per label (no MISSING ENTRY lines)
 [ ] Debug check removed from main.dart
@@ -396,12 +396,12 @@ label string verbatim.
 
 ## Recommended Colab notebooks (ready to use)
 
-| Purpose | Link |
-|---------|------|
-| PlantVillage fine-tuning | Search "Plant Disease Classification MobileNetV2" on Kaggle Notebooks |
-| General image classification | [tensorflow.org/tutorials/images/transfer_learning](https://www.tensorflow.org/tutorials/images/transfer_learning) |
-| TFLite conversion | [tensorflow.org/lite/models/modify/model_maker/image_classification](https://www.tensorflow.org/lite/models/modify/model_maker/image_classification) |
+| Purpose | Link | [CURRENT]
+|---------|------| [CURRENT]
+| PlantVillage fine-tuning | Search "Plant Disease Classification MobileNetV2" on Kaggle Notebooks | [CURRENT]
+| General image classification | [tensorflow.org/tutorials/images/transfer_learning](https://www.tensorflow.org/tutorials/images/transfer_learning) | [CURRENT]
+| TFLite conversion | [tensorflow.org/lite/models/modify/model_maker/image_classification](https://www.tensorflow.org/lite/models/modify/model_maker/image_classification) | [CURRENT]
 
-The TensorFlow Lite Model Maker library (second link) can also handle the entire
-pipeline — data loading, training, and export — with fewer lines of code if you
-prefer a simpler starting point.
+The TensorFlow Lite Model Maker library (second link) can also handle the entire [CURRENT]
+pipeline — data loading, training, and export — with fewer lines of code if you [CURRENT]
+prefer a simpler starting point. [CURRENT] [CURRENT]

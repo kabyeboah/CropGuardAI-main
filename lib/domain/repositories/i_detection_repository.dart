@@ -20,13 +20,15 @@ abstract class IDetectionRepository {
   Future<Result<void>> markDetectionSynced(int id, {int? syncedAt});
   Future<Result<void>> markDetectionsSynced(List<int> ids, {int? syncedAt});
   Future<Result<DetectionResult?>> getDetection(int id);
-  Future<Result<List<DetectionResult>>> getRecentDetections({String? userId, int limit = 5});
+  Future<Result<List<DetectionResult>>> getRecentDetections(
+      {String? userId, int limit = 5});
   Future<Result<void>> deleteDetection(int id);
   Future<Result<void>> clearHistory();
-  
+
   // Stats
   Future<Result<Map<String, int>>> getFarmStats({String? userId});
-  Future<Result<List<Map<String, dynamic>>>> getDailyTrend({int days = 7, String? userId});
+  Future<Result<List<Map<String, dynamic>>>> getDailyTrend(
+      {int days = 7, String? userId});
 
   // Fields
   Future<Result<void>> saveField(Field field);

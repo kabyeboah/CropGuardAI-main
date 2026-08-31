@@ -54,7 +54,9 @@ class RiskRepositoryImpl implements IRiskRepository {
 
         // Crop filter if cropType specified
         if (cropType != null && cropType.isNotEmpty) {
-          final rCrop = (r['cropType'] as String?) ?? _cropOfDisease((r['disease'] ?? r['diseaseName'] ?? '').toString());
+          final rCrop = (r['cropType'] as String?) ??
+              _cropOfDisease(
+                  (r['disease'] ?? r['diseaseName'] ?? '').toString());
           if (rCrop.toLowerCase() != cropType.toLowerCase()) return false;
         }
 
@@ -77,7 +79,8 @@ class RiskRepositoryImpl implements IRiskRepository {
       // Fetch Weather Forecast (used for both low-density fallback and full crowd-density multiplier)
       WeatherForecast? forecast;
       try {
-        forecast = await _weatherRepository.getWeatherForecast(latitude: lat, longitude: lon);
+        forecast = await _weatherRepository.getWeatherForecast(
+            latitude: lat, longitude: lon);
       } catch (_) {
         // Weather fetch failed; proceed with density alone
       }
@@ -88,7 +91,8 @@ class RiskRepositoryImpl implements IRiskRepository {
       for (final r in localReports) {
         final verifiedBy = (r['verifiedBy'] as List?) ?? [];
         final refutedBy = (r['refutedBy'] as List?) ?? [];
-        final w = (1 + verifiedBy.length - refutedBy.length).clamp(1, 100).toDouble();
+        final w =
+            (1 + verifiedBy.length - refutedBy.length).clamp(1, 100).toDouble();
         totalTrustWeight += w;
       }
 
@@ -114,9 +118,14 @@ class RiskRepositoryImpl implements IRiskRepository {
         final window = forecast.daily.take(3).toList();
         final n = window.length;
 
-        final avgMaxTemp = window.map((d) => d.maxTemp).reduce((a, b) => a + b) / n;
-        final avgHumidity = window.map((d) => d.humidity).reduce((a, b) => a + b) / n;
-        final avgRain = window.map((d) => d.precipitationProbability).reduce((a, b) => a + b) / n;
+        final avgMaxTemp =
+            window.map((d) => d.maxTemp).reduce((a, b) => a + b) / n;
+        final avgHumidity =
+            window.map((d) => d.humidity).reduce((a, b) => a + b) / n;
+        final avgRain = window
+                .map((d) => d.precipitationProbability)
+                .reduce((a, b) => a + b) /
+            n;
         final hum = avgHumidity > 0 ? avgHumidity : avgRain;
 
         double weatherRiskScore = 0.1; // Baseline minimal risk score
@@ -124,31 +133,37 @@ class RiskRepositoryImpl implements IRiskRepository {
         // Fungal pathogens: High humidity (>75%) & mild/warm temp (20-30°C)
         if (hum >= 75 && avgMaxTemp >= 20 && avgMaxTemp <= 30) {
           weatherRiskScore += 0.35;
-          factors.add('Sustained high humidity (${hum.round()}%) and moderate temp (${avgMaxTemp.round()}°C) favor fungal pathogen spread');
+          factors.add(
+              'Sustained high humidity (${hum.round()}%) and moderate temp (${avgMaxTemp.round()}°C) favor fungal pathogen spread');
         }
 
         // Bacterial pathogens: High temp (>25°C) & high humidity or rain
         if (hum >= 70 && avgMaxTemp >= 26) {
           weatherRiskScore += 0.25;
-          factors.add('Warm and humid weather conditions favor bacterial leaf spot/blight development');
+          factors.add(
+              'Warm and humid weather conditions favor bacterial leaf spot/blight development');
         }
 
         // Viral/vector pathogens: Warm temperatures favoring vector activity
         if (avgMaxTemp >= 28) {
           weatherRiskScore += 0.15;
-          factors.add('Elevated temperatures (${avgMaxTemp.round()}°C) favor vector activity (whiteflies & aphids)');
+          factors.add(
+              'Elevated temperatures (${avgMaxTemp.round()}°C) favor vector activity (whiteflies & aphids)');
         }
 
         if (localReports.isNotEmpty) {
           weatherRiskScore += localReports.length * 0.10;
-          factors.add('${localReports.length} local outbreak report(s) recorded in region in last 30 days');
+          factors.add(
+              '${localReports.length} local outbreak report(s) recorded in region in last 30 days');
         }
 
         if (cropType != null && cropType.isNotEmpty) {
-          factors.add('Forecast evaluated specifically for $cropType vulnerability under current microclimate');
+          factors.add(
+              'Forecast evaluated specifically for $cropType vulnerability under current microclimate');
         }
 
-        factors.add('Preliminary forecast synthesized primarily from microclimate weather data due to sparse community report density (${localReports.length} reports in area)');
+        factors.add(
+            'Preliminary forecast synthesized primarily from microclimate weather data due to sparse community report density (${localReports.length} reports in area)');
 
         final RiskLevel level;
         if (weatherRiskScore >= 0.65) {
@@ -183,32 +198,41 @@ class RiskRepositoryImpl implements IRiskRepository {
         final window = forecast.daily.take(3).toList();
         final n = window.length;
 
-        final avgMaxTemp = window.map((d) => d.maxTemp).reduce((a, b) => a + b) / n;
-        final avgHumidity = window.map((d) => d.humidity).reduce((a, b) => a + b) / n;
-        final avgRain = window.map((d) => d.precipitationProbability).reduce((a, b) => a + b) / n;
+        final avgMaxTemp =
+            window.map((d) => d.maxTemp).reduce((a, b) => a + b) / n;
+        final avgHumidity =
+            window.map((d) => d.humidity).reduce((a, b) => a + b) / n;
+        final avgRain = window
+                .map((d) => d.precipitationProbability)
+                .reduce((a, b) => a + b) /
+            n;
         final hum = avgHumidity > 0 ? avgHumidity : avgRain;
 
         // Fungal pathogens: High humidity (>75%) & mild/warm temp (20-30°C)
         if (hum >= 75 && avgMaxTemp >= 20 && avgMaxTemp <= 30) {
           weatherMultiplier += 0.3;
-          factors.add('Sustained high humidity (${hum.round()}%) and moderate temp (${avgMaxTemp.round()}°C) favor fungal pathogen spread');
+          factors.add(
+              'Sustained high humidity (${hum.round()}%) and moderate temp (${avgMaxTemp.round()}°C) favor fungal pathogen spread');
         }
 
         // Bacterial pathogens: High temp (>25°C) & high humidity or rain
         if (hum >= 70 && avgMaxTemp >= 26) {
           weatherMultiplier += 0.2;
-          factors.add('Warm and humid weather conditions favor bacterial leaf spot/blight development');
+          factors.add(
+              'Warm and humid weather conditions favor bacterial leaf spot/blight development');
         }
 
         // Viral/vector pathogens: Warm temperatures favoring vector (whitefly/aphids) activity
         if (avgMaxTemp >= 28) {
           weatherMultiplier += 0.15;
-          factors.add('Elevated temperatures (${avgMaxTemp.round()}°C) favor vector activity (whiteflies & aphids)');
+          factors.add(
+              'Elevated temperatures (${avgMaxTemp.round()}°C) favor vector activity (whiteflies & aphids)');
         }
       }
 
       if (cropType != null && cropType.isNotEmpty) {
-        factors.add('Active outbreaks confirmed specifically for $cropType in the area');
+        factors.add(
+            'Active outbreaks confirmed specifically for $cropType in the area');
       }
 
       // Scoring formula: density component * weather multiplier
@@ -264,8 +288,18 @@ class RiskRepositoryImpl implements IRiskRepository {
   String _cropOfDisease(String disease) {
     final d = disease.toLowerCase();
     final crops = [
-      'Cassava', 'Cocoa', 'Maize', 'Tomato', 'Rice', 'Banana',
-      'Yam', 'Groundnut', 'Cowpea', 'Oil Palm', 'Sorghum', 'Millet',
+      'Cassava',
+      'Cocoa',
+      'Maize',
+      'Tomato',
+      'Rice',
+      'Banana',
+      'Yam',
+      'Groundnut',
+      'Cowpea',
+      'Oil Palm',
+      'Sorghum',
+      'Millet',
     ];
     for (final c in crops) {
       if (d.startsWith(c.toLowerCase())) return c;

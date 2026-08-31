@@ -53,7 +53,8 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   }
 
   @override
-  Future<Result<List<DetectionResult>>> getUnsyncedDetections({String? userId}) async {
+  Future<Result<List<DetectionResult>>> getUnsyncedDetections(
+      {String? userId}) async {
     try {
       final detections = await _dbHelper.getUnsyncedDetections(userId: userId);
       return Result.success(detections);
@@ -73,7 +74,8 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   }
 
   @override
-  Future<Result<void>> markDetectionsSynced(List<int> ids, {int? syncedAt}) async {
+  Future<Result<void>> markDetectionsSynced(List<int> ids,
+      {int? syncedAt}) async {
     try {
       await _dbHelper.markDetectionsSynced(ids, syncedAt: syncedAt);
       return Result.success(null);
@@ -93,9 +95,11 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   }
 
   @override
-  Future<Result<List<DetectionResult>>> getRecentDetections({String? userId, int limit = 5}) async {
+  Future<Result<List<DetectionResult>>> getRecentDetections(
+      {String? userId, int limit = 5}) async {
     try {
-      final detections = await _dbHelper.getRecentDetections(userId: userId, limit: limit);
+      final detections =
+          await _dbHelper.getRecentDetections(userId: userId, limit: limit);
       return Result.success(detections);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
@@ -133,7 +137,8 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   }
 
   @override
-  Future<Result<List<Map<String, dynamic>>>> getDailyTrend({int days = 7, String? userId}) async {
+  Future<Result<List<Map<String, dynamic>>>> getDailyTrend(
+      {int days = 7, String? userId}) async {
     try {
       final trend = await _dbHelper.getDailyTrend(days: days, userId: userId);
       return Result.success(trend);

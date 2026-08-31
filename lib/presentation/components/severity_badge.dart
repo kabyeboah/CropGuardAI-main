@@ -42,18 +42,22 @@ class SeverityBadge extends StatelessWidget {
         bg = colors.surfaceVariant;
         fg = colors.onBackground;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        severity.toUpperCase(),
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
-            ?.copyWith(color: fg, fontWeight: FontWeight.bold),
+    return Semantics(
+      label: severity,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          severity.toUpperCase(),
+          style: Theme.of(context)
+              .textTheme
+              .labelSmall
+              ?.copyWith(color: fg, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -75,36 +79,37 @@ class StatusBadge extends StatelessWidget {
       case 'diseased':
         bg = colors.badgeDiseasedBg;
         fg = colors.error;
-        label = 'Diseased';
+        label = context.l10n.diseased;
         break;
       case 'healthy':
         bg = colors.badgeHealthyBg;
         fg = colors.healthy;
-        label = 'Healthy';
+        label = context.l10n.healthy;
         break;
       case 'at risk':
       case 'warning':
         bg = colors.badgeWarningBg;
         fg = colors.warning;
-        label = 'At Risk';
+        label = context.l10n.statusAtRisk;
         break;
       default:
         bg = colors.surfaceVariant;
         fg = colors.muted;
         label = status;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
-            ?.copyWith(color: fg),
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
+        ),
       ),
     );
   }

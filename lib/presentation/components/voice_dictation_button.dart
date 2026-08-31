@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_logger.dart';
+import '../../core/utils/permission_helper.dart';
 import '../../data/remote/ghana_nlp_service.dart';
 
 /// A dictation button component that records audio from the microphone and
@@ -46,9 +46,9 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton> {
     final currentLang = Localizations.localeOf(context).languageCode;
     if (currentLang != 'tw') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Voice dictation currently supports Twi (tw). Switch language in Settings.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(context.l10n.voiceDictationTwiOnly),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
@@ -63,18 +63,15 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton> {
 
   Future<void> _startRecording() async {
     try {
-      final status = await Permission.microphone.request();
-      if (!status.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission required for dictation.')),
-          );
-        }
+      final granted =
+          await PermissionHelper.requestMicrophoneWithRecovery(context);
+      if (!granted) {
         return;
       }
 
       final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/dictation_${DateTime.now().millisecondsSinceEpoch}.wav';
+      final path =
+          '${dir.path}/dictation_${DateTime.now().millisecondsSinceEpoch}.wav';
 
       await _audioRecorder.start(
         const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000),
@@ -101,13 +98,13 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton> {
       final filePath = path ?? _recordingPath;
       if (filePath != null && File(filePath).existsSync()) {
         final audioFile = File(filePath);
-        final transcribed = await _ghanaNlp.transcribe(audioFile, language: 'tw');
+        final transcribed =
+            await _ghanaNlp.transcribe(audioFile, language: 'tw');
 
         if (mounted && transcribed != null && transcribed.isNotEmpty) {
           final currentText = widget.controller.text;
-          final newText = currentText.isEmpty
-              ? transcribed
-              : '$currentText $transcribed';
+          final newText =
+              currentText.isEmpty ? transcribed : '$currentText $transcribed';
 
           widget.controller.text = newText;
           widget.controller.selection = TextSelection.fromPosition(
@@ -117,7 +114,8 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Transcribed (Twi): "$transcribed"'),
+              content: Text(
+                  '${context.l10n.voiceDictationTranscribed("Twi")} "$transcribed"'),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -127,7 +125,7 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton> {
       AppLogger.e('VoiceDictationButton transcription error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Transcription failed: ${e.toString().replaceAll('Exception:', '').trim()}')),
+          SnackBar(content: Text(context.l10n.genericError)),
         );
       }
     } finally {

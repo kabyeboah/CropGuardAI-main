@@ -13,7 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cropguard_flutter/domain/repositories/i_community_repository.dart';
 
 class MockClassifierRepository extends Mock implements IClassifierRepository {}
+
 class MockDetectionRepository extends Mock implements IDetectionRepository {}
+
 class MockCommunityRepository extends Mock implements ICommunityRepository {}
 
 void main() {
@@ -28,7 +30,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     streakManager = StreakManager(await SharedPreferences.getInstance());
     useCase = ScanCropUseCase(mockClassifier, mockDetection, streakManager);
-    
+
     registerFallbackValue(const DetectionResult(
       userId: 'test',
       imagePath: 'test',
@@ -66,37 +68,42 @@ void main() {
 
     test('should assign healthy severity when isHealthy is true', () async {
       setupMockWithDisease('Apple___healthy', true);
-      
+
       final result = await useCase(imagePath, userId);
-      
+
       expect(result.data!.severity, ScanSeverity.healthy);
     });
 
-    test('should assign severe severity when database severity is severe', () async {
+    test('should assign severe severity when database severity is severe',
+        () async {
       setupMockWithDisease('Apple___Black_rot', false);
-      
+
       final result = await useCase(imagePath, userId);
-      
+
       expect(result.data!.severity, ScanSeverity.severe);
     });
 
-    test('should assign moderate severity when database severity is moderate', () async {
+    test('should assign moderate severity when database severity is moderate',
+        () async {
       setupMockWithDisease('Apple___Apple_scab', false);
-      
+
       final result = await useCase(imagePath, userId);
-      
+
       expect(result.data!.severity, ScanSeverity.moderate);
     });
 
-    test('should assign early severity when database severity is early', () async {
+    test('should assign early severity when database severity is early',
+        () async {
       setupMockWithDisease('Tomato___Early_blight', false);
-      
+
       final result = await useCase(imagePath, userId);
-      
+
       expect(result.data!.severity, ScanSeverity.early);
     });
 
-    test('should call upsertScan with deterministic id when community repository is provided', () async {
+    test(
+        'should call upsertScan with deterministic id when community repository is provided',
+        () async {
       final mockCommunity = MockCommunityRepository();
       when(() => mockCommunity.upsertScan(any(), any()))
           .thenAnswer((_) async => Result.success(null));
@@ -116,7 +123,9 @@ void main() {
       verify(() => mockCommunity.upsertScan('1', any())).called(1);
     });
 
-    test('saveResolvedScan builds and saves detection directly without invoking classifier', () async {
+    test(
+        'saveResolvedScan builds and saves detection directly without invoking classifier',
+        () async {
       when(() => mockDetection.saveDetection(any()))
           .thenAnswer((_) async => Result.success(42));
 
@@ -137,7 +146,8 @@ void main() {
       verify(() => mockDetection.saveDetection(any())).called(1);
     });
 
-    test('should propagate modelVersion from classification to saved detection', () async {
+    test('should propagate modelVersion from classification to saved detection',
+        () async {
       final diseaseInfo = DiseaseDatabase.getInfo('Apple___Black_rot');
       when(() => mockClassifier.classifyFromPath(imagePath)).thenAnswer(
         (_) async => Result.success(Classification(

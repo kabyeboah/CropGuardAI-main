@@ -13,8 +13,18 @@ import 'package:flutter_test/flutter_test.dart';
 // ─── Replicated helpers (mirror the private functions in outbreak_map_screen) ──
 
 const _kCrops = [
-  'Cassava', 'Cocoa', 'Maize', 'Tomato', 'Rice', 'Banana',
-  'Yam', 'Groundnut', 'Cowpea', 'Oil Palm', 'Sorghum', 'Millet',
+  'Cassava',
+  'Cocoa',
+  'Maize',
+  'Tomato',
+  'Rice',
+  'Banana',
+  'Yam',
+  'Groundnut',
+  'Cowpea',
+  'Oil Palm',
+  'Sorghum',
+  'Millet',
 ];
 
 String _cropOfDisease(String disease) {
@@ -63,8 +73,7 @@ class _Hotspot {
 List<_Hotspot> _aggregate(List<Map<String, dynamic>> reports) {
   final groups = <String, List<Map<String, dynamic>>>{};
   for (final r in reports) {
-    final key =
-        '${_diseaseOf(r).trim().toLowerCase()}|${_regionOf(r).trim()}';
+    final key = '${_diseaseOf(r).trim().toLowerCase()}|${_regionOf(r).trim()}';
     groups.putIfAbsent(key, () => []).add(r);
   }
 
@@ -88,8 +97,7 @@ List<_Hotspot> _aggregate(List<Map<String, dynamic>> reports) {
       totalWeight += weight;
     }
 
-    final avgRank =
-        totalWeight > 0 ? (weightedSum / totalWeight).round() : 1;
+    final avgRank = totalWeight > 0 ? (weightedSum / totalWeight).round() : 1;
     final finalSeverity =
         const {0: 'low', 1: 'medium', 2: 'high'}[avgRank] ?? 'medium';
 
@@ -175,8 +183,9 @@ void main() {
     });
 
     test('latest date is the most recent member date', () {
-      final older =
-          DateTime.now().subtract(const Duration(days: 3)).millisecondsSinceEpoch;
+      final older = DateTime.now()
+          .subtract(const Duration(days: 3))
+          .millisecondsSinceEpoch;
       final newer = DateTime.now().millisecondsSinceEpoch;
       final reports = [
         report(disease: 'Rice Blast', region: 'Volta', timestamp: older),
@@ -190,24 +199,42 @@ void main() {
   group('_aggregate — severity weighting', () {
     test('all low → hotspot is low', () {
       final reports = [
-        report(disease: 'Maize Common Rust', region: 'Brong Ahafo', severity: 'low'),
-        report(disease: 'Maize Common Rust', region: 'Brong Ahafo', severity: 'low'),
+        report(
+            disease: 'Maize Common Rust',
+            region: 'Brong Ahafo',
+            severity: 'low'),
+        report(
+            disease: 'Maize Common Rust',
+            region: 'Brong Ahafo',
+            severity: 'low'),
       ];
       expect(_aggregate(reports).first.severity, 'low');
     });
 
     test('all high → hotspot is high', () {
       final reports = [
-        report(disease: 'Cocoa Black Pod Rot', region: 'Western', severity: 'high'),
-        report(disease: 'Cocoa Black Pod Rot', region: 'Western', severity: 'high'),
+        report(
+            disease: 'Cocoa Black Pod Rot',
+            region: 'Western',
+            severity: 'high'),
+        report(
+            disease: 'Cocoa Black Pod Rot',
+            region: 'Western',
+            severity: 'high'),
       ];
       expect(_aggregate(reports).first.severity, 'high');
     });
 
     test('mix of low and high averages to medium', () {
       final reports = [
-        report(disease: 'Cassava Mosaic Disease', region: 'Central', severity: 'low'),
-        report(disease: 'Cassava Mosaic Disease', region: 'Central', severity: 'high'),
+        report(
+            disease: 'Cassava Mosaic Disease',
+            region: 'Central',
+            severity: 'low'),
+        report(
+            disease: 'Cassava Mosaic Disease',
+            region: 'Central',
+            severity: 'high'),
       ];
       expect(_aggregate(reports).first.severity, 'medium');
     });
