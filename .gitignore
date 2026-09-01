@@ -68,4 +68,5 @@ __pycache__/
 *.pyc
 extracted_plant_disease/
 test_set/
-
+# Office lock files
+~$*
