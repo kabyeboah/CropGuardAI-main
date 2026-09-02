@@ -1,6 +1,5 @@
 import 'dart:developer' as dev;
 
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import 'diagnostic_sanitizer.dart';
@@ -10,13 +9,9 @@ enum LogLevel { debug, info, warning, error }
 class AppLogger {
   static LogLevel minLevel = kDebugMode ? LogLevel.debug : LogLevel.error;
 
-  /// Whether Crashlytics non-fatal error recording is enabled (synced with user consent).
+  /// Whether crash/error reporting is enabled (synced with user consent).
   /// Defaults to false (strict opt-in).
   static bool isCrashlyticsEnabled = false;
-
-  /// Optional Crashlytics instance override for testing.
-  @visibleForTesting
-  static FirebaseCrashlytics? crashlyticsOverride;
 
   static void setCrashlyticsEnabled(bool enabled) {
     isCrashlyticsEnabled = enabled;
@@ -65,20 +60,6 @@ class AppLogger {
         error: cleanErr,
         stackTrace: cleanStack,
       );
-    }
-
-    if ((kReleaseMode || crashlyticsOverride != null) && isCrashlyticsEnabled) {
-      try {
-        final crashlytics = crashlyticsOverride ?? FirebaseCrashlytics.instance;
-        crashlytics.recordError(
-          cleanErr,
-          cleanStack,
-          reason: cleanMsg,
-          fatal: false,
-        );
-      } catch (_) {
-        // Logging must never crash the application flow.
-      }
     }
   }
 }

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../core/config/app_secrets.dart';
@@ -21,34 +20,21 @@ class GeminiCloudAiException implements Exception {
 /// Service providing secondary / fallback multimodal crop disease diagnosis using Gemini 1.5 Flash.
 ///
 /// Architecture:
-/// - In production: Proxies requests through authenticated backend [CloudFunctionsService]
-///   where master API keys are securely stored on Google Cloud / Firebase Secret Manager.
+/// - In production: Proxies requests through authenticated backend [CloudFunctionsService] / Supabase Edge Functions.
 /// - In local debug / testing: Falls back to direct on-client [GenerativeModel] if an API key is
 ///   explicitly provided via AppSecrets / .env.
 class GeminiCloudAiService {
-  final FirebaseRemoteConfig? _remoteConfig;
   final CloudFunctionsService? _functions;
 
   GeminiCloudAiService({
-    FirebaseRemoteConfig? remoteConfig,
     CloudFunctionsService? functions,
-  })  : _remoteConfig = remoteConfig,
-        _functions = functions;
+  }) : _functions = functions;
 
-  /// Retrieves the active Gemini API key from AppSecrets (dart-define / .env / RemoteConfig).
+  /// Retrieves the active Gemini API key from AppSecrets.
   String _getApiKey() {
     final key = AppSecrets.geminiApiKey;
     if (key != null && key.isNotEmpty) {
       return key;
-    }
-    try {
-      final config = _remoteConfig ?? FirebaseRemoteConfig.instance;
-      final remoteKey = config.getString('gemini_api_key');
-      if (remoteKey.isNotEmpty) {
-        return remoteKey;
-      }
-    } catch (_) {
-      // RemoteConfig not initialized or unavailable in test environment
     }
     const envKey = String.fromEnvironment('GEMINI_API_KEY');
     if (envKey.isNotEmpty) {
