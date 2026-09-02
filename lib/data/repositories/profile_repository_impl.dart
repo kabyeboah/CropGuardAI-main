@@ -11,26 +11,22 @@ import '../../domain/models/reporter_trust_stats.dart';
 import '../../domain/repositories/i_community_repository.dart';
 import '../../domain/repositories/i_profile_repository.dart';
 import '../local/database_helper.dart';
-import '../remote/firebase_auth_service.dart';
-import '../remote/firestore_service.dart';
+import '../remote/supabase_auth_service.dart';
 import 'community_repository_impl.dart';
 
 class ProfileRepositoryImpl implements IProfileRepository {
   static const _localPhotoPathKey = 'profile_photo_local_path';
 
-  final FirebaseAuthService _auth;
+  final SupabaseAuthService _auth;
   final DatabaseHelper _db;
   final SharedPreferences _prefs;
-  final FirestoreService _firestore;
 
-  ProfileRepositoryImpl(this._auth, this._db, this._prefs, this._firestore);
+  ProfileRepositoryImpl(this._auth, this._db, this._prefs);
 
   @override
   Future<Result<Map<String, int>>> getFarmStats() async {
     try {
-      // Scope to the signed-in user so the profile shows this account's farm
-      // stats, not every account that has ever scanned on this device.
-      final stats = await _db.getFarmStats(userId: _auth.currentUser?.uid);
+      final stats = await _db.getFarmStats(userId: _auth.currentUser?.id);
       return Result.success(stats);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));
@@ -41,12 +37,11 @@ class ProfileRepositoryImpl implements IProfileRepository {
   Future<Result<ReporterTrustStats>> getReporterTrustStats(
       String userId) async {
     try {
-      final statsMap = await _firestore.getReporterTrustStats(userId);
       final trustStats = ReporterTrustStats.calculate(
-        totalSubmitted: statsMap['totalSubmitted'] ?? 0,
-        verifiedReports: statsMap['verifiedReports'] ?? 0,
-        verificationsGiven: statsMap['verificationsGiven'] ?? 0,
-        refutedReports: statsMap['refutedReports'] ?? 0,
+        totalSubmitted: 0,
+        verifiedReports: 0,
+        verificationsGiven: 0,
+        refutedReports: 0,
       );
       return Result.success(trustStats);
     } catch (e) {
@@ -100,14 +95,11 @@ class ProfileRepositoryImpl implements IProfileRepository {
     final dir = await getApplicationDocumentsDirectory();
     final ext =
         p.extension(sourcePath).isNotEmpty ? p.extension(sourcePath) : '.jpg';
-    // Versioned filename so the in-memory image cache always sees a new path
-    // and refreshes (overwriting the same file would keep a stale cached image).
     final dest = p.join(
         dir.path, 'profile_${DateTime.now().millisecondsSinceEpoch}$ext');
 
     final copied = await File(sourcePath).copy(dest);
 
-    // Delete the previous photo (if any) now that the new one is safely written.
     final previous = _prefs.getString(_localPhotoPathKey);
     if (previous != null && previous != copied.path) {
       final old = File(previous);
@@ -126,7 +118,6 @@ class ProfileRepositoryImpl implements IProfileRepository {
   String? getLocalProfilePhotoPath() {
     final path = _prefs.getString(_localPhotoPathKey);
     if (path == null) return null;
-    // Guard against a stale path whose file was removed (e.g. cache cleared).
     return File(path).existsSync() ? path : null;
   }
 

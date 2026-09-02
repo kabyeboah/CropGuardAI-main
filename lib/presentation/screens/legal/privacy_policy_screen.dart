@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/di/service_locator.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
@@ -18,7 +18,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       _Section(l10n.privacySection4Title, l10n.privacySection4Body),
       _Section(l10n.privacySection5Title, l10n.privacySection5Body),
     ];
-    final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+    final isSignedIn = sl<SupabaseAuthService>().isSignedIn;
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),
@@ -79,7 +79,7 @@ class TermsOfServiceScreen extends StatelessWidget {
       _Section(l10n.termsSection5Title, l10n.termsSection5Body),
       _Section(l10n.termsSection6Title, l10n.termsSection6Body),
     ];
-    final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+    final isSignedIn = sl<SupabaseAuthService>().isSignedIn;
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),

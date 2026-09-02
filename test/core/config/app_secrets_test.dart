@@ -176,8 +176,8 @@ IOS_BUNDLE_ID=env-ios
         // Act & Assert
         expect(AppSecrets.passwordResetContinueUrl,
             equals('https://cropguardai.app/reset-password'));
-        expect(AppSecrets.androidPackageName, equals('com.crop.guard.app'));
-        expect(AppSecrets.iosBundleId, equals('com.crop.guard.app'));
+        expect(AppSecrets.androidPackageName, equals('com.cropguard.ai.app'));
+        expect(AppSecrets.iosBundleId, equals('com.cropguard.ai.app'));
       });
     });
   });

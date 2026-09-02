@@ -53,7 +53,7 @@ void main() {
     final headers = captured[1] as Map<String, String>;
     expect(headers['User-Agent'], isNotEmpty);
     expect(headers['User-Agent'], contains('CropGuardAI'));
-    expect(headers['User-Agent'], contains('com.crop.guard.app'));
+    expect(headers['User-Agent'], contains('com.cropguard.ai.app'));
   });
 
   test(

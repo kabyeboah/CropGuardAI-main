@@ -10,17 +10,17 @@ import '../../../core/utils/content_moderation_helper.dart';
 import '../../../core/utils/rate_limiter.dart';
 import '../../../core/utils/user_block_service.dart';
 import '../../../data/remote/image_upload_service.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../../data/local/pending_sync_queue.dart';
 import '../../../domain/models/community_post.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../../core/utils/image_quality_analyzer.dart';
 
-/// Community feed: images via ImageUploadService (Cloudinary + Firebase Storage), posts in Firestore.
+/// Community feed: images via ImageUploadService (Cloudinary + Supabase Storage), posts in Supabase.
 /// Enforces rate limits, content moderation, duplicate detection, user blocking, and abuse reporting.
 class CommunityProvider extends ChangeNotifier {
   final ICommunityRepository _communityRepo;
-  final FirebaseAuthService _auth;
+  final SupabaseAuthService _auth;
   final ImageUploadService _uploader;
   final ConnectivityService _connectivity;
   final UserBlockService _blockService;

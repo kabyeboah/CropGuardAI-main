@@ -34,6 +34,14 @@ class AppSecrets {
   static String? dartDefineOsmTileUrlOverride;
   @visibleForTesting
   static String? dartDefineOsmUserAgentOverride;
+  @visibleForTesting
+  static String? dartDefineGoogleServerClientIdOverride;
+  @visibleForTesting
+  static String? dartDefineGoogleIosClientIdOverride;
+  @visibleForTesting
+  static String? dartDefineSupabaseUrlOverride;
+  @visibleForTesting
+  static String? dartDefineSupabaseAnonKeyOverride;
 
   /// Resets all overrides and remote keys back to default/empty values.
   /// Intended for unit testing.
@@ -48,6 +56,10 @@ class AppSecrets {
     dartDefineGeminiApiKeyOverride = null;
     dartDefineOsmTileUrlOverride = null;
     dartDefineOsmUserAgentOverride = null;
+    dartDefineGoogleServerClientIdOverride = null;
+    dartDefineGoogleIosClientIdOverride = null;
+    dartDefineSupabaseUrlOverride = null;
+    dartDefineSupabaseAnonKeyOverride = null;
 
     _remoteGhanaNlpKey = null;
     _remoteCloudName = null;
@@ -58,6 +70,10 @@ class AppSecrets {
     _remoteGeminiApiKey = null;
     _remoteOsmTileUrl = null;
     _remoteOsmUserAgent = null;
+    _remoteGoogleServerClientId = null;
+    _remoteGoogleIosClientId = null;
+    _remoteSupabaseUrl = null;
+    _remoteSupabaseAnonKey = null;
   }
 
   /// Safe dotenv read: returns '' when dotenv isn't initialised (release) so
@@ -163,8 +179,8 @@ class AppSecrets {
   // secrets) but still benefit from Remote Config patching.
   static const _defaultPasswordResetUrl =
       'https://cropguardai.app/reset-password';
-  static const _defaultAndroidPackage = 'com.crop.guard.app';
-  static const _defaultIosBundleId = 'com.crop.guard.app';
+  static const _defaultAndroidPackage = 'com.cropguard.ai.app';
+  static const _defaultIosBundleId = 'com.cropguard.ai.app';
 
   static String get passwordResetContinueUrl {
     final ddUrl =
@@ -251,7 +267,7 @@ class AppSecrets {
   static const _defaultOsmTileUrl =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   static const _defaultOsmUserAgent =
-      'CropGuardAI/1.0 (com.crop.guard.app; support@cropguard.app)';
+      'CropGuardAI/1.0 (com.cropguard.ai.app; support@cropguard.app)';
 
   /// Base raster tile server URL template for flutter_map.
   static String get osmTileUrl {
@@ -283,4 +299,94 @@ class AppSecrets {
       _remoteOsmUserAgent = userAgent;
     }
   }
+
+  // ── Google OAuth Client IDs ────────────────────────────────────────────────
+  static String? _remoteGoogleServerClientId;
+  static String? _remoteGoogleIosClientId;
+
+  static const _dartDefineGoogleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
+  static const _dartDefineGoogleIosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+    defaultValue: '',
+  );
+
+  static const defaultGoogleServerClientId =
+      '859024066310-53gprmgbm38q8r84mpqcn74aqapritfu.apps.googleusercontent.com';
+  static const defaultGoogleIosClientId =
+      '395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs.apps.googleusercontent.com';
+
+  /// Web/Server OAuth Client ID used by GoogleSignIn on Android to request ID tokens.
+  static String get googleServerClientId {
+    final ddId = dartDefineGoogleServerClientIdOverride ??
+        _dartDefineGoogleServerClientId;
+    if (ddId.isNotEmpty) return ddId;
+    final envVal = _env('GOOGLE_SERVER_CLIENT_ID');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteGoogleServerClientId ?? defaultGoogleServerClientId;
+  }
+
+  /// iOS OAuth Client ID.
+  static String get googleIosClientId {
+    final ddId = dartDefineGoogleIosClientIdOverride ??
+        _dartDefineGoogleIosClientId;
+    if (ddId.isNotEmpty) return ddId;
+    final envVal = _env('GOOGLE_IOS_CLIENT_ID');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteGoogleIosClientId ?? defaultGoogleIosClientId;
+  }
+
+  static void setGoogleClientIds({
+    String? serverClientId,
+    String? iosClientId,
+  }) {
+    if (serverClientId != null && serverClientId.isNotEmpty) {
+      _remoteGoogleServerClientId = serverClientId;
+    }
+    if (iosClientId != null && iosClientId.isNotEmpty) {
+      _remoteGoogleIosClientId = iosClientId;
+    }
+  }
+
+  // ── Supabase Backend Configuration ─────────────────────────────────────────
+  static String? _remoteSupabaseUrl;
+  static String? _remoteSupabaseAnonKey;
+
+  static const _dartDefineSupabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
+  static const _dartDefineSupabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
+
+  static const defaultSupabaseUrl = 'https://xrjltpchcssztitswjvm.supabase.co';
+  static const defaultSupabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhyamx0cGNoY3NzenRpdHN3anZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMzQ0MzksImV4cCI6MjEwMzkxMDQzOX0.B-p59JrSLJd6_fcQAPkUzPsi4T9yc8-lzqwNnV2tRd0';
+
+  static String get supabaseUrl {
+    final ddUrl = dartDefineSupabaseUrlOverride ?? _dartDefineSupabaseUrl;
+    if (ddUrl.isNotEmpty) return ddUrl;
+    final envVal = _env('SUPABASE_URL');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteSupabaseUrl ?? defaultSupabaseUrl;
+  }
+
+  static String get supabaseAnonKey {
+    final ddKey =
+        dartDefineSupabaseAnonKeyOverride ?? _dartDefineSupabaseAnonKey;
+    if (ddKey.isNotEmpty) return ddKey;
+    final envVal = _env('SUPABASE_ANON_KEY');
+    if (envVal.isNotEmpty) return envVal;
+    return _remoteSupabaseAnonKey ?? defaultSupabaseAnonKey;
+  }
+
+  static void setSupabaseConfig({String? url, String? anonKey}) {
+    if (url != null && url.isNotEmpty) _remoteSupabaseUrl = url;
+    if (anonKey != null && anonKey.isNotEmpty) _remoteSupabaseAnonKey = anonKey;
+  }
 }
+

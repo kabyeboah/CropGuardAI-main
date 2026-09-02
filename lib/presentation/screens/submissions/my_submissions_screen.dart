@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,8 +7,8 @@ import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/locale_formatter.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/local/pending_sync_queue.dart';
-import '../../../data/remote/firebase_auth_service.dart';
-import '../../../data/remote/firestore_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
+import '../../../data/remote/supabase_database_service.dart';
 import '../../components/cropguard_card.dart';
 
 class MySubmissionsScreen extends StatefulWidget {
@@ -20,8 +19,8 @@ class MySubmissionsScreen extends StatefulWidget {
 }
 
 class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
-  final FirestoreService _firestore = sl<FirestoreService>();
-  final FirebaseAuthService _auth = sl<FirebaseAuthService>();
+  final SupabaseDatabaseService _firestore = sl<SupabaseDatabaseService>();
+  final SupabaseAuthService _auth = sl<SupabaseAuthService>();
   final DatabaseHelper _db = sl<DatabaseHelper>();
 
   List<Map<String, dynamic>> _submissions = [];
@@ -117,9 +116,9 @@ class _MySubmissionsScreenState extends State<MySubmissionsScreen> {
   }
 
   DateTime _parseDate(dynamic ts) {
-    if (ts is Timestamp) return ts.toDate();
     if (ts is DateTime) return ts;
     if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
+    if (ts is String) return DateTime.tryParse(ts) ?? DateTime.now();
     return DateTime.now();
   }
 

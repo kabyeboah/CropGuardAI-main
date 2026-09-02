@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../components/cropguard_text_field.dart';
 import '../../components/section_label.dart';
 import 'settings_provider.dart';
@@ -226,14 +226,14 @@ class SettingsScreen extends StatelessWidget {
 
   void _finalDeleteConfirmation(
       BuildContext context, SettingsProvider provider) {
-    final auth = sl<FirebaseAuthService>();
+    final auth = sl<SupabaseAuthService>();
     _showReauthAndDeleteDialog(context, provider, auth);
   }
 
   void _showReauthAndDeleteDialog(
     BuildContext context,
     SettingsProvider provider,
-    FirebaseAuthService auth,
+    SupabaseAuthService auth,
   ) {
     final l10n = context.l10n;
     String password = '';

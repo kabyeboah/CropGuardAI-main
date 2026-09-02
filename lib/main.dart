@@ -1,11 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/config/app_secrets.dart';
 import 'core/utils/push_notification_service.dart';
 import 'app.dart';
 import 'core/di/service_locator.dart';
@@ -45,10 +46,26 @@ void main() async {
         // No .env present — fine; AppSecrets falls back to dart-define/Remote Config.
       }
     }
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseReady = true;
+
+    // Initialize Supabase for Auth, PostgreSQL DB, and Cloud Storage
+    try {
+      await Supabase.initialize(
+        url: AppSecrets.supabaseUrl,
+        // ignore: deprecated_member_use
+        anonKey: AppSecrets.supabaseAnonKey,
+      );
+    } catch (e, s) {
+      AppLogger.e('Supabase initialization failed', e, s);
+    }
+
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      firebaseReady = true;
+    } catch (e, s) {
+      AppLogger.w('Firebase initialization non-fatal warning: $e', s);
+    }
 
     FlutterError.onError = (details) {
       final cleanException =
@@ -121,17 +138,25 @@ void main() async {
 
     // Attribute crashes and analytics to the current user across every auth
     // path (login/register/google/anonymous/logout) ONLY when user consented.
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      final analytics =
-          sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null;
-      if (analytics?.isEnabled == true) {
-        unawaited(
-            FirebaseCrashlytics.instance.setUserIdentifier(user?.uid ?? ''));
-        unawaited(analytics?.setUser(isAnonymous: user?.isAnonymous ?? false));
-      } else {
-        unawaited(FirebaseCrashlytics.instance.setUserIdentifier(''));
-      }
-    });
+    try {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        final user = data.session?.user;
+        if (data.event == AuthChangeEvent.passwordRecovery) {
+          AppRouter.router.go('/reset_password');
+        }
+        final analytics =
+            sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null;
+        if (analytics?.isEnabled == true) {
+          if (firebaseReady) {
+            unawaited(
+                FirebaseCrashlytics.instance.setUserIdentifier(user?.id ?? ''));
+          }
+          unawaited(analytics?.setUser(isAnonymous: user?.isAnonymous ?? false));
+        } else if (firebaseReady) {
+          unawaited(FirebaseCrashlytics.instance.setUserIdentifier(''));
+        }
+      });
+    } catch (_) {}
 
     runApp(
       MultiProvider(
@@ -152,9 +177,6 @@ void main() async {
     // opens the in-app reset screen rather than a web page.
     unawaited(sl<DeepLinkService>().init(AppRouter.router));
   }, (error, stack) {
-    // Guard against calling Crashlytics before Firebase.initializeApp() has
-    // completed — that call would itself throw, producing an unhandled
-    // secondary exception that crashes the process before any error is logged.
     if (firebaseReady && AppLogger.isCrashlyticsEnabled) {
       try {
         final cleanErr = DiagnosticSanitizer.sanitizeError(error);

@@ -1,6 +1,5 @@
 import 'dart:async' show unawaited;
 import 'dart:math' as math;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -22,7 +21,7 @@ import '../../../core/utils/content_moderation_helper.dart';
 import '../../../core/utils/rate_limiter.dart';
 import '../../../core/utils/user_block_service.dart';
 import '../../../core/utils/input_sanitizer.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../../domain/repositories/i_community_repository.dart';
 import '../../components/cropguard_card.dart';
 import '../../components/voice_dictation_button.dart';
@@ -290,7 +289,7 @@ class OutbreakMapScreen extends StatefulWidget {
 
 class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   final _communityRepo = sl<ICommunityRepository>();
-  final _auth = sl<FirebaseAuthService>();
+  final _auth = sl<SupabaseAuthService>();
   // Raw reports as fetched, kept so filters can re-aggregate without re-querying.
   List<Map<String, dynamic>> _allReports = [];
   List<_Hotspot> _hotspots = [];
@@ -408,7 +407,6 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   DateTime? _dateOf(Map<String, dynamic> r) {
     final ts = r['reportedAt'] ?? r['timestamp'] ?? r['date'];
     if (ts is String) return DateTime.tryParse(ts);
-    if (ts is Timestamp) return ts.toDate();
     if (ts is DateTime) return ts;
     if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
     return null;
@@ -1539,7 +1537,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                         precision: 2),
                                   },
                                   'notes': notesController.text.trim(),
-                                  'timestamp': FieldValue.serverTimestamp(),
+                                  'timestamp':
+                                      DateTime.now().toUtc().toIso8601String(),
                                 };
 
                                 final res = await _communityRepo
@@ -1721,7 +1720,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                           children: [
                             TileLayer(
                               urlTemplate: _kOsmTileUrl,
-                              userAgentPackageName: 'com.crop.guard.app',
+                              userAgentPackageName: 'com.cropguard.ai.app',
                               maxZoom: 19,
                               // Persistent disk cache: tiles stay available offline.
                               tileProvider: CachedTileProvider(),

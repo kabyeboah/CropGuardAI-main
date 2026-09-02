@@ -193,16 +193,6 @@ class _LoginBodyState extends State<_LoginBody> {
                   );
                 },
               ),
-              const SizedBox(height: 10),
-
-              // Guest
-              _SocialButton(
-                label: context.l10n.guestLogin,
-                icon: Icons.person_outline,
-                onTap: () => context
-                    .read<LoginProvider>()
-                    .signInAsGuest(() => context.go('/home')),
-              ),
               const SizedBox(height: 32),
 
               // Register link
@@ -300,3 +290,5 @@ class _SocialButton extends StatelessWidget {
     );
   }
 }
+
+

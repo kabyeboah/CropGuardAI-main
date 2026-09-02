@@ -8,7 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 
 import 'package:cropguard_flutter/domain/repositories/i_community_repository.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/presentation/screens/outbreak_map/outbreak_map_screen.dart';
 import 'package:cropguard_flutter/core/utils/result.dart';
 import 'package:cropguard_flutter/l10n/app_localizations.dart';
@@ -16,7 +16,7 @@ import 'package:cropguard_flutter/core/theme/app_theme.dart';
 
 class MockCommunityRepository extends Mock implements ICommunityRepository {}
 
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockSupabaseAuthService extends Mock implements SupabaseAuthService {}
 
 class MockTileImage extends Mock implements TileImage {}
 
@@ -77,15 +77,15 @@ List<Map<String, dynamic>> generateSyntheticReports(int count) {
 void main() {
   final sl = GetIt.instance;
   late MockCommunityRepository mockCommunityRepo;
-  late MockFirebaseAuthService mockAuthService;
+  late MockSupabaseAuthService mockAuthService;
 
   setUp(() {
     sl.reset();
     mockCommunityRepo = MockCommunityRepository();
-    mockAuthService = MockFirebaseAuthService();
+    mockAuthService = MockSupabaseAuthService();
 
     sl.registerSingleton<ICommunityRepository>(mockCommunityRepo);
-    sl.registerSingleton<FirebaseAuthService>(mockAuthService);
+    sl.registerSingleton<SupabaseAuthService>(mockAuthService);
 
     when(() => mockAuthService.currentUserId).thenReturn('test-user-id');
     when(() => mockAuthService.currentUserIdOrNull).thenReturn('test-user-id');

@@ -11,7 +11,7 @@ import '../../components/cropguard_card.dart';
 import '../../components/primary_button.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../domain/repositories/i_community_repository.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../../data/remote/gemini_cloud_ai_service.dart';
 import '../../../domain/models/cloud_ai_analysis_result.dart';
 import '../../../domain/models/community_post.dart';
@@ -249,7 +249,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
     try {
       final communityRepo = sl<ICommunityRepository>();
-      final authService = sl<FirebaseAuthService>();
+      final authService = sl<SupabaseAuthService>();
       final user = authService.currentUser;
 
       final topLabel = _mergedCandidates.isNotEmpty
@@ -258,8 +258,8 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
       final post = CommunityPost(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: user?.uid ?? 'anonymous',
-        author: user?.displayName ?? 'Local Farmer',
+        userId: user?.id ?? 'anonymous',
+        author: authService.currentUserName,
         tag: 'Expert Escalation',
         body:
             'Low-confidence AI scan ($topLabel). Requesting expert verification from extension officers or community agronomists.',
@@ -460,7 +460,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
     if (_submittedCandidate) return;
     _submittedCandidate = true;
 
-    final uid = sl<FirebaseAuthService>().currentUserId;
+    final uid = sl<SupabaseAuthService>().currentUserId;
     if (uid.isEmpty) return;
 
     final candidateData = {
@@ -887,7 +887,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
 
               final messenger = ScaffoldMessenger.of(context);
               final failMsg = context.l10n.submitReportFailed;
-              final uid = sl<FirebaseAuthService>().currentUserId;
+              final uid = sl<SupabaseAuthService>().currentUserId;
               if (uid.isEmpty) {
                 messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                 return;

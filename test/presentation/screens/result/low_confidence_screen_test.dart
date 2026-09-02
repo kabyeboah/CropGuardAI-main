@@ -6,7 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 
 import 'package:cropguard_flutter/core/utils/agri_weather_utils.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/data/remote/gemini_cloud_ai_service.dart';
 import 'package:cropguard_flutter/domain/models/cloud_ai_analysis_result.dart';
 import 'package:cropguard_flutter/domain/models/disease_risk.dart';
@@ -17,7 +17,7 @@ import 'package:cropguard_flutter/presentation/screens/home/home_provider.dart';
 import 'package:cropguard_flutter/presentation/screens/result/low_confidence_screen.dart';
 import 'package:cropguard_flutter/presentation/screens/scanner/scanner_provider.dart';
 
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockSupabaseAuthService extends Mock implements SupabaseAuthService {}
 
 class MockGeminiCloudAiService extends Mock implements GeminiCloudAiService {}
 
@@ -29,7 +29,7 @@ class MockHomeProvider extends Mock implements HomeProvider {}
 
 void main() {
   final sl = GetIt.instance;
-  late MockFirebaseAuthService mockAuthService;
+  late MockSupabaseAuthService mockAuthService;
   late MockGeminiCloudAiService mockGeminiService;
   late MockCommunityRepository mockCommunityRepo;
   late MockScannerProvider mockScannerProvider;
@@ -37,13 +37,13 @@ void main() {
 
   setUp(() {
     sl.reset();
-    mockAuthService = MockFirebaseAuthService();
+    mockAuthService = MockSupabaseAuthService();
     mockGeminiService = MockGeminiCloudAiService();
     mockCommunityRepo = MockCommunityRepository();
     mockScannerProvider = MockScannerProvider();
     mockHomeProvider = MockHomeProvider();
 
-    sl.registerSingleton<FirebaseAuthService>(mockAuthService);
+    sl.registerSingleton<SupabaseAuthService>(mockAuthService);
     sl.registerSingleton<GeminiCloudAiService>(mockGeminiService);
     sl.registerSingleton<ICommunityRepository>(mockCommunityRepo);
 

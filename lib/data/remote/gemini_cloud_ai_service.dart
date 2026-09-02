@@ -160,10 +160,10 @@ Return strictly valid JSON only.
       ];
 
       final response = await model.generateContent(content).timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 60),
         onTimeout: () {
           throw const GeminiCloudAiException(
-              'Gemini Cloud AI request timed out after 15 seconds. Please check your network connection.');
+              'Gemini Cloud AI request timed out after 60 seconds. Please check your network connection.');
         },
       );
       final text = response.text;

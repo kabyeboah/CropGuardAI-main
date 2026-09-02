@@ -5,7 +5,7 @@ import '../../../core/di/service_locator.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_lock_controller.dart';
 import '../../../core/utils/biometric_service.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../components/primary_button.dart';
 
 /// Shown when the biometric app-lock is active. Auto-prompts on open; offers a
@@ -47,7 +47,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
   Future<void> _logout() async {
     // Clear the lock first so the post-logout login flow isn't re-gated.
     _lock.unlock();
-    await sl<FirebaseAuthService>().signOut();
+    await sl<SupabaseAuthService>().signOut();
     if (!mounted) return;
     context.go('/login');
   }

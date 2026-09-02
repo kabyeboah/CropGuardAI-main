@@ -1,4 +1,4 @@
-package com.crop.guard.app
+package com.cropguard.ai.app
 
 import io.flutter.embedding.android.FlutterActivity
 

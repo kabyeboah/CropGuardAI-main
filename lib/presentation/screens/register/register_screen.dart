@@ -188,10 +188,52 @@ class _RegisterBodyState extends State<_RegisterBody> {
                 const SizedBox(height: 8),
 
                 // Error + button — only this sub-tree rebuilds from provider
-                Selector<RegisterProvider, (RegisterStatus, String?)>(
-                  selector: (_, p) => (p.status, p.errorMessage),
+                Selector<RegisterProvider, (RegisterStatus, String?, bool, String?)>(
+                  selector: (_, p) => (p.status, p.errorMessage, p.needsEmailConfirmation, p.confirmationEmail),
                   builder: (context, state, _) {
-                    final (status, error) = state;
+                    final (status, error, needsConfirmation, confirmEmail) = state;
+
+                    // Email confirmation required — show a success card
+                    if (needsConfirmation) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.mark_email_unread_outlined,
+                                size: 48, color: colors.primary),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Check your inbox!',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.onBackground,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'We sent a confirmation link to\n${confirmEmail ?? 'your email'}.\nClick it to activate your account, then sign in.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: colors.muted, fontSize: 13, height: 1.5),
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: () => context.go('/login'),
+                              child: Text(
+                                'Go to Sign In',
+                                style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -229,6 +271,33 @@ class _RegisterBodyState extends State<_RegisterBody> {
                           },
                         ),
                       ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Divider
+                Row(children: [
+                  Expanded(child: Divider(color: colors.divider)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(context.l10n.orDivider,
+                        style: TextStyle(color: colors.muted, fontSize: 12)),
+                  ),
+                  Expanded(child: Divider(color: colors.divider)),
+                ]),
+                const SizedBox(height: 16),
+
+                // Google sign-up
+                _SocialButton(
+                  label: 'Sign up with Google',
+                  icon: Icons.login,
+                  onTap: () {
+                    final provider = context.read<RegisterProvider>();
+                    provider.signInWithGoogle(
+                      () => context.go('/home'),
+                      onMigrationNeeded: (count) =>
+                          _showMigrationDialog(context, provider, count),
                     );
                   },
                 ),
@@ -319,9 +388,9 @@ class _PasswordStrengthBar extends StatelessWidget {
                 height: 3,
                 decoration: BoxDecoration(
                   color: filled
-                      ? segColors[
-                          i < segColors.length ? i : segColors.length - 1]
-                      : colors.border,
+                    ? segColors[
+                        i < segColors.length ? i : segColors.length - 1]
+                    : colors.border,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -337,3 +406,44 @@ class _PasswordStrengthBar extends StatelessWidget {
     );
   }
 }
+
+class _SocialButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SocialButton(
+      {required this.label, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        height: DeviceLayout.socialButtonHeight,
+        decoration: BoxDecoration(
+          border: Border.all(color: colors.border),
+          borderRadius: BorderRadius.circular(DeviceLayout.buttonCornerRadius),
+          color: colors.surface,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: colors.onBackground, size: 22),
+            const SizedBox(width: 10),
+            Text(label,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: colors.onBackground)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+

@@ -7,8 +7,8 @@ import 'package:provider/provider.dart';
 
 import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/data/remote/gemini_cloud_ai_service.dart';
 import 'package:cropguard_flutter/domain/models/detection_result.dart';
 import 'package:cropguard_flutter/domain/models/treatment_plan.dart';
@@ -27,9 +27,9 @@ import 'package:cropguard_flutter/presentation/screens/settings/settings_provide
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_provider.dart';
 import 'package:cropguard_flutter/presentation/screens/treatment_tracker/treatment_tracker_screen.dart';
 
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockSupabaseAuthService extends Mock implements SupabaseAuthService {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
 class MockGeminiCloudAiService extends Mock implements GeminiCloudAiService {}
 
@@ -53,8 +53,8 @@ class MockResultProvider extends Mock implements ResultProvider {}
 
 void main() {
   final sl = GetIt.instance;
-  late MockFirebaseAuthService mockAuthService;
-  late MockFirestoreService mockFirestoreService;
+  late MockSupabaseAuthService mockAuthService;
+  late MockSupabaseDatabaseService mockSupabaseDatabaseService;
   late MockGeminiCloudAiService mockGeminiService;
   late MockCommunityRepository mockCommunityRepo;
   late MockDetectionRepository mockDetectionRepo;
@@ -67,8 +67,8 @@ void main() {
 
   setUp(() {
     sl.reset();
-    mockAuthService = MockFirebaseAuthService();
-    mockFirestoreService = MockFirestoreService();
+    mockAuthService = MockSupabaseAuthService();
+    mockSupabaseDatabaseService = MockSupabaseDatabaseService();
     mockGeminiService = MockGeminiCloudAiService();
     mockCommunityRepo = MockCommunityRepository();
     mockDetectionRepo = MockDetectionRepository();
@@ -79,8 +79,8 @@ void main() {
     mockHomeProvider = MockHomeProvider();
     mockSettingsProvider = MockSettingsProvider();
 
-    sl.registerSingleton<FirebaseAuthService>(mockAuthService);
-    sl.registerSingleton<FirestoreService>(mockFirestoreService);
+    sl.registerSingleton<SupabaseAuthService>(mockAuthService);
+    sl.registerSingleton<SupabaseDatabaseService>(mockSupabaseDatabaseService);
     sl.registerSingleton<GeminiCloudAiService>(mockGeminiService);
     sl.registerSingleton<ICommunityRepository>(mockCommunityRepo);
     sl.registerSingleton<IDetectionRepository>(mockDetectionRepo);
@@ -270,7 +270,7 @@ void main() {
       final trackerProvider = TreatmentTrackerProvider(
         mockDatabaseHelper,
         mockAuthRepo,
-        mockFirestoreService,
+        mockSupabaseDatabaseService,
       );
 
       await tester.pumpWidget(

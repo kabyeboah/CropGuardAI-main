@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/local/database_helper.dart';
-import '../../data/remote/firestore_service.dart';
+import '../../data/remote/supabase_database_service.dart';
 import '../../domain/models/app_notification.dart';
 import 'app_logger.dart';
 import 'notification_helper.dart';
@@ -32,9 +31,9 @@ class OutbreakAlertService {
   }
 
   static DateTime? _toDate(dynamic ts) {
-    if (ts is Timestamp) return ts.toDate();
     if (ts is DateTime) return ts;
     if (ts is int) return DateTime.fromMillisecondsSinceEpoch(ts);
+    if (ts is String) return DateTime.tryParse(ts);
     return null;
   }
 
@@ -50,7 +49,7 @@ class OutbreakAlertService {
   /// any not-yet-alerted reports within [radiusKm]. Returns true on success
   /// (including the no-op cases) so the WorkManager task is not retried.
   static Future<bool> checkAndNotify({
-    required FirestoreService firestore,
+    required SupabaseDatabaseService databaseService,
     required SharedPreferences prefs,
     required DatabaseHelper db,
   }) async {
@@ -71,7 +70,7 @@ class OutbreakAlertService {
       // Without a location we can't measure proximity — skip quietly.
       if (lat == null || lon == null) return true;
 
-      final reports = await firestore.getOutbreakReports();
+      final reports = await databaseService.getOutbreakReports();
       final alerted = prefs.getStringList(_kAlertedIds)?.toSet() ?? <String>{};
       final now = DateTime.now();
 
@@ -81,14 +80,14 @@ class OutbreakAlertService {
       var nearestDist = double.infinity;
 
       for (final r in reports) {
-        final id = r['id'] as String?;
+        final id = r['id']?.toString();
         if (id == null || alerted.contains(id)) continue;
 
         final rLat = _coord(r, const ['latitude', 'lat']);
         final rLon = _coord(r, const ['longitude', 'lng', 'lon']);
         if (rLat == null || rLon == null) continue;
 
-        final dt = _toDate(r['timestamp'] ?? r['date']);
+        final dt = _toDate(r['timestamp'] ?? r['date'] ?? r['created_at']);
         if (dt != null && now.difference(dt).inDays > recentDays) continue;
 
         final distKm = Geolocator.distanceBetween(
@@ -105,7 +104,7 @@ class OutbreakAlertService {
         if (distKm < nearestDist) {
           nearestDist = distKm;
           nearestDisease =
-              (r['disease'] ?? r['diseaseName']) as String? ?? 'A crop disease';
+              (r['disease'] ?? r['diseaseName'] ?? r['disease_name']) as String? ?? 'A crop disease';
         }
       }
 

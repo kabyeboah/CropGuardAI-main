@@ -6,13 +6,13 @@ import '../../core/utils/app_logger.dart';
 import '../../core/utils/image_compressor.dart';
 import '../../core/utils/image_safety_utils.dart';
 import 'cloudinary_service.dart';
-import 'firebase_storage_service.dart';
+import 'supabase_storage_service.dart';
 
 /// Unified image uploader providing dual-layer cloud resilience and upload abuse restrictions.
 ///
 /// Priority order:
 /// 1. Cloudinary Service (if CLOUDINARY_CLOUD_NAME & CLOUDINARY_UPLOAD_PRESET are set)
-/// 2. Firebase Storage Service (automatic fallback if Cloudinary is unconfigured or fails)
+/// 2. Supabase Storage Service (automatic fallback if Cloudinary is unconfigured or fails)
 ///
 /// Automatically compresses images to ~1080px long edge, ~80% JPEG quality prior to upload.
 class ImageUploadService {
@@ -20,9 +20,9 @@ class ImageUploadService {
   static const Set<String> allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
 
   final CloudinaryService _cloudinaryService;
-  final FirebaseStorageService _firebaseStorageService;
+  final SupabaseStorageService _supabaseStorageService;
 
-  ImageUploadService(this._cloudinaryService, this._firebaseStorageService);
+  ImageUploadService(this._cloudinaryService, this._supabaseStorageService);
 
   Future<String> uploadImage(String localPath, {String? userId}) async {
     final effectiveUserId = userId ?? 'anonymous';
@@ -71,21 +71,21 @@ class ImageUploadService {
           return await _cloudinaryService.uploadImage(effectivePath);
         } catch (e) {
           AppLogger.w(
-              'ImageUploadService: Cloudinary upload failed ($e). Falling back to Firebase Storage.');
+              'ImageUploadService: Cloudinary upload failed ($e). Falling back to Supabase Storage.');
         }
       }
 
-      // 2. Fallback to Firebase Storage
+      // 2. Fallback to Supabase Storage
       try {
-        return await _firebaseStorageService.uploadCommunityImage(
+        return await _supabaseStorageService.uploadCommunityImage(
           localPath: effectivePath,
           userId: effectiveUserId,
         );
       } catch (e) {
         AppLogger.e(
-            'ImageUploadService: Firebase Storage fallback failed ($e).');
+            'ImageUploadService: Supabase Storage fallback failed ($e).');
         throw ServerFailure(
-            'Image upload failed across Cloudinary and Firebase Storage: $e');
+            'Image upload failed across Cloudinary and Supabase Storage: $e');
       }
     } finally {
       if (tempCompressedFile != null) {

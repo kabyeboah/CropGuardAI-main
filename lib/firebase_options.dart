@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     appId: '1:229730630873:web:9d788c9df0a5c4dea852c8',
     messagingSenderId: '395929072901',
     projectId: 'cropguard-6ada8',
-    authDomain: 'crop-guard-d36e5.firebaseapp.com',
+    authDomain: 'cropguard-6ada8.firebaseapp.com',
     storageBucket: 'cropguard-6ada8.firebasestorage.app',
   );
 

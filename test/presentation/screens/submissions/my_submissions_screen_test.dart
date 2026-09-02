@@ -8,14 +8,14 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:cropguard_flutter/core/di/service_locator.dart';
 import 'package:cropguard_flutter/core/theme/app_theme.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/l10n/app_localizations.dart';
 import 'package:cropguard_flutter/presentation/screens/submissions/my_submissions_screen.dart';
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockSupabaseAuthService extends Mock implements SupabaseAuthService {}
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
@@ -54,20 +54,20 @@ Widget _wrapScreen() {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockFirestoreService mockFirestore;
-  late MockFirebaseAuthService mockAuth;
+  late MockSupabaseDatabaseService mockDatabaseService;
+  late MockSupabaseAuthService mockAuth;
   late MockDatabaseHelper mockDb;
   late MockDatabase mockDatabase;
 
   setUp(() {
     sl.reset();
-    mockFirestore = MockFirestoreService();
-    mockAuth = MockFirebaseAuthService();
+    mockDatabaseService = MockSupabaseDatabaseService();
+    mockAuth = MockSupabaseAuthService();
     mockDb = MockDatabaseHelper();
     mockDatabase = MockDatabase();
 
-    sl.registerSingleton<FirestoreService>(mockFirestore);
-    sl.registerSingleton<FirebaseAuthService>(mockAuth);
+    sl.registerSingleton<SupabaseDatabaseService>(mockDatabaseService);
+    sl.registerSingleton<SupabaseAuthService>(mockAuth);
     sl.registerSingleton<DatabaseHelper>(mockDb);
 
     when(() => mockDatabase.query(any(), orderBy: any(named: 'orderBy')))
@@ -81,7 +81,7 @@ void main() {
   });
 
   testWidgets('displays submissions list on successful fetch', (tester) async {
-    when(() => mockFirestore.getUserExpertRequests('test-user-123')).thenAnswer(
+    when(() => mockDatabaseService.getUserExpertRequests('test-user-123')).thenAnswer(
       (_) async => [
         {
           'type': 'expert_request',
@@ -92,7 +92,7 @@ void main() {
         },
       ],
     );
-    when(() => mockFirestore.getUserMissingCrops('test-user-123')).thenAnswer(
+    when(() => mockDatabaseService.getUserMissingCrops('test-user-123')).thenAnswer(
       (_) async => [],
     );
 
@@ -108,10 +108,10 @@ void main() {
 
   testWidgets('displays empty state when user has no submissions',
       (tester) async {
-    when(() => mockFirestore.getUserExpertRequests('test-user-123')).thenAnswer(
+    when(() => mockDatabaseService.getUserExpertRequests('test-user-123')).thenAnswer(
       (_) async => [],
     );
-    when(() => mockFirestore.getUserMissingCrops('test-user-123')).thenAnswer(
+    when(() => mockDatabaseService.getUserMissingCrops('test-user-123')).thenAnswer(
       (_) async => [],
     );
 
@@ -125,7 +125,7 @@ void main() {
   testWidgets('renders error banner with retry action on network failure',
       (tester) async {
     var callCount = 0;
-    when(() => mockFirestore.getUserExpertRequests('test-user-123'))
+    when(() => mockDatabaseService.getUserExpertRequests('test-user-123'))
         .thenAnswer((_) async {
       callCount++;
       if (callCount == 1) {
@@ -141,7 +141,7 @@ void main() {
         },
       ];
     });
-    when(() => mockFirestore.getUserMissingCrops('test-user-123')).thenAnswer(
+    when(() => mockDatabaseService.getUserMissingCrops('test-user-123')).thenAnswer(
       (_) async => [],
     );
 

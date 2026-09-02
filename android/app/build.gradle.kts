@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.crop.guard.app"
+    namespace = "com.cropguard.ai.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.crop.guard.app"
+        applicationId = "com.cropguard.ai.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -60,6 +60,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Use the default Android debug keystore for debug builds.
+            // Do NOT apply the release signing config here — mixing signing certs
+            // causes "App not installed as package conflicts with an existing package"
+            // when the device already has a version of the app with a different cert.
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             val hasKeystore = keystorePropertiesFile.exists() || System.getenv("STORE_FILE") != null
             if (!hasKeystore) {

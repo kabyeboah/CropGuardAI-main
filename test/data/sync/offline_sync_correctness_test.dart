@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:cropguard_flutter/core/utils/streak_manager.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
 import 'package:cropguard_flutter/data/local/pending_sync_queue.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/data/remote/image_upload_service.dart';
 import 'package:cropguard_flutter/data/repositories/community_repository_impl.dart';
 import 'package:cropguard_flutter/data/repositories/detection_repository_impl.dart';
@@ -19,7 +19,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class MockClassifierRepository extends Mock implements IClassifierRepository {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
 class MockImageUploadService extends Mock implements ImageUploadService {}
 
@@ -42,7 +42,7 @@ void main() {
   late String dbPath;
   late DatabaseHelper dbHelper;
   late MockClassifierRepository mockClassifier;
-  late MockFirestoreService mockFirestore;
+  late MockSupabaseDatabaseService mockDatabaseService;
   late MockImageUploadService mockImageUpload;
   late MockStreakManager mockStreakManager;
   late DetectionRepositoryImpl detectionRepo;
@@ -55,12 +55,12 @@ void main() {
     dbPath = p.join(tempDir.path, 'offline_sync_$testCounter.db');
     dbHelper = DatabaseHelper.forTest(dbPath);
     mockClassifier = MockClassifierRepository();
-    mockFirestore = MockFirestoreService();
+    mockDatabaseService = MockSupabaseDatabaseService();
     mockImageUpload = MockImageUploadService();
     mockStreakManager = MockStreakManager();
     detectionRepo = DetectionRepositoryImpl(dbHelper);
     communityRepo = CommunityRepositoryImpl(
-      mockFirestore,
+      mockDatabaseService,
       dbHelper,
       mockImageUpload,
     );
@@ -109,7 +109,7 @@ void main() {
     test(
         'Offline scan and save: stores detection locally with isSynced=0 and queues pending sync upload',
         () async {
-      when(() => mockFirestore.upsertScan(any(), any()))
+      when(() => mockDatabaseService.upsertScan(any(), any()))
           .thenThrow(const SocketException('No route to host (offline)'));
       when(() => mockStreakManager.recordScan()).thenAnswer((_) async => 1);
 
@@ -165,7 +165,7 @@ void main() {
       final id2 = await dbHelper.insertDetection(det2);
 
       // Cloud writes fail -> enqueued into pending sync
-      when(() => mockFirestore.upsertScan(any(), any()))
+      when(() => mockDatabaseService.upsertScan(any(), any()))
           .thenThrow(const SocketException('Network is down'));
 
       await communityRepo.upsertScan(
@@ -178,9 +178,9 @@ void main() {
           (await dbHelper.getUnsyncedDetections(userId: 'farmer_alice')).length,
           2);
 
-      // 2. Network returns: mockFirestore now succeeds
+      // 2. Network returns: mockDatabaseService now succeeds
       final uploadedDocs = <String, Map<String, dynamic>>{};
-      when(() => mockFirestore.upsertScan(any(), any()))
+      when(() => mockDatabaseService.upsertScan(any(), any()))
           .thenAnswer((inv) async {
         final docId = inv.positionalArguments[0] as String;
         final data = inv.positionalArguments[1] as Map<String, dynamic>;
@@ -354,7 +354,7 @@ void main() {
         'Idempotency & Deduplication: duplicate/replayed upserts do not duplicate records',
         () async {
       final uploadedDocs = <String, Map<String, dynamic>>{};
-      when(() => mockFirestore.upsertScan(any(), any()))
+      when(() => mockDatabaseService.upsertScan(any(), any()))
           .thenAnswer((inv) async {
         final docId = inv.positionalArguments[0] as String;
         final data = inv.positionalArguments[1] as Map<String, dynamic>;
@@ -404,7 +404,7 @@ void main() {
       });
 
       // Mock Firestore failure on first drain attempt after image is uploaded
-      when(() => mockFirestore.addPost(any()))
+      when(() => mockDatabaseService.addPost(any()))
           .thenThrow(const SocketException('Firestore unavailable'));
 
       // First drain attempt
@@ -419,7 +419,7 @@ void main() {
       expect(rows.first['status'], 'failed');
 
       // Second drain attempt: Firestore now succeeds
-      when(() => mockFirestore.addPost(any())).thenAnswer((_) async {});
+      when(() => mockDatabaseService.addPost(any())).thenAnswer((_) async {});
       await communityRepo.drainPendingSync();
 
       // Verify upload was NOT called again (deduped/idempotent)

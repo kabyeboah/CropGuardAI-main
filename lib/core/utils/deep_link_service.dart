@@ -75,17 +75,23 @@ class DeepLinkService {
     }
 
     final params = uri.queryParameters;
-    final code = params['oobCode'];
+    final code = params['code'] ?? params['token_hash'] ?? params['oobCode'];
     final mode = params['mode'];
+    final isRecoveryFragment = uri.fragment.contains('type=recovery');
     final isReset =
-        mode == 'resetPassword' || uri.path.contains('reset-password');
+        mode == 'resetPassword' ||
+        uri.path.contains('reset-password') ||
+        isRecoveryFragment;
 
-    if (code != null && code.isNotEmpty && isReset) {
-      // 4. Validate code against safe characters (Firebase action codes are base64-like)
-      final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
-      if (!codeRegex.hasMatch(code)) {
-        AppLogger.e('Rejected deep link with malformed or suspicious oobCode.');
-        return;
+    if (isReset && ((code != null && code.isNotEmpty) || isRecoveryFragment)) {
+      final safeCode = code ?? '';
+      // 4. Validate code against safe characters (Supabase/Firebase tokens)
+      if (safeCode.isNotEmpty) {
+        final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
+        if (!codeRegex.hasMatch(safeCode)) {
+          AppLogger.e('Rejected deep link with malformed or suspicious code.');
+          return;
+        }
       }
 
       // 5. Validate mode parameter if present
@@ -97,7 +103,7 @@ class DeepLinkService {
         }
       }
 
-      final encodedCode = Uri.encodeComponent(code);
+      final encodedCode = Uri.encodeComponent(safeCode);
       router.go('/reset_password?oobCode=$encodedCode');
     } else {
       AppLogger.w('Received deep link that is not a password reset action.');

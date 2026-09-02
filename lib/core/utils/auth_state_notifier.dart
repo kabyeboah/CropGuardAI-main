@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Listens to [FirebaseAuth.authStateChanges] and notifies listeners (such as
+/// Listens to Supabase auth state changes and notifies listeners (such as
 /// [GoRouter]) when the user signs in or out.
 class AuthStateNotifier extends ChangeNotifier {
-  late final StreamSubscription<User?> _subscription;
+  late final StreamSubscription<AuthState> _subscription;
 
-  AuthStateNotifier([FirebaseAuth? auth]) {
-    final firebaseAuth = auth ?? FirebaseAuth.instance;
-    _subscription = firebaseAuth.authStateChanges().listen((_) {
+  AuthStateNotifier([SupabaseClient? client]) {
+    final supabaseClient = client ?? Supabase.instance.client;
+    _subscription = supabaseClient.auth.onAuthStateChange.listen((_) {
       notifyListeners();
     });
   }

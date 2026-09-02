@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -137,7 +137,7 @@ class _SplashScreenState extends State<SplashScreen>
     final currentLoc = GoRouterState.of(context).matchedLocation;
     if (currentLoc != '/splash') return;
 
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (sl<SupabaseAuthService>().currentUser != null) {
       context.go('/home');
     } else if (onboardingDone) {
       context.go('/login');

@@ -21,7 +21,8 @@ final class CacheFailure extends Failure {
 }
 
 final class AuthFailure extends Failure {
-  const AuthFailure(super.message);
+  final String? code;
+  const AuthFailure(super.message, {this.code});
 }
 
 final class MLFailure extends Failure {

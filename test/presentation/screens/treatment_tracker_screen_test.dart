@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:cropguard_flutter/core/theme/app_theme.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/domain/models/treatment_plan.dart';
 import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
 import 'package:cropguard_flutter/l10n/app_localizations.dart';
@@ -18,7 +18,7 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
 class MockIAuthRepository extends Mock implements IAuthRepository {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
 Widget _wrapScreen({
   required TreatmentTrackerProvider provider,
@@ -57,12 +57,12 @@ Widget _wrapScreen({
 void main() {
   late MockDatabaseHelper mockDb;
   late MockIAuthRepository mockAuthRepo;
-  late MockFirestoreService mockFirestore;
+  late MockSupabaseDatabaseService mockDatabaseService;
 
   setUp(() {
     mockDb = MockDatabaseHelper();
     mockAuthRepo = MockIAuthRepository();
-    mockFirestore = MockFirestoreService();
+    mockDatabaseService = MockSupabaseDatabaseService();
 
     when(() => mockAuthRepo.currentUser).thenReturn(null);
   });
@@ -80,7 +80,7 @@ void main() {
         .thenAnswer((_) async => 0);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -115,7 +115,7 @@ void main() {
         .thenAnswer((_) async => 0);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -163,7 +163,7 @@ void main() {
         .thenAnswer((_) async => 1);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -201,7 +201,7 @@ void main() {
     when(() => mockDb.deleteTreatment('step_del')).thenAnswer((_) async => 1);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -258,7 +258,7 @@ void main() {
         .thenAnswer((_) async => 0);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 
@@ -312,7 +312,7 @@ void main() {
         .thenAnswer((_) async => 1);
 
     final provider =
-        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+        TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
     await tester.pumpWidget(_wrapScreen(provider: provider));
     await tester.pumpAndSettle();
 

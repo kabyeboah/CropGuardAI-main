@@ -6,7 +6,7 @@ import 'package:cropguard_flutter/core/utils/connectivity_service.dart';
 import 'package:cropguard_flutter/core/utils/rate_limiter.dart';
 import 'package:cropguard_flutter/core/utils/user_block_service.dart';
 import 'package:cropguard_flutter/data/remote/image_upload_service.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/domain/repositories/i_community_repository.dart';
 import 'package:cropguard_flutter/domain/models/community_post.dart';
 import 'package:cropguard_flutter/data/local/pending_sync_queue.dart';
@@ -14,7 +14,7 @@ import 'package:cropguard_flutter/presentation/screens/community/community_provi
 
 class _MockCommunityRepository extends Mock implements ICommunityRepository {}
 
-class _MockAuthService extends Mock implements FirebaseAuthService {}
+class _MockAuthService extends Mock implements SupabaseAuthService {}
 
 class _MockImageUploadService extends Mock implements ImageUploadService {}
 

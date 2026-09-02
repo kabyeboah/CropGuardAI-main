@@ -10,7 +10,7 @@ import '../../../core/utils/scan_severity.dart';
 import '../../../data/local/database_helper.dart';
 import '../../../data/local/pending_sync_queue.dart';
 import '../../../domain/repositories/i_auth_repository.dart';
-import '../../../data/remote/firestore_service.dart';
+import '../../../data/remote/supabase_database_service.dart';
 import '../../../domain/models/field.dart';
 import '../../../domain/models/treatment_plan.dart';
 
@@ -33,12 +33,12 @@ class TreatmentSeed {
 class TreatmentTrackerProvider extends ChangeNotifier {
   final DatabaseHelper _db;
   final IAuthRepository _authRepository;
-  final FirestoreService _firestore;
+  final SupabaseDatabaseService _databaseService;
 
   TreatmentTrackerProvider(
     this._db,
     this._authRepository,
-    this._firestore, {
+    this._databaseService, {
     TreatmentSeed? seed,
   }) {
     if (seed != null) {
@@ -242,7 +242,7 @@ class TreatmentTrackerProvider extends ChangeNotifier {
   Future<void> _syncAddTreatment(Map<String, dynamic> payload) async {
     if (_isGuest) return;
     try {
-      await _firestore
+      await _databaseService
           .addTreatment(payload)
           .timeout(const Duration(seconds: 4));
     } catch (e) {
@@ -263,7 +263,7 @@ class TreatmentTrackerProvider extends ChangeNotifier {
       String id, Map<String, dynamic> updateData) async {
     if (_isGuest) return;
     try {
-      await _firestore
+      await _databaseService
           .updateTreatment(id, updateData)
           .timeout(const Duration(seconds: 4));
     } catch (e) {
@@ -283,7 +283,7 @@ class TreatmentTrackerProvider extends ChangeNotifier {
   Future<void> _syncDeleteTreatment(String id) async {
     if (_isGuest) return;
     try {
-      await _firestore.deleteTreatment(id).timeout(const Duration(seconds: 4));
+      await _databaseService.deleteTreatment(id).timeout(const Duration(seconds: 4));
     } catch (e) {
       try {
         final db = await _db.database;

@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../core/di/service_locator.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/push_notification_service.dart';
@@ -7,19 +7,19 @@ import '../../domain/models/app_user.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/repositories/i_community_repository.dart';
 import 'community_repository_impl.dart';
-import '../remote/firebase_auth_service.dart';
+import '../remote/supabase_auth_service.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
-  final FirebaseAuthService _authService;
+  final SupabaseAuthService _authService;
 
   AuthRepositoryImpl(this._authService);
 
   @override
   Stream<AppUser?> get authStateChanges =>
-      _authService.authStateChanges.map(_mapFirebaseUser);
+      _authService.authStateChanges.map(_mapSupabaseUser);
 
   @override
-  AppUser? get currentUser => _mapFirebaseUser(_authService.currentUser);
+  AppUser? get currentUser => _mapSupabaseUser(_authService.currentUser);
 
   @override
   bool get isSignedIn => _authService.isSignedIn;
@@ -31,9 +31,9 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<Result<AppUser>> signIn(
       {required String email, required String password}) async {
     try {
-      final credential =
+      final response =
           await _authService.signIn(email: email, password: password);
-      final user = _mapFirebaseUser(credential.user);
+      final user = _mapSupabaseUser(response.user);
       if (user != null) {
         return Result.success(user);
       } else {
@@ -51,9 +51,9 @@ class AuthRepositoryImpl implements IAuthRepository {
       required String password,
       required String name}) async {
     try {
-      final credential = await _authService.register(
+      final response = await _authService.register(
           email: email, password: password, name: name);
-      final user = _mapFirebaseUser(credential.user);
+      final user = _mapSupabaseUser(response.user);
       if (user != null) {
         final effectiveUser =
             (user.displayName.isEmpty || user.displayName == 'Farmer') &&
@@ -131,7 +131,7 @@ class AuthRepositoryImpl implements IAuthRepository {
               .timeout(const Duration(seconds: 3));
         } catch (_) {}
       }
-      await _authService.deleteAccount();
+      await _authService.signOut();
       return Result.success(null);
     } catch (e) {
       if (e is Failure) return Result.error(e);
@@ -153,8 +153,21 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<Result<String>> verifyPasswordResetCode(String code) async {
     try {
-      final email = await _authService.verifyPasswordResetCode(code);
-      return Result.success(email);
+      final trimmed = code.trim();
+      if (trimmed.isNotEmpty) {
+        try {
+          await _authService.exchangeCodeForSession(trimmed);
+        } catch (_) {
+          // May already be in recovery session
+        }
+      }
+      if (_authService.isSignedIn) {
+        return Result.success(_authService.currentUserEmail);
+      }
+      if (trimmed.isNotEmpty) {
+        return Result.success('');
+      }
+      return Result.error(const AuthFailure('Invalid or expired reset code'));
     } catch (e) {
       if (e is Failure) return Result.error(e);
       return Result.error(AuthFailure(e.toString()));
@@ -168,7 +181,9 @@ class AuthRepositoryImpl implements IAuthRepository {
   }) async {
     try {
       await _authService.confirmPasswordReset(
-          code: code, newPassword: newPassword);
+        code: code,
+        newPassword: newPassword,
+      );
       return Result.success(null);
     } catch (e) {
       if (e is Failure) return Result.error(e);
@@ -226,13 +241,19 @@ class AuthRepositoryImpl implements IAuthRepository {
     }
   }
 
-  AppUser? _mapFirebaseUser(firebase_auth.User? user) {
+  AppUser? _mapSupabaseUser(supabase.User? user) {
     if (user == null) return null;
+    final metadata = user.userMetadata;
+    final name = metadata?['full_name'] as String? ??
+        metadata?['name'] as String? ??
+        'Farmer';
+    final photo =
+        metadata?['avatar_url'] as String? ?? metadata?['picture'] as String?;
     return AppUser(
-      id: user.uid,
+      id: user.id,
       email: user.email ?? '',
-      displayName: user.displayName ?? 'Farmer',
-      photoUrl: user.photoURL,
+      displayName: name,
+      photoUrl: photo,
       isAnonymous: user.isAnonymous,
     );
   }

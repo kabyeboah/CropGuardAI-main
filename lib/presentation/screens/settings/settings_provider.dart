@@ -15,14 +15,14 @@ import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/biometric_service.dart';
 import '../../../core/utils/version_check_service.dart';
 import '../../../data/local/database_helper.dart';
-import '../../../data/remote/firebase_auth_service.dart';
-import '../../../data/remote/firestore_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
+import '../../../data/remote/supabase_database_service.dart';
 import '../../l10n/ui_message.dart';
 
 /// Equivalent of SettingsViewModel.kt
 class SettingsProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
-  final FirebaseAuthService _auth;
+  final SupabaseAuthService _auth;
   final DatabaseHelper _db;
   final AnalyticsService _analytics;
   final BiometricService _biometric;
@@ -223,7 +223,9 @@ class SettingsProvider extends ChangeNotifier {
       // Purge cloud user documents while still authenticated
       final uid = _auth.currentUserId;
       if (uid.isNotEmpty) {
-        await sl<FirestoreService>().deleteUserData(uid);
+        if (sl.isRegistered<SupabaseDatabaseService>()) {
+          await sl<SupabaseDatabaseService>().deleteUserData(uid);
+        }
       }
 
       // Purge local detections for this user

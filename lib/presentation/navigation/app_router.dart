@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/di/service_locator.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/local/database_helper.dart';
-import '../../data/remote/firebase_auth_service.dart';
-import '../../data/remote/firestore_service.dart';
+import '../../data/remote/supabase_auth_service.dart';
+import '../../data/remote/supabase_database_service.dart';
 import '../../data/remote/image_upload_service.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/repositories/i_community_repository.dart';
@@ -83,7 +83,7 @@ class AppRouter {
         '/lock',
       ];
       final isPublic = publicRoutes.contains(path);
-      final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+      final isSignedIn = sl<SupabaseAuthService>().isSignedIn;
 
       // Biometric app-lock: gate every signed-in route until unlocked.
       if (sl<AppLockController>().isLocked && isSignedIn && path != '/lock') {
@@ -139,8 +139,11 @@ class AppRouter {
         path: '/reset_password',
         parentNavigatorKey: rootNavigatorKey,
         builder: (ctx, state) {
-          // oobCode arrives as a query param on the deep link / continue URL.
-          final code = state.uri.queryParameters['oobCode'] ?? '';
+          // Recovery code arrives as a query param (code, token_hash, or legacy oobCode)
+          final code = state.uri.queryParameters['oobCode'] ??
+              state.uri.queryParameters['code'] ??
+              state.uri.queryParameters['token_hash'] ??
+              '';
           return ResetPasswordScreen(oobCode: code);
         },
       ),
@@ -198,7 +201,7 @@ class AppRouter {
                 create: (_) => TreatmentTrackerProvider(
                   sl<DatabaseHelper>(),
                   sl<IAuthRepository>(),
-                  sl<FirestoreService>(),
+                  sl<SupabaseDatabaseService>(),
                 ),
               ),
             ],
@@ -250,7 +253,7 @@ class AppRouter {
         builder: (ctx, state) => ChangeNotifierProvider(
           create: (_) => CommunityProvider(
             sl<ICommunityRepository>(),
-            sl<FirebaseAuthService>(),
+            sl<SupabaseAuthService>(),
             sl<ImageUploadService>(),
             sl<ConnectivityService>(),
           ),
@@ -285,7 +288,7 @@ class AppRouter {
           create: (_) => TreatmentTrackerProvider(
             sl<DatabaseHelper>(),
             sl<IAuthRepository>(),
-            sl<FirestoreService>(),
+            sl<SupabaseDatabaseService>(),
             seed: state.extra is TreatmentSeed
                 ? state.extra as TreatmentSeed
                 : null,

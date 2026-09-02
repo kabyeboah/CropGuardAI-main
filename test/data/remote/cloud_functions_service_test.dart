@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
@@ -9,16 +8,11 @@ import 'package:cropguard_flutter/data/remote/cloud_functions_service.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
-class MockFirebaseAuth extends Mock implements FirebaseAuth {}
-
-class MockUser extends Mock implements User {}
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockHttpClient mockHttpClient;
-  late MockFirebaseAuth mockAuth;
-  late MockUser mockUser;
+  String? currentToken;
   late CloudFunctionsService service;
 
   setUpAll(() {
@@ -27,12 +21,11 @@ void main() {
 
   setUp(() {
     mockHttpClient = MockHttpClient();
-    mockAuth = MockFirebaseAuth();
-    mockUser = MockUser();
+    currentToken = 'fake-jwt-token-123';
 
     service = CloudFunctionsService(
       client: mockHttpClient,
-      auth: mockAuth,
+      authTokenProvider: () async => currentToken,
       region: 'us-central1',
       projectId: 'test-project',
     );
@@ -41,7 +34,7 @@ void main() {
   group('CloudFunctionsService', () {
     test('verifyOutbreak throws AuthFailure when user is not signed in',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(null);
+      currentToken = null;
 
       expect(
         () => service.verifyOutbreak(reportId: 'rep_123', confirm: true),
@@ -52,9 +45,7 @@ void main() {
     test(
         'verifyOutbreak sends authenticated request and parses success response',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       when(() => mockHttpClient.post(
             any(),
@@ -93,9 +84,7 @@ void main() {
     });
 
     test('verifyOutbreak throws AuthFailure on 401 response', () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       when(() => mockHttpClient.post(
             any(),
@@ -112,9 +101,7 @@ void main() {
     test(
         'analyzeCropWithGemini proxies request with auth token and returns analysis result',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       when(() => mockHttpClient.post(
             any(),
@@ -160,9 +147,7 @@ void main() {
     test(
         'synthesizeGhanaNlp proxies TTS request and returns decoded audio bytes',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       final fakeAudioBytes = utf8.encode('RIFF-WAVE-AUDIO-DATA');
       final fakeBase64 = base64Encode(fakeAudioBytes);
@@ -192,9 +177,7 @@ void main() {
 
     test('transcribeGhanaNlp proxies ASR audio and returns transcribed text',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       when(() => mockHttpClient.post(
             any(),
@@ -222,9 +205,7 @@ void main() {
 
     test('translateGhanaNlp proxies translation text and returns translated string',
         () async {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
-      when(() => mockUser.getIdToken())
-          .thenAnswer((_) async => 'fake-jwt-token-123');
+      currentToken = 'fake-jwt-token-123';
 
       when(() => mockHttpClient.post(
             any(),

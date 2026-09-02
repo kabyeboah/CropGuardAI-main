@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/domain/models/app_user.dart';
 import 'package:cropguard_flutter/domain/models/treatment_plan.dart';
 import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
@@ -12,7 +12,7 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
 class MockIAuthRepository extends Mock implements IAuthRepository {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
 class FakeTreatmentPlan extends Fake implements TreatmentPlan {}
 
@@ -23,12 +23,12 @@ void main() {
 
   late MockDatabaseHelper mockDb;
   late MockIAuthRepository mockAuthRepo;
-  late MockFirestoreService mockFirestore;
+  late MockSupabaseDatabaseService mockDatabaseService;
 
   setUp(() {
     mockDb = MockDatabaseHelper();
     mockAuthRepo = MockIAuthRepository();
-    mockFirestore = MockFirestoreService();
+    mockDatabaseService = MockSupabaseDatabaseService();
 
     when(() => mockAuthRepo.currentUser).thenReturn(null);
   });
@@ -171,7 +171,7 @@ void main() {
           .thenAnswer((_) async => 2);
 
       final provider =
-          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
       await Future.delayed(Duration.zero);
 
       expect(provider.planGroups.length, 2);
@@ -217,7 +217,7 @@ void main() {
       when(() => mockDb.deleteTreatment('s1')).thenAnswer((_) async {});
 
       final provider =
-          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
       await Future.delayed(Duration.zero);
 
       when(() => mockDb.getAllTreatments(
@@ -251,7 +251,7 @@ void main() {
       when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
 
       final provider =
-          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -260,7 +260,7 @@ void main() {
         steps: ['Apply bio-fungicide'],
       );
 
-      verifyNever(() => mockFirestore.addTreatment(any()));
+      verifyNever(() => mockDatabaseService.addTreatment(any()));
     });
 
     test('skips firestore sync when user is anonymous', () async {
@@ -285,7 +285,7 @@ void main() {
       when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
 
       final provider =
-          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -294,7 +294,7 @@ void main() {
         steps: ['Apply bio-fungicide'],
       );
 
-      verifyNever(() => mockFirestore.addTreatment(any()));
+      verifyNever(() => mockDatabaseService.addTreatment(any()));
     });
 
     test('syncs to firestore when authenticated user is not anonymous',
@@ -318,11 +318,11 @@ void main() {
       when(() => mockDb.getFields(userId: 'user_real_999'))
           .thenAnswer((_) async => []);
       when(() => mockDb.insertTreatment(any())).thenAnswer((_) async => '1');
-      when(() => mockFirestore.addTreatment(any()))
+      when(() => mockDatabaseService.addTreatment(any()))
           .thenAnswer((_) async => 'cloud_id_1');
 
       final provider =
-          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockFirestore);
+          TreatmentTrackerProvider(mockDb, mockAuthRepo, mockDatabaseService);
       await Future.delayed(Duration.zero);
 
       await provider.addTreatmentPlan(
@@ -331,7 +331,7 @@ void main() {
         steps: ['Apply bio-fungicide'],
       );
 
-      verify(() => mockFirestore.addTreatment(any()))
+      verify(() => mockDatabaseService.addTreatment(any()))
           .called(greaterThanOrEqualTo(1));
     });
   });

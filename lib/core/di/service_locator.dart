@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Data sources
 import '../../data/local/database_helper.dart';
-import '../../data/remote/firebase_auth_service.dart';
+import '../../data/remote/supabase_auth_service.dart';
+import '../../data/remote/supabase_database_service.dart';
+import '../../data/remote/supabase_storage_service.dart';
 import '../../data/remote/cloud_functions_service.dart';
-import '../../data/remote/firestore_service.dart';
 import '../../data/remote/cloudinary_service.dart';
-import '../../data/remote/firebase_storage_service.dart';
 import '../../data/remote/image_upload_service.dart';
 import '../../data/remote/gemini_cloud_ai_service.dart';
 import '../../data/remote/ghana_nlp_service.dart';
@@ -80,16 +80,14 @@ Future<void> setupServiceLocator() async {
 
   // 1. Data Sources (Low level)
   sl.registerLazySingleton<DatabaseHelper>(() => DatabaseHelper());
-  sl.registerLazySingleton<FirebaseAuthService>(() => FirebaseAuthService());
+  sl.registerLazySingleton<SupabaseAuthService>(() => SupabaseAuthService());
+  sl.registerLazySingleton<SupabaseDatabaseService>(() => SupabaseDatabaseService());
+  sl.registerLazySingleton<SupabaseStorageService>(() => SupabaseStorageService());
   sl.registerLazySingleton<CloudFunctionsService>(
       () => CloudFunctionsService());
-  sl.registerLazySingleton<FirestoreService>(
-      () => FirestoreService(functions: sl<CloudFunctionsService>()));
-  sl.registerLazySingleton<FirebaseStorageService>(
-      () => FirebaseStorageService());
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
   sl.registerLazySingleton<ImageUploadService>(() => ImageUploadService(
-      sl<CloudinaryService>(), sl<FirebaseStorageService>()));
+      sl<CloudinaryService>(), sl<SupabaseStorageService>()));
   sl.registerLazySingleton<GeminiCloudAiService>(
       () => GeminiCloudAiService(functions: sl<CloudFunctionsService>()));
   GhanaNlpService(functions: sl<CloudFunctionsService>());
@@ -111,21 +109,20 @@ Future<void> setupServiceLocator() async {
 
   // 2. Repositories (Implementation details)
   sl.registerLazySingleton<IAuthRepository>(
-      () => AuthRepositoryImpl(sl<FirebaseAuthService>()));
+      () => AuthRepositoryImpl(sl<SupabaseAuthService>()));
   sl.registerLazySingleton<IDetectionRepository>(
       () => DetectionRepositoryImpl(sl<DatabaseHelper>()));
   sl.registerLazySingleton<ICommunityRepository>(() => CommunityRepositoryImpl(
-        sl<FirestoreService>(),
+        sl<SupabaseDatabaseService>(),
         sl<DatabaseHelper>(),
         sl<ImageUploadService>(),
       ));
   sl.registerLazySingleton<IClassifierRepository>(
       () => ClassifierRepositoryImpl(CropDiseaseClassifier()));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
-        sl<FirebaseAuthService>(),
+        sl<SupabaseAuthService>(),
         sl<DatabaseHelper>(),
         sl<SharedPreferences>(),
-        sl<FirestoreService>(),
       ));
   sl.registerLazySingleton<IWeatherRepository>(() => WeatherRepositoryImpl());
   sl.registerLazySingleton<IRiskRepository>(() => RiskRepositoryImpl(
@@ -195,14 +192,16 @@ List<SingleChildWidget> buildProviders() {
               sl<SignInWithGoogleUseCase>(),
               sl<SignInAnonymouslyUseCase>(),
               sl<DatabaseHelper>(),
-              sl<FirebaseAuthService>(),
+              sl<SupabaseAuthService>(),
               sl<AnalyticsService>(),
             )),
     ChangeNotifierProvider(
         create: (_) => RegisterProvider(
               sl<RegisterUseCase>(),
               sl<DatabaseHelper>(),
-              sl<FirebaseAuthService>(),
+              sl<SupabaseAuthService>(),
+              sl<SignInWithGoogleUseCase>(),
+              sl<AnalyticsService>(),
             )),
     ChangeNotifierProvider(
         create: (_) => HomeProvider(
@@ -230,20 +229,14 @@ List<SingleChildWidget> buildProviders() {
     ChangeNotifierProvider(
         create: (_) => ScannerProvider(sl<ScanCropUseCase>(),
             sl<IAuthRepository>(), sl<AnalyticsService>())),
-    // ResultProvider and CommunityProvider are intentionally absent here.
-    // They are provided at route level in AppRouter so they are created only
-    // when the screen is navigated to and disposed when it is popped.
     ChangeNotifierProvider(
         create: (_) => SettingsProvider(
             sl<SharedPreferences>(),
-            sl<FirebaseAuthService>(),
+            sl<SupabaseAuthService>(),
             sl<DatabaseHelper>(),
             sl<AnalyticsService>(),
             sl<BiometricService>(),
             sl<AppLockController>())),
     ChangeNotifierProvider(create: (_) => BatchResultProvider()),
-    // TreatmentTrackerProvider is provided at route level in AppRouter so it
-    // is created only when /treatment_tracker is navigated to and disposed
-    // when the screen is popped.
   ];
 }

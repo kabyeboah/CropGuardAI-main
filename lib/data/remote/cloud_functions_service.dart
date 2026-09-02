@@ -4,8 +4,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/error/failures.dart';
 import '../../core/utils/retry_utils.dart';
@@ -14,27 +14,30 @@ import '../../core/utils/retry_utils.dart';
 /// actions such as outbreak verification voting, confidence recalculation, and administrative flows.
 class CloudFunctionsService {
   final http.Client _client;
-  final FirebaseAuth? _auth;
+  final Future<String?> Function()? _authTokenProvider;
   final String _region;
   final String _projectId;
 
   CloudFunctionsService({
     http.Client? client,
-    FirebaseAuth? auth,
+    Future<String?> Function()? authTokenProvider,
     String region = 'us-central1',
     String projectId = 'cropguard-ai',
   })  : _client = client ?? http.Client(),
-        _auth = auth,
+        _authTokenProvider = authTokenProvider,
         _region = region,
         _projectId = projectId;
 
-  FirebaseAuth get _firebaseAuth {
-    final auth = _auth;
-    if (auth != null) return auth;
+  Future<String?> _getAuthToken() async {
+    final provider = _authTokenProvider;
+    if (provider != null) {
+      return provider();
+    }
     try {
-      return FirebaseAuth.instance;
+      final session = Supabase.instance.client.auth.currentSession;
+      return session?.accessToken;
     } catch (_) {
-      throw const AuthFailure('Firebase Auth instance not initialized.');
+      return null;
     }
   }
 
@@ -48,21 +51,10 @@ class CloudFunctionsService {
     required Map<String, dynamic> data,
     Duration timeout = const Duration(seconds: 20),
   }) async {
-    final User? user;
-    try {
-      user = _firebaseAuth.currentUser;
-    } catch (e) {
-      throw const AuthFailure('User authentication required.');
-    }
-
-    if (user == null) {
+    final idToken = await _getAuthToken();
+    if (idToken == null || idToken.isEmpty) {
       throw const AuthFailure(
           'User must be signed in to perform this operation.');
-    }
-
-    final idToken = await user.getIdToken();
-    if (idToken == null || idToken.isEmpty) {
-      throw const AuthFailure('Failed to obtain authentication token.');
     }
 
     String? appCheckToken;

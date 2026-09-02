@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/di/service_locator.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 
 class UnknownRouteScreen extends StatelessWidget {
   const UnknownRouteScreen({super.key});
@@ -10,7 +10,7 @@ class UnknownRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isSignedIn = sl<FirebaseAuthService>().isSignedIn;
+    final isSignedIn = sl<SupabaseAuthService>().isSignedIn;
 
     return Scaffold(
       backgroundColor: colors.background,

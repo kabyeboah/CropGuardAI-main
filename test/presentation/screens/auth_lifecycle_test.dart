@@ -7,20 +7,21 @@ import 'package:cropguard_flutter/core/utils/deep_link_service.dart';
 import 'package:cropguard_flutter/core/di/service_locator.dart';
 import 'package:cropguard_flutter/domain/models/app_user.dart';
 import 'package:cropguard_flutter/domain/repositories/i_auth_repository.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/data/repositories/auth_repository_impl.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
 import 'package:cropguard_flutter/presentation/screens/settings/settings_provider.dart';
 import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/core/utils/biometric_service.dart';
 import 'package:cropguard_flutter/core/utils/app_lock_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
+class MockSupabaseAuthService extends Mock implements SupabaseAuthService {}
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock
+    implements SupabaseDatabaseService {}
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
@@ -34,9 +35,9 @@ class MockIAuthRepository extends Mock implements IAuthRepository {}
 
 class MockGoRouter extends Mock implements GoRouter {}
 
-class MockUserCredential extends Mock implements fb.UserCredential {}
+class MockAuthResponse extends Mock implements sb.AuthResponse {}
 
-class MockUser extends Mock implements fb.User {}
+class MockUser extends Mock implements sb.User {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -46,30 +47,29 @@ void main() {
   });
 
   group('Phase 11 - Account Lifecycle & Deep-Link Flows', () {
-    late MockFirebaseAuthService mockAuthService;
+    late MockSupabaseAuthService mockAuthService;
     late AuthRepositoryImpl authRepo;
 
     setUp(() {
-      mockAuthService = MockFirebaseAuthService();
+      mockAuthService = MockSupabaseAuthService();
       authRepo = AuthRepositoryImpl(mockAuthService);
     });
 
     // ─── 1. Email Signup ──────────────────────────────────────────────────
     test('1. Email signup creates user and sets display name', () async {
-      final mockCred = MockUserCredential();
+      final mockResp = MockAuthResponse();
       final mockUser = MockUser();
-      when(() => mockUser.uid).thenReturn('user_123');
+      when(() => mockUser.id).thenReturn('user_123');
       when(() => mockUser.email).thenReturn('farmer@example.com');
-      when(() => mockUser.displayName).thenReturn('Kwame Mensah');
-      when(() => mockUser.photoURL).thenReturn(null);
+      when(() => mockUser.userMetadata).thenReturn({'full_name': 'Kwame Mensah'});
       when(() => mockUser.isAnonymous).thenReturn(false);
-      when(() => mockCred.user).thenReturn(mockUser);
+      when(() => mockResp.user).thenReturn(mockUser);
 
       when(() => mockAuthService.register(
             email: 'farmer@example.com',
             password: 'SecurePassword123!',
             name: 'Kwame Mensah',
-          )).thenAnswer((_) async => mockCred);
+          )).thenAnswer((_) async => mockResp);
 
       final result = await authRepo.register(
         email: 'farmer@example.com',
@@ -102,19 +102,18 @@ void main() {
 
     // ─── 2. Email Login ───────────────────────────────────────────────────
     test('2. Email login succeeds with valid credentials', () async {
-      final mockCred = MockUserCredential();
+      final mockResp = MockAuthResponse();
       final mockUser = MockUser();
-      when(() => mockUser.uid).thenReturn('user_login_1');
+      when(() => mockUser.id).thenReturn('user_login_1');
       when(() => mockUser.email).thenReturn('farmer@example.com');
-      when(() => mockUser.displayName).thenReturn('Ama Serwaa');
-      when(() => mockUser.photoURL).thenReturn(null);
+      when(() => mockUser.userMetadata).thenReturn({'full_name': 'Ama Serwaa'});
       when(() => mockUser.isAnonymous).thenReturn(false);
-      when(() => mockCred.user).thenReturn(mockUser);
+      when(() => mockResp.user).thenReturn(mockUser);
 
       when(() => mockAuthService.signIn(
             email: 'farmer@example.com',
             password: 'CorrectPassword1!',
-          )).thenAnswer((_) async => mockCred);
+          )).thenAnswer((_) async => mockResp);
 
       final result = await authRepo.signIn(
         email: 'farmer@example.com',
@@ -154,9 +153,9 @@ void main() {
 
     // ─── 4. Google Sign-In ────────────────────────────────────────────────
     test('4. Google Sign-In completes successfully', () async {
-      final mockCred = MockUserCredential();
+      final mockResp = MockAuthResponse();
       when(() => mockAuthService.signInWithGoogle())
-          .thenAnswer((_) async => mockCred);
+          .thenAnswer((_) async => mockResp);
 
       final result = await authRepo.signInWithGoogle();
 
@@ -190,10 +189,10 @@ void main() {
     test(
         '6. Expired password-reset code returns error and shows invalid link screen',
         () async {
-      when(() => mockAuthService.verifyPasswordResetCode('expired_code_123'))
+      when(() => mockAuthService.sendPasswordReset('farmer@example.com'))
           .thenThrow(const AuthFailure('Invalid or expired code'));
 
-      final result = await authRepo.verifyPasswordResetCode('expired_code_123');
+      final result = await authRepo.sendPasswordReset('farmer@example.com');
 
       expect(result.isError, isTrue);
       expect(result.failure?.message, contains('Invalid or expired code'));
@@ -242,6 +241,34 @@ void main() {
           .called(1);
     });
 
+    test('8b. Supabase PKCE reset link routes to /reset_password with code',
+        () {
+      final deepLinkService = DeepLinkService();
+      final mockRouter = MockGoRouter();
+
+      final uri = Uri.parse(
+          'https://cropguardai.app/reset-password?code=supabaseAuthCode456');
+
+      deepLinkService.handleUri(uri, mockRouter);
+
+      verify(() => mockRouter.go('/reset_password?oobCode=supabaseAuthCode456'))
+          .called(1);
+    });
+
+    test('8c. Supabase implicit recovery hash fragment routes to /reset_password',
+        () {
+      final deepLinkService = DeepLinkService();
+      final mockRouter = MockGoRouter();
+
+      final uri = Uri.parse(
+          'https://cropguardai.app/reset-password#access_token=token&type=recovery');
+
+      deepLinkService.handleUri(uri, mockRouter);
+
+      verify(() => mockRouter.go('/reset_password?oobCode='))
+          .called(1);
+    });
+
     // ─── 9. Warm Start Deep Link Handling ─────────────────────────────────
     test('9. Warm start inbound stream routes to target without crashing',
         () async {
@@ -261,7 +288,7 @@ void main() {
 
     // ─── 10. App Closed / Auth State Stream ────────────────────────────────
     test('10. App closed auth state emission maps to AppUser model', () async {
-      final controller = StreamController<fb.User?>();
+      final controller = StreamController<sb.User?>();
       when(() => mockAuthService.authStateChanges)
           .thenAnswer((_) => controller.stream);
 
@@ -269,10 +296,9 @@ void main() {
       final sub = authRepo.authStateChanges.listen((user) => events.add(user));
 
       final mockUser = MockUser();
-      when(() => mockUser.uid).thenReturn('persisted_uid');
+      when(() => mockUser.id).thenReturn('persisted_uid');
       when(() => mockUser.email).thenReturn('persisted@example.com');
-      when(() => mockUser.displayName).thenReturn('Kwesi');
-      when(() => mockUser.photoURL).thenReturn(null);
+      when(() => mockUser.userMetadata).thenReturn({'full_name': 'Kwesi'});
       when(() => mockUser.isAnonymous).thenReturn(false);
 
       controller.add(mockUser);
@@ -291,7 +317,7 @@ void main() {
     test(
         '11. Account deletion purges cloud data and local history before deleting Auth user',
         () async {
-      final mockFirestore = MockFirestoreService();
+      final mockSupabaseDb = MockSupabaseDatabaseService();
       final mockDb = MockDatabaseHelper();
       final mockAnalytics = MockAnalyticsService();
       final mockBiometric = MockBiometricService();
@@ -300,10 +326,10 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      if (sl.isRegistered<FirestoreService>()) {
-        sl.unregister<FirestoreService>();
+      if (sl.isRegistered<SupabaseDatabaseService>()) {
+        sl.unregister<SupabaseDatabaseService>();
       }
-      sl.registerSingleton<FirestoreService>(mockFirestore);
+      sl.registerSingleton<SupabaseDatabaseService>(mockSupabaseDb);
 
       when(() => mockAnalytics.setEnabled(any())).thenAnswer((_) async {});
       when(() => mockBiometric.isAvailable()).thenAnswer((_) async => false);
@@ -312,7 +338,7 @@ void main() {
       when(() => mockAuthService.currentUserId).thenReturn('user_delete_123');
       when(() => mockAuthService.reauthenticateWithPassword('Pass1234!'))
           .thenAnswer((_) async {});
-      when(() => mockFirestore.deleteUserData('user_delete_123'))
+      when(() => mockSupabaseDb.deleteUserData('user_delete_123'))
           .thenAnswer((_) async {});
       when(() => mockDb.deleteAllDetections()).thenAnswer((_) async {});
       when(() => mockAuthService.deleteAccount()).thenAnswer((_) async {});
@@ -336,12 +362,12 @@ void main() {
       // Verify strict purge order
       verifyInOrder([
         () => mockAuthService.reauthenticateWithPassword('Pass1234!'),
-        () => mockFirestore.deleteUserData('user_delete_123'),
+        () => mockSupabaseDb.deleteUserData('user_delete_123'),
         () => mockDb.deleteAllDetections(),
         () => mockAuthService.deleteAccount(),
       ]);
 
-      sl.unregister<FirestoreService>();
+      sl.unregister<SupabaseDatabaseService>();
     });
 
     // ─── 12. Reauthentication Flows ────────────────────────────────────────

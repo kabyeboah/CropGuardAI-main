@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import '../../firebase_options.dart';
 import '../di/service_locator.dart';
 import '../../data/local/database_helper.dart';
+import '../../data/remote/supabase_auth_service.dart';
+import '../../data/remote/supabase_database_service.dart';
 import '../../domain/models/app_notification.dart';
 import 'app_logger.dart';
 import 'notification_helper.dart';
@@ -59,7 +59,7 @@ class PushNotificationService {
 
       // Listen for token refreshes
       _fcm.onTokenRefresh.listen((newToken) {
-        _saveTokenToFirestore(newToken);
+        _saveTokenToSupabase(newToken);
       });
 
       // Foreground message handler
@@ -85,53 +85,54 @@ class PushNotificationService {
     }
   }
 
-  /// Public entrypoint to fetch and register current device FCM Token to Firestore.
-  /// If [userId] is omitted, falls back to FirebaseAuth.instance.currentUser?.uid.
+  /// Public entrypoint to fetch and register current device FCM Token to Supabase.
+  /// If [userId] is omitted, falls back to SupabaseAuthService currentUser.
   static Future<void> syncFcmToken([String? userId]) async {
     try {
       final token = await _fcm.getToken();
       if (token != null) {
         AppLogger.d('FCM Token retrieved: ${token.substring(0, 8)}...');
-        await _saveTokenToFirestore(token, userId: userId);
+        await _saveTokenToSupabase(token, userId: userId);
       }
     } catch (e) {
       AppLogger.w('Failed to get FCM token: $e');
     }
   }
 
-  static Future<void> _saveTokenToFirestore(String token,
+  static Future<void> _saveTokenToSupabase(String token,
       {String? userId}) async {
     String? uid = userId;
-    try {
-      uid ??= FirebaseAuth.instance.currentUser?.uid;
-    } catch (_) {}
+    if (uid == null && sl.isRegistered<SupabaseAuthService>()) {
+      uid = sl<SupabaseAuthService>().currentUserIdOrNull;
+    }
     if (uid == null) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'fcmToken': token,
-        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-        'platform': defaultTargetPlatform.name,
-      }, SetOptions(merge: true));
-      AppLogger.d('FCM Token synced to Firestore for user $uid');
+      if (sl.isRegistered<SupabaseDatabaseService>()) {
+        await sl<SupabaseDatabaseService>().updateUserProfile(uid, {
+          'fcm_token': token,
+          'fcm_token_updated_at': DateTime.now().toIso8601String(),
+          'platform': defaultTargetPlatform.name,
+        });
+        AppLogger.d('FCM Token synced to Supabase for user $uid');
+      }
     } catch (e) {
-      AppLogger.w('Failed to save FCM token to Firestore: $e');
+      AppLogger.w('Failed to save FCM token to Supabase: $e');
     }
   }
 
-  /// Clears the device's FCM token from Firestore and resets FCM instance on sign-out.
-  /// Prevents delivering notifications to stale accounts or shared devices.
+  /// Clears the device's FCM token from Supabase and resets FCM instance on sign-out.
   static Future<void> clearFcmToken([String? userId]) async {
     String? uid = userId;
+    if (uid == null && sl.isRegistered<SupabaseAuthService>()) {
+      uid = sl<SupabaseAuthService>().currentUserIdOrNull;
+    }
     try {
-      uid ??= FirebaseAuth.instance.currentUser?.uid;
-    } catch (_) {}
-    try {
-      if (uid != null) {
-        await FirebaseFirestore.instance.collection('users').doc(uid).update({
-          'fcmToken': FieldValue.delete(),
-          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      if (uid != null && sl.isRegistered<SupabaseDatabaseService>()) {
+        await sl<SupabaseDatabaseService>().updateUserProfile(uid, {
+          'fcm_token': null,
+          'fcm_token_updated_at': DateTime.now().toIso8601String(),
         });
-        AppLogger.d('FCM Token cleared from Firestore for user $uid');
+        AppLogger.d('FCM Token cleared from Supabase for user $uid');
       }
       await _fcm.deleteToken();
     } catch (e) {

@@ -6,14 +6,14 @@ import 'package:cropguard_flutter/core/error/failures.dart';
 import 'package:cropguard_flutter/domain/models/app_user.dart';
 import 'package:cropguard_flutter/domain/usecases/auth/register_usecase.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/presentation/screens/register/register_provider.dart';
 
 class _MockRegisterUseCase extends Mock implements RegisterUseCase {}
 
 class _MockDb extends Mock implements DatabaseHelper {}
 
-class _MockAuthService extends Mock implements FirebaseAuthService {}
+class _MockAuthService extends Mock implements SupabaseAuthService {}
 
 final _kUser = AppUser(
   id: 'u456',

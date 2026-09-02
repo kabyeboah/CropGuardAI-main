@@ -8,7 +8,7 @@ import 'package:cropguard_flutter/domain/usecases/auth/login_usecase.dart';
 import 'package:cropguard_flutter/domain/usecases/auth/signin_with_google_usecase.dart';
 import 'package:cropguard_flutter/domain/usecases/auth/signin_anonymously_usecase.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/presentation/screens/login/login_provider.dart';
 
@@ -20,7 +20,7 @@ class _MockGuestUseCase extends Mock implements SignInAnonymouslyUseCase {}
 
 class _MockDb extends Mock implements DatabaseHelper {}
 
-class _MockAuthService extends Mock implements FirebaseAuthService {}
+class _MockAuthService extends Mock implements SupabaseAuthService {}
 
 class _MockAnalyticsService extends Mock implements AnalyticsService {}
 
@@ -127,7 +127,17 @@ void main() {
       await provider.signInWithGoogle(() {});
 
       expect(provider.status, LoginStatus.error);
-      expect(provider.errorMessage, 'Google sign-in failed. Please try again.');
+      expect(provider.errorMessage, 'google failure');
+    });
+
+    test('cancelled Google sign in sets cancelled error message', () async {
+      when(() => mockGoogleUseCase()).thenAnswer(
+          (_) async => Result.error(const AuthFailure('cancelled', code: 'cancelled')));
+
+      await provider.signInWithGoogle(() {});
+
+      expect(provider.status, LoginStatus.error);
+      expect(provider.errorMessage, 'Google sign-in was cancelled.');
     });
   });
 
@@ -153,7 +163,7 @@ void main() {
       await provider.signInAsGuest(() {});
 
       expect(provider.status, LoginStatus.error);
-      expect(provider.errorMessage, 'Guest sign-in failed.');
+      expect(provider.errorMessage, 'guest failure');
     });
   });
 }

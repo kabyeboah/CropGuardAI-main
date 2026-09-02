@@ -12,7 +12,7 @@ import '../../components/primary_button.dart';
 import '../../components/section_label.dart';
 import '../../components/severity_badge.dart';
 import '../../../data/ml/disease_info.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/utils/scan_report_pdf_exporter.dart';
 import '../../../core/utils/tts_manager.dart';
@@ -649,7 +649,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 Navigator.pop(dialogCtx);
                 final messenger = ScaffoldMessenger.of(ctx);
                 final failMsg = ctx.l10n.sendRequestFailed;
-                final uid = sl<FirebaseAuthService>().currentUserId;
+                final uid = sl<SupabaseAuthService>().currentUserId;
                 if (uid.isEmpty) {
                   messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                   return;
@@ -722,7 +722,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 Navigator.pop(dialogCtx);
                 final messenger = ScaffoldMessenger.of(ctx);
                 final failMsg = ctx.l10n.sendFeedbackFailed;
-                final uid = sl<FirebaseAuthService>().currentUserId;
+                final uid = sl<SupabaseAuthService>().currentUserId;
                 if (uid.isEmpty) {
                   messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                   return;
@@ -789,7 +789,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 Navigator.pop(dialogCtx);
                 final messenger = ScaffoldMessenger.of(ctx);
                 final failMsg = ctx.l10n.submitReportFailed;
-                final uid = sl<FirebaseAuthService>().currentUserId;
+                final uid = sl<SupabaseAuthService>().currentUserId;
                 if (uid.isEmpty) {
                   messenger.showSnackBar(SnackBar(content: Text(failMsg)));
                   return;

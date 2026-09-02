@@ -18,7 +18,7 @@ void main() {
       final uri = VersionCheckService.getStoreUri(TargetPlatform.android);
       expect(
         uri.toString(),
-        'https://play.google.com/store/apps/details?id=com.crop.guard.app',
+        'https://play.google.com/store/apps/details?id=com.cropguard.ai.app',
       );
     });
 
@@ -26,7 +26,7 @@ void main() {
       final uri = VersionCheckService.getStoreUri(TargetPlatform.iOS);
       expect(
         uri.toString(),
-        'https://apps.apple.com/app/com.crop.guard.app',
+        'https://apps.apple.com/app/com.cropguard.ai.app',
       );
     });
 

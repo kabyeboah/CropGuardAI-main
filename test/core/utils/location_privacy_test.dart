@@ -64,7 +64,7 @@ void main() {
 
     test('AppSecrets resolves default and overridden User-Agent', () {
       expect(AppSecrets.osmUserAgent,
-          'CropGuardAI/1.0 (com.crop.guard.app; support@cropguard.app)');
+          'CropGuardAI/1.0 (com.cropguard.ai.app; support@cropguard.app)');
 
       AppSecrets.dartDefineOsmUserAgentOverride = 'CropGuardCustom/2.0';
       expect(AppSecrets.osmUserAgent, 'CropGuardCustom/2.0');

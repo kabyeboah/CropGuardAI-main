@@ -7,10 +7,10 @@ import 'package:cropguard_flutter/core/utils/analytics_service.dart';
 import 'package:cropguard_flutter/core/utils/app_lock_controller.dart';
 import 'package:cropguard_flutter/core/utils/biometric_service.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
-import 'package:cropguard_flutter/data/remote/firebase_auth_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_auth_service.dart';
 import 'package:cropguard_flutter/presentation/screens/settings/settings_provider.dart';
 
-class _MockAuth extends Mock implements FirebaseAuthService {}
+class _MockAuth extends Mock implements SupabaseAuthService {}
 
 class _MockDb extends Mock implements DatabaseHelper {}
 

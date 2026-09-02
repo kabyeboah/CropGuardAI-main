@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:workmanager/workmanager.dart';
 
+import '../../core/config/app_secrets.dart';
 import '../../core/di/service_locator.dart';
-import '../../firebase_options.dart';
 import '../../data/local/database_helper.dart';
-import '../../data/remote/firestore_service.dart';
+import '../../data/remote/supabase_database_service.dart';
 import '../../domain/models/app_notification.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../core/utils/app_logger.dart';
@@ -36,10 +34,16 @@ void callbackDispatcher() {
           // No .env present — fine, AppSecrets falls back to dart-define.
         }
       }
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+      try {
+        Supabase.instance.client;
+      } catch (_) {
+        try {
+          await Supabase.initialize(
+            url: AppSecrets.supabaseUrl,
+            // ignore: deprecated_member_use
+            anonKey: AppSecrets.supabaseAnonKey,
+          );
+        } catch (_) {}
       }
       // Idempotent: setupServiceLocator returns early if already registered.
       await setupServiceLocator();
@@ -81,26 +85,11 @@ void callbackDispatcher() {
 Future<bool> _syncScansTask() async {
   try {
     final db = sl<DatabaseHelper>();
-    final firestore = sl<FirestoreService>();
+    final supabaseDb = sl<SupabaseDatabaseService>();
     final auth = sl<IAuthRepository>();
 
-    final fbUser = FirebaseAuth.instance.currentUser;
     final userId = auth.currentUser?.id;
-    // No authenticated user yet — in a background isolate this is usually the
-    // session not having been restored. Return false so WorkManager retries
-    // with backoff instead of silently dropping the sync.
-    if (userId == null || fbUser == null) return false;
-
-    // Firebase Auth tokens expire after 1 hour. Force a refresh so Firestore
-    // writes in a long-delayed background task are not rejected with
-    // permission-denied errors. If the refresh fails (revoked session, no
-    // network), retry later rather than attempting writes that will be denied.
-    try {
-      await fbUser.getIdToken(true);
-    } catch (e) {
-      AppLogger.w('Sync Task: token refresh failed, will retry: $e');
-      return false;
-    }
+    if (userId == null) return false;
 
     final pending = await db.getUnsyncedDetections(userId: userId);
     if (pending.isEmpty) {
@@ -111,15 +100,11 @@ Future<bool> _syncScansTask() async {
     final syncedIds = <int>[];
     for (final scan in pending) {
       try {
-        // Use the local SQLite id as the Firestore document ID so that
-        // re-running the task overwrites the same document rather than
-        // appending a duplicate on every background wake-up.
-        await firestore.upsertScan(
+        await supabaseDb.upsertScan(
           scan.id.toString(),
           {
             ...scan.toMap(),
             'userId': userId,
-            'syncedAt': FieldValue.serverTimestamp(),
             'isSynced': 1,
           },
         );
@@ -202,7 +187,7 @@ Future<bool> _plantingReminderTask(Map<String, dynamic>? inputData) async {
 Future<bool> _outbreakAlertTask() async {
   try {
     return await OutbreakAlertService.checkAndNotify(
-      firestore: sl<FirestoreService>(),
+      databaseService: sl<SupabaseDatabaseService>(),
       prefs: sl<SharedPreferences>(),
       db: sl<DatabaseHelper>(),
     );

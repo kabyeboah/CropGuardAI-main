@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../data/local/database_helper.dart';
-import '../../../data/remote/firebase_auth_service.dart';
+import '../../../data/remote/supabase_auth_service.dart';
 import '../../../domain/usecases/auth/login_usecase.dart';
 import '../../../domain/usecases/auth/signin_with_google_usecase.dart';
 import '../../../domain/usecases/auth/signin_anonymously_usecase.dart';
+import '../../../core/error/failures.dart';
+import '../../../core/utils/app_logger.dart';
 import '../../../core/utils/email_validator.dart';
 import '../../../core/utils/analytics_service.dart';
 
@@ -17,7 +19,7 @@ class LoginProvider extends ChangeNotifier {
   final SignInWithGoogleUseCase _googleUseCase;
   final SignInAnonymouslyUseCase _guestUseCase;
   final DatabaseHelper _db;
-  final FirebaseAuthService _auth;
+  final SupabaseAuthService _auth;
   final AnalyticsService _analytics;
 
   LoginProvider(
@@ -86,10 +88,15 @@ class LoginProvider extends ChangeNotifier {
       status = LoginStatus.success;
       unawaited(_analytics.logLogin(method: 'email'));
       notifyListeners();
+      // Post-microtask: let Firebase authStateChanges emit so the GoRouter
+      // refreshListenable (AuthStateNotifier) updates isSignedIn before
+      // onSuccess calls context.go('/home').
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       _handlePostSignIn(onSuccess, onMigrationNeeded);
     } else {
       status = LoginStatus.error;
-      errorMessage = _mapFailure(result.failure!.message);
+      AppLogger.e('LoginProvider signIn error: ${result.failure}');
+      errorMessage = _mapFailure(result.failure);
       notifyListeners();
     }
   }
@@ -108,10 +115,21 @@ class LoginProvider extends ChangeNotifier {
       status = LoginStatus.success;
       unawaited(_analytics.logLogin(method: 'google'));
       notifyListeners();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       _handlePostSignIn(onSuccess, onMigrationNeeded);
     } else {
       status = LoginStatus.error;
-      errorMessage = 'Google sign-in failed. Please try again.';
+      final f = result.failure;
+      AppLogger.e('LoginProvider Google sign-in error: $f');
+      if (f is AuthFailure && f.code == 'cancelled') {
+        errorMessage = 'Google sign-in was cancelled.';
+      } else if (f is AuthFailure && f.code == 'invalid-credential') {
+        errorMessage =
+            'Google sign-in configuration error. '
+            'Please ensure your app SHA-1 is registered in Firebase Console.';
+      } else {
+        errorMessage = _mapFailure(f);
+      }
       notifyListeners();
     }
   }
@@ -127,10 +145,12 @@ class LoginProvider extends ChangeNotifier {
       unawaited(_analytics.logLogin(method: 'anonymous'));
       unawaited(_analytics.setUser(isAnonymous: true));
       notifyListeners();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       onSuccess();
     } else {
       status = LoginStatus.error;
-      errorMessage = 'Guest sign-in failed.';
+      AppLogger.e('LoginProvider guest sign-in error: ${result.failure}');
+      errorMessage = _mapFailure(result.failure);
       notifyListeners();
     }
   }
@@ -153,15 +173,79 @@ class LoginProvider extends ChangeNotifier {
     fn?.call();
   }
 
-  String _mapFailure(String e) {
-    if (e.contains('wrong-password') || e.contains('invalid-credential')) {
+  String _mapFailure(Failure? failure) {
+    if (failure == null) return 'Sign-in failed. Please try again.';
+
+    final code = (failure is AuthFailure) ? failure.code : null;
+    final e = failure.message.toLowerCase();
+
+    // Log the error code and message for diagnostics.
+    AppLogger.e(
+      'LoginProvider error: code="${code ?? 'none'}" '
+      'message="${failure.message}"',
+    );
+
+    if (code == 'cancelled' || e.contains('cancelled')) {
+      return 'Google sign-in was cancelled.';
+    }
+
+    if (code == 'email_not_confirmed' ||
+        e.contains('email not confirmed') ||
+        e.contains('email_not_confirmed')) {
+      return 'Email not confirmed. Please check your inbox and verify your email before signing in.';
+    }
+
+    if (code == 'INVALID_LOGIN_CREDENTIALS' ||
+        code == 'invalid_credentials' ||
+        code == 'invalid_grant' ||
+        e.contains('invalid_login_credentials') ||
+        e.contains('invalid login credentials') ||
+        e.contains('invalid_credentials') ||
+        e.contains('invalid_grant') ||
+        e.contains('wrong-password') ||
+        e.contains('invalid-credential') ||
+        e.contains('user-not-found') ||
+        e.contains('invalid credential') ||
+        e.contains('no user record') ||
+        e.contains('invalid email or password')) {
       return 'Incorrect email or password.';
     }
-    if (e.contains('user-not-found')) {
-      return 'No account found with that email.';
+    if (code == 'user-disabled' ||
+        code == 'user_banned' ||
+        e.contains('user-disabled') ||
+        e.contains('user is banned') ||
+        e.contains('user_banned')) {
+      return 'This user account has been disabled.';
     }
-    if (e.contains('network-request-failed')) {
-      return 'No internet connection.';
+    if (code == 'invalid-email' ||
+        e.contains('invalid-email') ||
+        e.contains('badly formatted') ||
+        e.contains('invalid email')) {
+      return 'Please enter a valid email address.';
+    }
+    if (code == 'network-request-failed' ||
+        e.contains('network-request-failed') ||
+        e.contains('socketexception') ||
+        e.contains('network error') ||
+        e.contains('failed host lookup') ||
+        e.contains('clientexception')) {
+      return 'No internet connection. Please check your network.';
+    }
+    if (code == 'too-many-requests' ||
+        code == 'over_email_send_rate_limit' ||
+        e.contains('too-many-requests') ||
+        e.contains('rate limit') ||
+        e.contains('over_email_send_rate_limit')) {
+      return 'Access temporarily disabled due to many failed attempts. Please try again later or reset password.';
+    }
+    if (e.contains('apiexception: 10') || e.contains('apiexception: 12500')) {
+      return 'Google sign-in configuration error. Please ensure SHA-1 fingerprint and OAuth Client IDs match.';
+    }
+
+    if (failure.message.isNotEmpty &&
+        !failure.message.startsWith('Sign in failed: Instance of') &&
+        !failure.message.startsWith('Instance of')) {
+      return failure.message;
     }
     return 'Sign-in failed. Please try again.';
   }

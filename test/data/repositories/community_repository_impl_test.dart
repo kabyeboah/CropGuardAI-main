@@ -3,13 +3,13 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:cropguard_flutter/data/repositories/community_repository_impl.dart';
-import 'package:cropguard_flutter/data/remote/firestore_service.dart';
+import 'package:cropguard_flutter/data/remote/supabase_database_service.dart';
 import 'package:cropguard_flutter/data/remote/image_upload_service.dart';
 import 'package:cropguard_flutter/data/local/database_helper.dart';
 import 'package:cropguard_flutter/data/local/pending_sync_queue.dart';
 import 'package:cropguard_flutter/core/error/failures.dart';
 
-class MockFirestoreService extends Mock implements FirestoreService {}
+class MockSupabaseDatabaseService extends Mock implements SupabaseDatabaseService {}
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
@@ -31,7 +31,7 @@ Future<Database> _openTestDb() async {
 }
 
 void main() {
-  late MockFirestoreService mockFirestore;
+  late MockSupabaseDatabaseService mockDatabaseService;
   late MockDatabaseHelper mockDbHelper;
   late MockImageUploadService mockImageUpload;
   late CommunityRepositoryImpl repo;
@@ -39,14 +39,14 @@ void main() {
 
   setUp(() async {
     db = await _openTestDb();
-    mockFirestore = MockFirestoreService();
+    mockDatabaseService = MockSupabaseDatabaseService();
     mockDbHelper = MockDatabaseHelper();
     mockImageUpload = MockImageUploadService();
 
     when(() => mockDbHelper.database).thenAnswer((_) async => db);
 
     repo =
-        CommunityRepositoryImpl(mockFirestore, mockDbHelper, mockImageUpload);
+        CommunityRepositoryImpl(mockDatabaseService, mockDbHelper, mockImageUpload);
   });
 
   tearDown(() async {
@@ -69,12 +69,12 @@ void main() {
       expect(resEmpty.isError, true);
       expect(resEmpty.failure, isA<AuthFailure>());
 
-      verifyNever(() => mockFirestore.submitOutbreakReport(any()));
+      verifyNever(() => mockDatabaseService.submitOutbreakReport(any()));
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
     test('calls Firestore when authenticated and succeeds', () async {
-      when(() => mockFirestore.submitOutbreakReport(any()))
+      when(() => mockDatabaseService.submitOutbreakReport(any()))
           .thenAnswer((_) async {});
 
       final res = await repo.submitOutbreakReport({
@@ -83,14 +83,14 @@ void main() {
       });
 
       expect(res.isSuccess, true);
-      verify(() => mockFirestore.submitOutbreakReport(any())).called(1);
+      verify(() => mockDatabaseService.submitOutbreakReport(any())).called(1);
       expect(await PendingSyncQueue.pendingCount(db), 0);
     });
 
     test(
         'queues payload in PendingSyncQueue when Firestore throws transient error',
         () async {
-      when(() => mockFirestore.submitOutbreakReport(any()))
+      when(() => mockDatabaseService.submitOutbreakReport(any()))
           .thenThrow(const ServerFailure('Network offline'));
 
       final res = await repo.submitOutbreakReport({
@@ -113,7 +113,7 @@ void main() {
 
       expect(res.isError, true);
       expect(res.failure, isA<AuthFailure>());
-      verifyNever(() => mockFirestore.reportPost(
+      verifyNever(() => mockDatabaseService.reportPost(
             postId: any(named: 'postId'),
             reporterId: any(named: 'reporterId'),
             reason: any(named: 'reason'),
@@ -122,7 +122,7 @@ void main() {
     });
 
     test('calls FirestoreService.reportPost on valid report', () async {
-      when(() => mockFirestore.reportPost(
+      when(() => mockDatabaseService.reportPost(
             postId: any(named: 'postId'),
             reporterId: any(named: 'reporterId'),
             reason: any(named: 'reason'),
@@ -135,7 +135,7 @@ void main() {
       );
 
       expect(res.isSuccess, true);
-      verify(() => mockFirestore.reportPost(
+      verify(() => mockDatabaseService.reportPost(
             postId: 'post_123',
             reporterId: 'user_456',
             reason: 'harmful_content',
@@ -145,7 +145,7 @@ void main() {
 
     test('queues reported post in PendingSyncQueue on transient error',
         () async {
-      when(() => mockFirestore.reportPost(
+      when(() => mockDatabaseService.reportPost(
             postId: any(named: 'postId'),
             reporterId: any(named: 'reporterId'),
             reason: any(named: 'reason'),
@@ -161,7 +161,7 @@ void main() {
       expect(await PendingSyncQueue.pendingCount(db), 1);
 
       // Verify drainPendingSync handles PendingSyncType.reportedPost
-      when(() => mockFirestore.reportPost(
+      when(() => mockDatabaseService.reportPost(
             postId: any(named: 'postId'),
             reporterId: any(named: 'reporterId'),
             reason: any(named: 'reason'),
@@ -169,7 +169,7 @@ void main() {
 
       await repo.drainPendingSync();
       expect(await PendingSyncQueue.pendingCount(db), 0);
-      verify(() => mockFirestore.reportPost(
+      verify(() => mockDatabaseService.reportPost(
             postId: 'post_123',
             reporterId: 'user_456',
             reason: 'spam',

@@ -117,10 +117,10 @@ Attempting to load this model in a standard TFLite interpreter failed outright: 
 - **Fix:** confirm both files exist locally today, back them up outside the repo. If you want CI to build, add a step decoding both from base64 secrets like `KEYSTORE_BASE64` already does.
 
 ### 4. Model has never been accuracy-tested [EVALUATED & FLAGGED — DUAL METRIC REPORTING]
-- `docs/MODEL_ACCURACY.md` previously contained placeholder values. The evaluation tool (`tools/evaluate_model.py`) was enhanced to support `ai_edge_litert` / `tflite_runtime` / `tensorflow` environments and executed against a 24-sample strictly on-domain foliar test set across 22 classes.
+- `docs/MODEL_ACCURACY.md` previously contained placeholder values. The evaluation tool (`tools/evaluate_model.py`) was enhanced to support `ai_edge_litert` / `tflite_runtime` / `tensorflow` environments and executed against a 51-sample strictly on-domain foliar test set across 34 classes.
 - **Status (Phase 4):** Dual-metric reporting documented in `docs/MODEL_ACCURACY.md` §6:
 1. [CURRENT] **Training-Split Validation Accuracy**: **63.92%** (Field holdout: **62.72%**). [HISTORICAL]
-2. [CURRENT] **Held-Out Foliar Benchmark Accuracy**: **16.67%** Top-1 (4/24), **45.83%** Top-3 (11/24), Macro F1 **14.39%**, ECE **37.35%**, and confident scan accuracy at $\tau \ge 0.60$ of **37.50%** (33.3% coverage). [CURRENT]
+2. [CURRENT] **Held-Out Foliar Benchmark Accuracy**: **25.49%** Top-1 (13/51), **49.02%** Top-3 (25/51), Macro F1 **23.53%**, ECE **20.04%**, and confident scan accuracy at $\tau \ge 0.60$ of **66.67%** (17.6% coverage). [CURRENT]
 - **Agronomic Safety Note**: Both measured figures fall below the **70.0%** hard release floor. The near-miss same-crop misclassification pattern (e.g. Rice Leaf Scald confused with Rice Sheath Blight) is an active diagnostic risk, not a benign quirk. The app relies on multi-angle soft-voting fusion, mandatory low-confidence gating ($\tau = 0.60$), `GeminiCloudAiService` multimodal cloud visual audit, and certified Agricultural Extension Officer escalation.
 
 ### 5. OOD gate is a permanent no-op, wired through the entire DI graph [RESOLVED - OPTION (B) HONEST SCOPING]
@@ -1014,34 +1014,45 @@ No issues found! (ran in 5.9s)
 
 | Audit Item | Status | Evidence Tag | Summary & Code Reference | [CURRENT]
 |---|---|---|---| [CURRENT]
-| **#4 Real field accuracy number & benchmark** | **EVALUATED & FLAGGED [DUAL-METRIC]** | `BINARY-VERIFIED` + `CODE-TRACED` | Added `ai_edge_litert.interpreter` runtime fallback to `tools/evaluate_model.py:146-153` and added `ImageOps.exif_transpose` + `BILINEAR` resampling. [CURRENT] Cleaned off-domain non-leaf samples (cut stalks, insects, bare branches, whole bushes) down to 24 strictly on-domain leaf samples across 22 classes. [CURRENT] Executed evaluation tool against test set with 51 verified labels (`assets/labels_verified.txt`), recording **16.67%** Top-1 (4/24) and **45.83%** Top-3 (11/24) accuracy. [CURRENT] Populated empirical benchmark and $\tau$-sweep table in `docs/MODEL_ACCURACY.md:123-152` alongside Colab validation baselines (63.92% val / 62.72% field holdout). [HISTORICAL] Flagged to project owner that both figures fall below the 70.0% hard release floor, and documented that same-crop diagnostic confusion is an active clinical hazard guarded by $\tau = 0.60$ thresholding, Gemini Cloud AI, and Agricultural Extension Officer escalation. [HISTORICAL] | [CURRENT]
+| **#4 Real field accuracy number & benchmark** | **EVALUATED & FLAGGED [DUAL-METRIC]** | `BINARY-VERIFIED` + `CODE-TRACED` | Added `ai_edge_litert.interpreter` runtime fallback to `tools/evaluate_model.py:146-153` and added `ImageOps.exif_transpose` + `BILINEAR` resampling. [CURRENT] Expanded held-out field evaluation dataset by merging 27 field test images to reach 51 strictly on-domain foliar samples across 34 classes (keeping unconfirmed/needs-review sets isolated). [CURRENT] Executed evaluation tool against test set with 51 verified labels (`assets/labels_verified.txt`), recording **25.49%** Top-1 (13/51) and **49.02%** Top-3 (25/51) accuracy. [CURRENT] Populated empirical benchmark and $\tau$-sweep table in `docs/MODEL_ACCURACY.md` alongside Colab validation baselines (63.92% val / 62.72% field holdout). [HISTORICAL] Flagged to project owner that both figures fall below the 70.0% hard release floor, and documented that same-crop diagnostic confusion is an active clinical hazard guarded by $\tau = 0.60$ thresholding, Gemini Cloud AI, and Agricultural Extension Officer escalation. [HISTORICAL] | [CURRENT]
 
 ### Phase 4 Verification Artifacts & Test Output
 
 #### 1. Standalone Model Accuracy Evaluator Execution (On-Domain Foliar Test Set)
 Command: [CURRENT]
-`python3 tools/evaluate_model.py --model assets/cropguard_plant_disease_verified.tflite --labels assets/labels_verified.txt --test-set test_set --output-json docs/eval_metrics.json` [CURRENT]
+`python3 tools/evaluate_model.py --model assets/cropguard_plant_disease_verified.tflite --labels assets/labels_verified.txt --test-set test_set --output-json docs/eval_metrics.json --min-accuracy 0.70` [CURRENT]
 
 Output: [CURRENT]
 ```
 INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
-=======================================================
-      CropGuard AI — Model Accuracy Evaluator
-=======================================================
-Loaded 51 labels from assets/labels_verified.txt
-Discovered 24 test samples in test_set
+=================================================================
+      CropGuard AI — Model Validation & Release Gating Harness
+=================================================================
+Loaded 51 classes from assets/labels_verified.txt
+Discovered 51 test samples in test_set
 
-Running inference over test samples...
-  Processed 24/24 samples...
+[1/12] Running Baseline Evaluation on Held-Out Test Set...
+[11/12] Running Non-Plant Out-of-Distribution Abstention Suite...
+[12/12] Running Unsupported Crops & Healthy Plants Abstention Suite...
 
-================ Results ================
-Overall Top-1 Accuracy: 16.67%
-Top-3 Accuracy        : 45.83%
-Macro F1              : 14.39%
-Weighted F1           : 13.19%
-ECE (Calibration Err) : 37.35%
-Accuracy at τ=0.60  : 37.50% (Coverage: 33.3%)
-Saved JSON metrics to: docs/eval_metrics.json
+=================================================================
+                       EVALUATION RESULTS
+=================================================================
+Overall Top-1 Accuracy : 25.49%
+Top-3 Accuracy         : 49.02%
+Macro F1-Score         : 23.53%
+Weighted F1-Score      : 20.92%
+Expected Cal. Error    : 20.04% (ECE, 10 bins)
+Accuracy at τ=0.60    : 66.67% (Coverage: 17.6%)
+-----------------------------------------------------------------
+Production Gate Floor  : 70.00% Top-1 Accuracy
+Release Gate Verdict   : FAIL (RELEASE BLOCKED)
+=================================================================
+
+[Artifact] Saved Markdown Report to: docs/MODEL_ACCURACY.md
+[Artifact] Saved JSON Metrics to: docs/eval_metrics.json
+
+❌ FAILED ACCURACY GATE: Model top-1 accuracy (25.49%) is below the 70.00% release floor.
 ```
 
 #### 2. Static Analysis Verification
@@ -1069,7 +1080,7 @@ Output: [CURRENT]
 
 ### 1. Summary of Fallback Chain Trustworthiness
 
-The on-device TFLite model is not currently a standalone clinical diagnostic tool. [CURRENT] On held-out field foliar benchmarks, it achieved 16.67% top-1 / 45.83% top-3 accuracy with an Expected Calibration Error (ECE) of 37.35%, meaning on-device confidence scores cannot be trusted to self-police accuracy. [CURRENT] Furthermore, heuristic color ratio filters fail to reject adversarial non-plant objects (allowing bare branches to score 65.69% confidence and a wilting bush to score 92.20% confidence as "Cashew Healthy"). [CURRENT] The true safety net of CropGuard AI is the multi-tiered escalation pipeline: any low-confidence scan ($\tau < 0.60$) automatically initiates a visual pathology audit via the multimodal Gemini Cloud AI (`gemini-3-flash-preview`), presents the verified cloud diagnosis as primary while subordinating unverified local guesses into a collapsed tile, and maintains immediate access to certified Human Agronomist escalation and multi-angle soft-voting fusion. [CURRENT]
+The on-device TFLite model is not currently a standalone clinical diagnostic tool. [CURRENT] On held-out field foliar benchmarks (n=51), it achieved 25.49% top-1 / 49.02% top-3 accuracy with an Expected Calibration Error (ECE) of 20.04%, meaning on-device confidence scores cannot be trusted to self-police accuracy. [CURRENT] Furthermore, heuristic color ratio filters fail to reject adversarial non-plant objects (allowing bare branches to score 65.69% confidence and a wilting bush to score 92.20% confidence as "Cashew Healthy"). [CURRENT] The true safety net of CropGuard AI is the multi-tiered escalation pipeline: any low-confidence scan ($\tau < 0.60$) automatically initiates a visual pathology audit via the multimodal Gemini Cloud AI (`gemini-3-flash-preview`), presents the verified cloud diagnosis as primary while subordinating unverified local guesses into a collapsed tile, and maintains immediate access to certified Human Agronomist escalation and multi-angle soft-voting fusion. [CURRENT]
 
 ### 2. Task Audit & Evidence Matrix
 
@@ -1078,7 +1089,7 @@ The on-device TFLite model is not currently a standalone clinical diagnostic too
 | **Task 1: Wire and Prove Gemini API Key End-to-End** | **RESOLVED & VERIFIED** | `BINARY-VERIFIED` + `CODE-TRACED` | Wired `geminiApiKey` into `AppSecrets` (`lib/core/config/app_secrets.dart:30-48, 200-225`) supporting `--dart-define`, `.env`, and Firebase RemoteConfig (`AppBootstrap.syncRemoteConfig`). [CURRENT] Configured `GeminiCloudAiService` (`lib/data/remote/gemini_cloud_ai_service.dart:18-70`) with model `gemini-3-flash-preview` and a 15-second timeout. [CURRENT] Executed real live end-to-end request (`test/data/remote/gemini_live_e2e_test.dart`) on `test_set/Cashew___Gumosis/Cashew_Gummosis.jpg`. [CURRENT] Received live multimodal diagnosis in 6,710ms: Label: *Cashew Gummosis*, Confidence: *0.96*, complete symptoms, root cause (*Lasiodiplodia theobromae*), organic remedies (*Bordeaux mixture, neem oil*), prevention tips, and visual reasoning. [CURRENT] | [CURRENT]
 | **Task 2: Auto-Trigger Cloud Fallback + Subordinate On-Device Result** | **RESOLVED & VERIFIED** | `CODE-TRACED` + `BINARY-VERIFIED` | In `lib/presentation/screens/result/low_confidence_screen.dart:85-98, 190-245, 545-690`, when confidence < 0.60, `_requestCloudAiAnalysis()` is automatically called in `initState` post-frame callback. [CURRENT] Displays a loading progress card while analyzing, and renders `_CloudAiResultCard` as the primary headline recommendation with full symptoms, root cause, and "Accept & Save Cloud Diagnosis" action. [CURRENT] Subordinates the on-device prediction into a collapsed `ExpansionTile` titled *"On-Device Preliminary Guess (${pct}% - Low Confidence)"* wrapped in `Material` to prevent layout clipping. [CURRENT] Retains "Escalate to Agronomist Expert Review" and "Add Another Angle" actions alongside the cloud result. [CURRENT] | [CURRENT]
 | **Task 3: Persistent Scope Disclaimer & Adversarial OOD Evaluation** | **RESOLVED & VERIFIED** | `BINARY-VERIFIED` + `CODE-TRACED` | Added non-dismissible persistent scope disclaimer: *"CropGuard identifies known crop leaf diseases from photos. [CURRENT] It is not validated for other subjects and should not be the sole basis for treatment decisions."* to both `low_confidence_screen.dart:690-720` and `result_screen.dart:468-493`. [CURRENT] Evaluated active color heuristic and model against 5 off-domain adversarial non-leaf images: all 5 passed the color gate (>67% plant color), and 2 generated false-positive high-confidence misdiagnoses above the 0.60 threshold (`bare_branches` $\rightarrow$ 65.69% Cassava Bacterial Blight; `whole_bush` $\rightarrow$ 92.20% Cashew Healthy). [HISTORICAL] | [CURRENT]
-| **Task 4: Correct Documentation Framing of Confidence Threshold** | **RESOLVED & VERIFIED** | `CODE-TRACED` | Updated `docs/MODEL_ACCURACY.md:36-64` and `CROPGUARD_MASTER_AUDIT.md` to remove claims that $\tau \ge 0.60$ guarantees high accuracy. [HISTORICAL] Framed $\tau = 0.60$ accurately as a volume/exposure filter (coverage 33.3%) rather than a trust assurance, highlighted ECE of 37.35%, cited the bare-branch (65.69%) and wilting-bush (92.20%) adversarial passes, and established the Gemini cloud fallback + agronomist escalation as the actual diagnostic backstop. [CURRENT] | [CURRENT]
+| **Task 4: Correct Documentation Framing of Confidence Threshold** | **RESOLVED & VERIFIED** | `CODE-TRACED` | Updated `docs/MODEL_ACCURACY.md` and `CROPGUARD_MASTER_AUDIT.md` to remove claims that $\tau \ge 0.60$ guarantees high accuracy. [HISTORICAL] Framed $\tau = 0.60$ accurately as a volume/exposure filter (coverage 17.6%) rather than a trust assurance, highlighted ECE of 20.04%, cited the bare-branch (65.69%) and wilting-bush (92.20%) adversarial passes, and established the Gemini cloud fallback + agronomist escalation as the actual diagnostic backstop. [CURRENT] | [CURRENT]
 
 ---
 
@@ -1213,7 +1224,7 @@ Every item in the historical fix catalog was systematically inspected by directl
 |---|---|---|---| [CURRENT]
 | **#1 / #2 / #46 Model Architecture & Single Verified Model** | `[RE-VERIFIED]` | `CODE-TRACED` + `BINARY-VERIFIED` | Consolidated to `assets/cropguard_plant_disease_verified.tflite` (51 classes, MobileNetV2 float32 `[1,128,128,3]` raw `[0,255]` input, $\tau_{cal}=1.3409$). [CURRENT] Verified 51-label alignment with `DiseaseDatabase` in `test/data/ml/crop_disease_classifier_test.dart:253-272`. [CURRENT] | [CURRENT]
 | **#3 / #27 CI Build Google Services Provisioning** | `[RE-VERIFIED]` | `CODE-TRACED` | `.github/workflows/flutter.yml:105-107` defines base64 decode step `echo "$GOOGLE_SERVICES_BASE64" \| base64 --decode > android/app/google-services.json` in `build-android` release job. [CURRENT] | [CURRENT]
-| **#4 Model Accuracy Testing & Dual-Metric Reporting** | `[RE-VERIFIED]` | `BINARY-VERIFIED` | Measured 16.67% Top-1 / 45.83% Top-3 on on-domain foliar test set; documented alongside 63.92% validation baseline in `docs/MODEL_ACCURACY.md:123-152`. [CURRENT] | [CURRENT]
+| **#4 Model Accuracy Testing & Dual-Metric Reporting** | `[RE-VERIFIED]` | `BINARY-VERIFIED` | Measured 25.49% Top-1 / 49.02% Top-3 on on-domain foliar test set (n=51); documented alongside 63.92% validation baseline in `docs/MODEL_ACCURACY.md`. [CURRENT] | [CURRENT]
 | **#5 OOD Gate & AI Leaf Scope Warnings** | `[RE-VERIFIED]` | `CODE-TRACED` + `BINARY-VERIFIED` | Resolved via Option (b) Honest Scoping. [CURRENT] `AlwaysAcceptOODGate` in `lib/data/ml/ood_gate.dart:1-38` with active pixel ratio & entropy filter, paired with persistent leaf-only warnings on `LowConfidenceScreen:676-704` and `ResultScreen:466-493`. [CURRENT] | [CURRENT]
 | **#6 Security Rules for Submissions** | `[RE-VERIFIED]` | `CODE-TRACED` | `firestore.rules:44-56` explicitly includes `allow read: if request.auth != null && resource.data.userId == request.auth.uid;` for both `expert_requests` and `missing_crops`. [CURRENT] | [CURRENT]
 | **#7 Deterministic Scan Document Upsert** | `[RE-VERIFIED]` | `CODE-TRACED` + `BINARY-VERIFIED` | `lib/domain/usecases/scanner/scan_crop_usecase.dart:90-93` calls `upsertScan(savedDetection.id.toString(), savedDetection.toMap())`, eliminating duplicate Firestore documents. [CURRENT] Verified in `test/domain/usecases/scanner/scan_crop_usecase_test.dart:280`. [CURRENT] | [CURRENT]
