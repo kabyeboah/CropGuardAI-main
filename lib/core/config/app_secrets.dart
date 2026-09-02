@@ -316,10 +316,8 @@ class AppSecrets {
     defaultValue: '',
   );
 
-  static const defaultGoogleServerClientId =
-      '859024066310-53gprmgbm38q8r84mpqcn74aqapritfu.apps.googleusercontent.com';
-  static const defaultGoogleIosClientId =
-      '395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs.apps.googleusercontent.com';
+  static const defaultGoogleServerClientId = '';
+  static const defaultGoogleIosClientId = '';
 
   /// Web/Server OAuth Client ID used by GoogleSignIn on Android to request ID tokens.
   static String get googleServerClientId {
@@ -340,6 +338,9 @@ class AppSecrets {
     if (envVal.isNotEmpty) return envVal;
     return _remoteGoogleIosClientId ?? defaultGoogleIosClientId;
   }
+
+  static bool get hasGoogleServerClientId => googleServerClientId.isNotEmpty;
+  static bool get hasGoogleIosClientId => googleIosClientId.isNotEmpty;
 
   static void setGoogleClientIds({
     String? serverClientId,

@@ -180,5 +180,46 @@ IOS_BUNDLE_ID=env-ios
         expect(AppSecrets.iosBundleId, equals('com.cropguard.ai.app'));
       });
     });
+
+    group('Google OAuth Client IDs', () {
+      test('1. Prefer dart-define over .env and Remote Config', () async {
+        AppSecrets.dartDefineGoogleServerClientIdOverride = 'dart-define-server';
+        AppSecrets.dartDefineGoogleIosClientIdOverride = 'dart-define-ios';
+        dotenv.loadFromString(envString: '''
+GOOGLE_SERVER_CLIENT_ID=env-server
+GOOGLE_IOS_CLIENT_ID=env-ios
+''');
+        AppSecrets.setGoogleClientIds(
+          serverClientId: 'remote-server',
+          iosClientId: 'remote-ios',
+        );
+
+        expect(AppSecrets.googleServerClientId, equals('dart-define-server'));
+        expect(AppSecrets.googleIosClientId, equals('dart-define-ios'));
+        expect(AppSecrets.hasGoogleServerClientId, isTrue);
+        expect(AppSecrets.hasGoogleIosClientId, isTrue);
+      });
+
+      test('2. Prefer .env over Remote Config when dart-define is absent', () async {
+        dotenv.loadFromString(envString: '''
+GOOGLE_SERVER_CLIENT_ID=env-server
+GOOGLE_IOS_CLIENT_ID=env-ios
+''');
+        AppSecrets.setGoogleClientIds(
+          serverClientId: 'remote-server',
+          iosClientId: 'remote-ios',
+        );
+
+        expect(AppSecrets.googleServerClientId, equals('env-server'));
+        expect(AppSecrets.googleIosClientId, equals('env-ios'));
+      });
+
+      test('3. Fallback to empty string default when all sources are absent', () {
+        expect(AppSecrets.googleServerClientId, isEmpty);
+        expect(AppSecrets.googleIosClientId, isEmpty);
+        expect(AppSecrets.hasGoogleServerClientId, isFalse);
+        expect(AppSecrets.hasGoogleIosClientId, isFalse);
+      });
+    });
   });
 }
