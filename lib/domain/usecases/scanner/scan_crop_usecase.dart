@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:uuid/uuid.dart';
+
 import '../../../core/error/failures.dart';
 import '../../../core/utils/result.dart';
 import '../../../core/utils/streak_manager.dart';
@@ -49,7 +51,7 @@ class ScanCropUseCase {
   }
 
   /// Persists a resolved scan result (such as from multi-angle soft-voting fusion
-  /// or user-confirmed candidate) directly to SQLite, streak manager, and Firestore.
+  /// or user-confirmed candidate) directly to SQLite, streak manager, and Supabase.
   Future<Result<DetectionResult>> saveResolvedScan({
     required String imagePath,
     required String userId,
@@ -61,8 +63,10 @@ class ScanCropUseCase {
   }) async {
     final diseaseInfo = DiseaseDatabase.getInfo(diseaseLabel);
     final severity = diseaseInfo.severity;
+    final remoteId = const Uuid().v4();
 
     final detection = DetectionResult(
+      remoteId: remoteId,
       userId: userId,
       imagePath: imagePath,
       diseaseLabel: diseaseLabel,
@@ -90,7 +94,7 @@ class ScanCropUseCase {
     final savedDetection = detection.copyWith(id: saveResult.data);
     if (_communityRepository != null) {
       unawaited(_communityRepository.upsertScan(
-        savedDetection.id.toString(),
+        savedDetection.remoteId,
         savedDetection.toMap(),
       ));
     }

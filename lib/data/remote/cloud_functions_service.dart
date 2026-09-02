@@ -7,6 +7,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/retry_utils.dart';
 
@@ -22,11 +23,11 @@ class CloudFunctionsService {
     http.Client? client,
     Future<String?> Function()? authTokenProvider,
     String region = 'us-central1',
-    String projectId = 'cropguard-ai',
+    String? projectId,
   })  : _client = client ?? http.Client(),
         _authTokenProvider = authTokenProvider,
         _region = region,
-        _projectId = projectId;
+        _projectId = projectId ?? AppSecrets.firebaseProjectId;
 
   Future<String?> _getAuthToken() async {
     final provider = _authTokenProvider;

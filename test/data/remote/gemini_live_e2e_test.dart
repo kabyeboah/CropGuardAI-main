@@ -16,6 +16,12 @@ void main() {
       dotenv.loadFromString(envString: envFile.readAsStringSync());
     }
 
+    final key = dotenv.env['GEMINI_API_KEY'];
+    if (key == null || key.isEmpty || key.startsWith('placeholder')) {
+      print('Skipping live Gemini E2E test: no GEMINI_API_KEY set.');
+      return;
+    }
+
     final service = GeminiCloudAiService();
     const imagePath = 'test_set/Cashew___Gumosis/Cashew_Gummosis.jpg';
 

@@ -229,5 +229,39 @@ void main() {
 
       expect(text, 'Mema wo akye');
     });
+
+    test('default constructed service uses real project id (cropguard-6ada8)',
+        () async {
+      final defaultClient = MockHttpClient();
+      final defaultService = CloudFunctionsService(
+        client: defaultClient,
+        authTokenProvider: () async => 'token',
+      );
+
+      when(() => defaultClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          )).thenAnswer((invocation) async {
+        final uri = invocation.positionalArguments[0] as Uri;
+        expect(uri.host, 'us-central1-cropguard-6ada8.cloudfunctions.net');
+        return http.Response(
+          jsonEncode({
+            'result': {
+              'success': true,
+              'status': 'updated',
+              'confidenceScore': 3,
+            }
+          }),
+          200,
+        );
+      });
+
+      final res = await defaultService.verifyOutbreak(
+        reportId: 'rep_123',
+        confirm: true,
+      );
+      expect(res['success'], isTrue);
+    });
   });
 }

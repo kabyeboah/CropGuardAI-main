@@ -99,14 +99,25 @@ class SupabaseDatabaseService {
   // ─── Scan Sync ────────────────────────────────────────────────────────
   Future<void> upsertScan(String docId, Map<String, dynamic> scanData) async {
     try {
+      final rawImageUrl = scanData['imageUrl'] ?? scanData['image_url'];
+      final rawImagePath = scanData['imagePath'] ?? scanData['image_path'];
+      final validHttpUrl = (rawImageUrl is String && rawImageUrl.startsWith('http'))
+          ? rawImageUrl
+          : ((rawImagePath is String && rawImagePath.startsWith('http'))
+              ? rawImagePath
+              : null);
+
       await RetryUtils.retry(
         () => _client.from('scans').upsert({
           'id': docId,
-          'user_id': scanData['userId'],
-          'disease_name': scanData['diseaseName'] ?? scanData['disease'],
-          'crop_type': scanData['cropType'] ?? scanData['crop'],
+          'user_id': scanData['userId'] ?? scanData['user_id'],
+          'disease_name': scanData['displayName'] ??
+              scanData['diseaseLabel'] ??
+              scanData['diseaseName'] ??
+              scanData['disease'],
+          'crop_type': scanData['cropType'] ?? scanData['crop_type'] ?? scanData['crop'],
           'confidence': scanData['confidence'],
-          'image_url': scanData['imageUrl'] ?? scanData['imagePath'],
+          'image_url': validHttpUrl,
           'data': scanData,
           'created_at': scanData['timestamp'] != null
               ? DateTime.fromMillisecondsSinceEpoch(
@@ -126,13 +137,24 @@ class SupabaseDatabaseService {
 
   Future<void> uploadScan(Map<String, dynamic> scanData) async {
     try {
+      final rawImageUrl = scanData['imageUrl'] ?? scanData['image_url'];
+      final rawImagePath = scanData['imagePath'] ?? scanData['image_path'];
+      final validHttpUrl = (rawImageUrl is String && rawImageUrl.startsWith('http'))
+          ? rawImageUrl
+          : ((rawImagePath is String && rawImagePath.startsWith('http'))
+              ? rawImagePath
+              : null);
+
       await RetryUtils.retry(
         () => _client.from('scans').insert({
-          'user_id': scanData['userId'],
-          'disease_name': scanData['diseaseName'] ?? scanData['disease'],
-          'crop_type': scanData['cropType'] ?? scanData['crop'],
+          'user_id': scanData['userId'] ?? scanData['user_id'],
+          'disease_name': scanData['displayName'] ??
+              scanData['diseaseLabel'] ??
+              scanData['diseaseName'] ??
+              scanData['disease'],
+          'crop_type': scanData['cropType'] ?? scanData['crop_type'] ?? scanData['crop'],
           'confidence': scanData['confidence'],
-          'image_url': scanData['imageUrl'] ?? scanData['imagePath'],
+          'image_url': validHttpUrl,
           'data': scanData,
         }),
         maxAttempts: 3,

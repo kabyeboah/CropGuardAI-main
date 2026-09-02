@@ -1,3 +1,5 @@
+import 'package:uuid/uuid.dart';
+
 import '../../core/error/failures.dart';
 import '../../core/utils/result.dart';
 import '../../domain/models/detection_result.dart';
@@ -13,7 +15,10 @@ class DetectionRepositoryImpl implements IDetectionRepository {
   @override
   Future<Result<int>> saveDetection(DetectionResult result) async {
     try {
-      final id = await _dbHelper.insertDetection(result);
+      final toSave = result.remoteId.isEmpty
+          ? result.copyWith(remoteId: const Uuid().v4())
+          : result;
+      final id = await _dbHelper.insertDetection(toSave);
       return Result.success(id);
     } catch (e) {
       return Result.error(CacheFailure(e.toString()));

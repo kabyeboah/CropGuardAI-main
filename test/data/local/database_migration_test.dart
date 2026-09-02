@@ -48,14 +48,14 @@ void main() {
   }
 
   group('Database Schema Migrations', () {
-    test('Fresh installation creates version 17 with all tables and columns',
+    test('Fresh installation creates version 18 with all tables and columns',
         () async {
       final dbPath = getUniqueDbPath();
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
 
       final version = await db.getVersion();
-      expect(version, 17);
+      expect(version, 18);
 
       // Check tables
       final detectionCols =
@@ -64,6 +64,7 @@ void main() {
           detectionCols,
           containsAll([
             'id',
+            'remoteId',
             'userId',
             'imagePath',
             'diseaseLabel',
@@ -76,6 +77,7 @@ void main() {
             'treatments',
             'timestamp',
             'isDegraded',
+            'topCandidates',
             'modelVersion',
             'isSynced',
             'syncedAt',
@@ -195,12 +197,12 @@ void main() {
 
       await legacyDb.close();
 
-      // 2. Open via DatabaseHelper to trigger _onUpgrade (v10 -> v17)
+      // 2. Open via DatabaseHelper to trigger _onUpgrade (v10 -> v18)
       final helper = DatabaseHelper.forTest(dbPath);
-      final upgradedDb = await helper.database;
+      final db = await helper.database;
 
-      final newVersion = await upgradedDb.getVersion();
-      expect(newVersion, 17);
+      final newVersion = await db.getVersion();
+      expect(newVersion, 18);
 
       // Verify v10 detection was preserved with default values for new columns
       final detections = await helper.getAllDetections();
@@ -326,10 +328,10 @@ void main() {
 
       await legacyDb.close();
 
-      // 2. Upgrade to v17
+      // 2. Upgrade to v18
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final cols = await getColumnNames(db, 'pending_sync');
       expect(
@@ -394,7 +396,7 @@ void main() {
 
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final pendingRows = await db.query('pending_sync');
       expect(pendingRows.length, 1);
@@ -446,7 +448,7 @@ void main() {
 
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final pendingCols = await getColumnNames(db, 'pending_sync');
       expect(pendingCols, contains('retry_count'));
@@ -518,7 +520,7 @@ void main() {
 
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final row = (await helper.getAllDetections(userId: 'user14')).first;
       expect(row.isDegraded, isTrue);
@@ -579,7 +581,7 @@ void main() {
 
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final detection = (await helper.getAllDetections(userId: 'user15')).first;
       expect(detection.modelVersion, isNull);
@@ -646,7 +648,7 @@ void main() {
 
       final helper = DatabaseHelper.forTest(dbPath);
       final db = await helper.database;
-      expect(await db.getVersion(), 17);
+      expect(await db.getVersion(), 18);
 
       final row = (await helper.getAllDetections(userId: 'user16')).first;
       expect(row.modelVersion, 'v2.4.0');
@@ -655,6 +657,73 @@ void main() {
 
       final unsynced = await helper.getUnsyncedDetections(userId: 'user16');
       expect(unsynced.length, 1);
+
+      await helper.close();
+    });
+
+    test('Upgrade from v17 -> v18 adds remoteId and topCandidates correctly',
+        () async {
+      final dbPath = getUniqueDbPath();
+
+      final legacyDb = await databaseFactoryFfi.openDatabase(
+        dbPath,
+        options: OpenDatabaseOptions(
+          version: 17,
+          onCreate: (db, version) async {
+            await db.execute('''
+              CREATE TABLE ${DatabaseHelper.tableDetections} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                userId TEXT NOT NULL DEFAULT '',
+                imagePath TEXT NOT NULL,
+                diseaseLabel TEXT NOT NULL,
+                displayName TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                severity TEXT NOT NULL DEFAULT 'unclear',
+                isHealthy INTEGER NOT NULL,
+                cropType TEXT NOT NULL,
+                cause TEXT NOT NULL DEFAULT '',
+                treatments TEXT NOT NULL DEFAULT '',
+                timestamp INTEGER NOT NULL,
+                isDegraded INTEGER NOT NULL DEFAULT 0,
+                modelVersion TEXT,
+                isSynced INTEGER NOT NULL DEFAULT 0,
+                syncedAt INTEGER
+              )
+            ''');
+          },
+        ),
+      );
+
+      await legacyDb.insert(DatabaseHelper.tableDetections, {
+        'userId': 'user17',
+        'imagePath': '/path17.jpg',
+        'diseaseLabel': 'healthy_maize',
+        'displayName': 'Healthy Maize',
+        'confidence': 0.99,
+        'severity': 'none',
+        'isHealthy': 1,
+        'cropType': 'maize',
+        'cause': '',
+        'treatments': '',
+        'timestamp': 1670000000000,
+        'isDegraded': 0,
+        'modelVersion': 'v2.4.0',
+        'isSynced': 1,
+        'syncedAt': 1670000005000,
+      });
+
+      await legacyDb.close();
+
+      final helper = DatabaseHelper.forTest(dbPath);
+      final db = await helper.database;
+      expect(await db.getVersion(), 18);
+
+      final cols = await getColumnNames(db, DatabaseHelper.tableDetections);
+      expect(cols, containsAll(['remoteId', 'topCandidates']));
+
+      final row = (await helper.getAllDetections(userId: 'user17')).first;
+      expect(row.displayName, 'Healthy Maize');
+      expect(row.topCandidates, isEmpty);
 
       await helper.close();
     });

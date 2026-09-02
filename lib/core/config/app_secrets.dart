@@ -42,6 +42,8 @@ class AppSecrets {
   static String? dartDefineSupabaseUrlOverride;
   @visibleForTesting
   static String? dartDefineSupabaseAnonKeyOverride;
+  @visibleForTesting
+  static String? dartDefineFirebaseProjectIdOverride;
 
   /// Resets all overrides and remote keys back to default/empty values.
   /// Intended for unit testing.
@@ -60,6 +62,7 @@ class AppSecrets {
     dartDefineGoogleIosClientIdOverride = null;
     dartDefineSupabaseUrlOverride = null;
     dartDefineSupabaseAnonKeyOverride = null;
+    dartDefineFirebaseProjectIdOverride = null;
 
     _remoteGhanaNlpKey = null;
     _remoteCloudName = null;
@@ -387,6 +390,22 @@ class AppSecrets {
   static void setSupabaseConfig({String? url, String? anonKey}) {
     if (url != null && url.isNotEmpty) _remoteSupabaseUrl = url;
     if (anonKey != null && anonKey.isNotEmpty) _remoteSupabaseAnonKey = anonKey;
+  }
+
+  // ── Firebase Project Configuration ──────────────────────────────────────────
+  static const defaultFirebaseProjectId = 'cropguard-6ada8';
+  static const _dartDefineFirebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+    defaultValue: '',
+  );
+
+  static String get firebaseProjectId {
+    final ddVal =
+        dartDefineFirebaseProjectIdOverride ?? _dartDefineFirebaseProjectId;
+    if (ddVal.isNotEmpty) return ddVal;
+    final envVal = _env('FIREBASE_PROJECT_ID');
+    if (envVal.isNotEmpty) return envVal;
+    return defaultFirebaseProjectId;
   }
 }
 

@@ -120,7 +120,9 @@ void main() {
       final result = await useCaseWithCommunity(imagePath, userId);
 
       expect(result.isSuccess, isTrue);
-      verify(() => mockCommunity.upsertScan('1', any())).called(1);
+      expect(result.data!.remoteId, isNotEmpty);
+      verify(() => mockCommunity.upsertScan(result.data!.remoteId, any()))
+          .called(1);
     });
 
     test(
