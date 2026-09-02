@@ -230,26 +230,43 @@ class SupabaseDatabaseService {
     required bool confirm,
   }) async {
     try {
-      final report = await _client.from('outbreaks').select().eq('id', reportId).maybeSingle();
-      if (report == null) throw const ServerFailure('Outbreak report not found');
-
-      final verifiedBy = List<String>.from(report['verified_by'] ?? []);
-      final refutedBy = List<String>.from(report['refuted_by'] ?? []);
-
-      if (confirm) {
-        if (!verifiedBy.contains(userId)) verifiedBy.add(userId);
-        refutedBy.remove(userId);
-      } else {
-        if (!refutedBy.contains(userId)) refutedBy.add(userId);
-        verifiedBy.remove(userId);
-      }
-
-      await _client.from('outbreaks').update({
-        'verified_by': verifiedBy,
-        'refuted_by': refutedBy,
-      }).eq('id', reportId);
+      await RetryUtils.retry(
+        () => _client.rpc(
+          'verify_outbreak',
+          params: {
+            'p_report_id': reportId,
+            'p_user_id': userId,
+            'p_confirm': confirm,
+          },
+        ),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isTransientError,
+      );
     } catch (e) {
-      throw ServerFailure('Failed to verify outbreak: $e');
+      AppLogger.w('Supabase verifyOutbreak RPC failed, attempting fallback: $e');
+      try {
+        final report = await _client.from('outbreaks').select().eq('id', reportId).maybeSingle();
+        if (report == null) throw const ServerFailure('Outbreak report not found');
+
+        final verifiedBy = List<String>.from(report['verified_by'] ?? []);
+        final refutedBy = List<String>.from(report['refuted_by'] ?? []);
+
+        if (confirm) {
+          if (!verifiedBy.contains(userId)) verifiedBy.add(userId);
+          refutedBy.remove(userId);
+        } else {
+          if (!refutedBy.contains(userId)) refutedBy.add(userId);
+          verifiedBy.remove(userId);
+        }
+
+        await _client.from('outbreaks').update({
+          'verified_by': verifiedBy,
+          'refuted_by': refutedBy,
+        }).eq('id', reportId);
+      } catch (fallbackError) {
+        throw ServerFailure('Failed to verify outbreak: $fallbackError');
+      }
     }
   }
 
