@@ -166,33 +166,6 @@ class _LoginBodyState extends State<_LoginBody> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Divider
-              Row(children: [
-                Expanded(child: Divider(color: colors.divider)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(context.l10n.orDivider,
-                      style: TextStyle(color: colors.muted, fontSize: 12)),
-                ),
-                Expanded(child: Divider(color: colors.divider)),
-              ]),
-              const SizedBox(height: 16),
-
-              // Google sign-in
-              _SocialButton(
-                label: context.l10n.signInWithGoogle,
-                icon: Icons.login,
-                onTap: () {
-                  final provider = context.read<LoginProvider>();
-                  provider.signInWithGoogle(
-                    () => context.go('/home'),
-                    onMigrationNeeded: (count) =>
-                        _showMigrationDialog(context, provider, count),
-                  );
-                },
-              ),
               const SizedBox(height: 32),
 
               // Register link
