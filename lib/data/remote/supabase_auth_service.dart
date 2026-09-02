@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:io';
 
 import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/app_logger.dart';
 import '../../core/utils/retry_utils.dart';
+
 
 /// Wraps Supabase Auth — replaces FirebaseAuthService
 class SupabaseAuthService {
@@ -15,13 +15,7 @@ class SupabaseAuthService {
   SupabaseAuthService([SupabaseClient? client])
       : _client = client ?? Supabase.instance.client;
 
-  GoogleSignIn _createGoogleSignIn() {
-    return GoogleSignIn(
-      serverClientId: AppSecrets.googleServerClientId,
-      clientId: Platform.isIOS ? AppSecrets.googleIosClientId : null,
-      scopes: const ['email', 'profile'],
-    );
-  }
+
 
   User? get currentUser => _client.auth.currentUser;
   
@@ -177,36 +171,41 @@ class SupabaseAuthService {
     }
   }
 
-  // ─── Google Sign-In ───────────────────────────────────────────────────
+  // ─── Google Sign-In (Supabase OAuth web flow) ─────────────────────────
+  // Opens browser → Google OAuth → Supabase callback → deep-links back via
+  // io.supabase.cropguard://login-callback/
+  // No google-services.json / SHA-1 matching required.
   Future<AuthResponse> signInWithGoogle() async {
     try {
-      final googleSignIn = _createGoogleSignIn();
-      final googleUser =
-          await googleSignIn.signIn().timeout(const Duration(seconds: 45));
-      if (googleUser == null) {
-        throw const AuthFailure('Google sign-in cancelled', code: 'cancelled');
-      }
-      final googleAuth =
-          await googleUser.authentication.timeout(const Duration(seconds: 20));
-
-      final idToken = googleAuth.idToken;
-      final accessToken = googleAuth.accessToken;
-      if (idToken == null) {
-        throw const AuthFailure(
-          'Google sign-in configuration error: missing ID token.',
-          code: 'invalid-credential',
-        );
-      }
-
-      return await RetryUtils.retry(
-        () => _client.auth.signInWithIdToken(
-          provider: OAuthProvider.google,
-          idToken: idToken,
-          accessToken: accessToken,
-        ),
-        maxAttempts: 3,
-        timeout: const Duration(seconds: 15),
-        retryIf: _isAuthTransientError,
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: (Platform.isAndroid || Platform.isIOS)
+            ? 'io.supabase.cropguard://login-callback/'
+            : null,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      // Wait for the auth state change triggered by the deep-link callback
+      final completer = Completer<AuthResponse>();
+      late StreamSubscription<AuthState> sub;
+      sub = _client.auth.onAuthStateChange.listen((data) {
+        if (data.session != null && !completer.isCompleted) {
+          sub.cancel();
+          completer.complete(AuthResponse(
+            session: data.session,
+            user: data.session!.user,
+          ));
+        }
+      });
+      // Allow up to 3 minutes for the user to complete the browser flow
+      return await completer.future.timeout(
+        const Duration(minutes: 3),
+        onTimeout: () {
+          sub.cancel();
+          throw const AuthFailure(
+            'Google sign-in timed out. Please try again.',
+            code: 'timeout',
+          );
+        },
       );
     } on AuthException catch (e) {
       AppLogger.e('Supabase Google sign-in AuthException: ${e.message}');
@@ -220,6 +219,7 @@ class SupabaseAuthService {
       throw AuthFailure('Google sign-in failed: ${e.toString()}');
     }
   }
+
 
   // ─── Anonymous Guest ──────────────────────────────────────────────────
   Future<AuthResponse> signInAnonymously() async {
@@ -245,10 +245,6 @@ class SupabaseAuthService {
   // ─── Sign Out ─────────────────────────────────────────────────────────
   Future<void> signOut() async {
     try {
-      try {
-        final googleSignIn = _createGoogleSignIn();
-        await googleSignIn.signOut().timeout(const Duration(seconds: 10));
-      } catch (_) {}
       await RetryUtils.retry(
         () => _client.auth.signOut(),
         maxAttempts: 3,
@@ -260,6 +256,7 @@ class SupabaseAuthService {
       throw AuthFailure('Sign out failed: ${e.toString()}');
     }
   }
+
 
   // ─── Re-authentication ────────────────────────────────────────────────
   Future<void> reauthenticateWithPassword(String password) async {
