@@ -1729,8 +1729,8 @@ class DiseaseDatabase {
       label: 'Groundnut___Leaf_Raw',
       displayName: 'Groundnut Leaf (Unclassified)',
       cropType: 'Groundnut',
-      cause: 'Leaf tissue captured without clear disease symptom',
-      severity: 'unclear',
+      cause: 'Leaf tissue captured without distinct diagnostic symptoms',
+      severity: 'early',
       isHealthy: false,
       treatments: [
         'Retake photo under good daylight with the full leaf in frame.',
