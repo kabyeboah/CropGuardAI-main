@@ -28,7 +28,7 @@ BEGIN
     VALUES (
         NEW.id,
         NEW.email,
-        COALESPE(NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'full_name', 'Farmer'),
+        COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'full_name', 'Farmer'),
         now(),
         now()
     )

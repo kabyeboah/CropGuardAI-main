@@ -53,14 +53,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    DELETE FROM public.profiles WHERE id = p_user_id;
-    DELETE FROM public.posts WHERE user_id = p_user_id;
-    DELETE FROM public.treatments WHERE user_id = p_user_id;
-    DELETE FROM public.scans WHERE user_id = p_user_id;
-    DELETE FROM public.feedback WHERE user_id = p_user_id;
-    DELETE FROM public.missing_crops WHERE user_id = p_user_id;
-    DELETE FROM public.expert_requests WHERE user_id = p_user_id;
-    DELETE FROM public.reported_posts WHERE user_id = p_user_id OR reporter_id = p_user_id;
+    DELETE FROM public.profiles WHERE id::text = p_user_id::text;
+    DELETE FROM public.posts WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.treatments WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.scans WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.feedback WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.missing_crops WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.expert_requests WHERE user_id::text = p_user_id::text;
+    DELETE FROM public.reported_posts WHERE user_id::text = p_user_id::text OR reporter_id::text = p_user_id::text;
 END;
 $$;
 
