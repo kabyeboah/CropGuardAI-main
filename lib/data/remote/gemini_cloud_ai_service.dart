@@ -17,17 +17,22 @@ class GeminiCloudAiException implements Exception {
   String toString() => 'GeminiCloudAiException: $message';
 }
 
-/// Service providing secondary / fallback multimodal crop disease diagnosis using Gemini 1.5 Flash.
+/// Service providing secondary / fallback multimodal crop disease diagnosis using Gemini Cloud AI.
 ///
 /// Architecture:
 /// - In production: Proxies requests through authenticated backend [CloudFunctionsService] / Supabase Edge Functions.
 /// - In local debug / testing: Falls back to direct on-client [GenerativeModel] if an API key is
 ///   explicitly provided via AppSecrets / .env.
 class GeminiCloudAiService {
+  /// Default Gemini model used for multimodal crop disease inference.
+  static const String defaultModelName = 'gemini-3-flash-preview';
+
   final CloudFunctionsService? _functions;
+  final String modelName;
 
   GeminiCloudAiService({
     CloudFunctionsService? functions,
+    this.modelName = defaultModelName,
   }) : _functions = functions;
 
   /// Retrieves the active Gemini API key from AppSecrets.
@@ -43,7 +48,7 @@ class GeminiCloudAiService {
     return '';
   }
 
-  /// Analyzes a crop leaf image file using Gemini 1.5 Flash multimodal vision model.
+  /// Analyzes a crop leaf image file using Gemini Cloud AI multimodal vision model.
   Future<CloudAiAnalysisResult> analyzeCropImage({
     required String imagePath,
     String? cropType,
@@ -68,7 +73,7 @@ class GeminiCloudAiService {
     );
   }
 
-  /// Analyzes raw crop image bytes using Gemini 1.5 Flash.
+  /// Analyzes raw crop image bytes using Gemini Cloud AI multimodal vision model.
   Future<CloudAiAnalysisResult> analyzeCropImageBytes({
     required Uint8List imageBytes,
     String? cropType,
@@ -101,7 +106,7 @@ class GeminiCloudAiService {
 
     try {
       final model = GenerativeModel(
-        model: 'gemini-3-flash-preview',
+        model: modelName,
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',

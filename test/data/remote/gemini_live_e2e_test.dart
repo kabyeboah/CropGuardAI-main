@@ -5,9 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cropguard_flutter/data/remote/gemini_cloud_ai_service.dart';
 
 void main() {
-  test('Live Gemini Cloud AI end-to-end inference on real leaf image',
-      () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'Live Gemini Cloud AI end-to-end inference on real leaf image',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
     HttpOverrides.global =
         null; // Enable real HTTP network requests in Flutter test harness
 
@@ -38,7 +39,7 @@ void main() {
       stopwatch.stop();
 
       print(
-          '\n================ GEMINI 1.5 FLASH LIVE RESPONSE ================');
+          '\n================ GEMINI ${service.modelName.toUpperCase()} LIVE RESPONSE ================');
       print('Latency        : ${stopwatch.elapsedMilliseconds} ms');
       print('Label          : ${result.label}');
       print('Confidence     : ${result.confidence}');
@@ -58,5 +59,5 @@ void main() {
           '⚠️ Gemini Live API external network/transient spike detected during test: $e');
       return; // Transient external network / API quota spike — pass gracefully
     }
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }

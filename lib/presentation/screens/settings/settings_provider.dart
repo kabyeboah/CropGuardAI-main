@@ -15,6 +15,7 @@ import '../../../core/utils/background_tasks.dart';
 import '../../../core/utils/biometric_service.dart';
 import '../../../core/utils/version_check_service.dart';
 import '../../../data/local/database_helper.dart';
+import '../../../data/remote/cloud_functions_service.dart';
 import '../../../data/remote/supabase_auth_service.dart';
 import '../../../data/remote/supabase_database_service.dart';
 import '../../l10n/ui_message.dart';
@@ -223,6 +224,13 @@ class SettingsProvider extends ChangeNotifier {
       // Purge cloud user documents while still authenticated
       final uid = _auth.currentUserId;
       if (uid.isNotEmpty) {
+        if (sl.isRegistered<CloudFunctionsService>()) {
+          try {
+            await sl<CloudFunctionsService>().deleteAccount();
+          } catch (e) {
+            AppLogger.w('SettingsProvider: Edge Function delete-account warning: $e');
+          }
+        }
         if (sl.isRegistered<SupabaseDatabaseService>()) {
           await sl<SupabaseDatabaseService>().deleteUserData(uid);
         }

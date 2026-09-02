@@ -66,9 +66,9 @@
 ## 4. Known Limitations (Stated Honestly and Professionally)
 
 ### Limitation 1: Model Field Accuracy Below Production Floor
-* **Here's what I found**: On our strictly held-out foliar evaluation benchmark, our on-device model achieves a Top-1 accuracy of **16.67%** and a Top-3 accuracy of **45.83%** across 22 classes, with validation accuracy around **63.92%**. Both metrics fall below our targeted **70.0%** production release floor. Near-miss errors occur between visually similar symptoms on the same crop (e.g., Rice Leaf Scald vs. Rice Sheath Blight).
+* **Here's what I found**: On our strictly held-out foliar evaluation benchmark (n=51 across all 51 classes), our on-device model achieves a Top-1 accuracy of **25.49%** (95% CI: [14.2%, 39.7%]) and a Top-3 accuracy of **49.02%**, with synthetic validation accuracy around **63.92%**. Both metrics fall below our targeted **70.0%** production release floor. Near-miss errors occur between visually similar symptoms on the same crop (e.g., Rice Leaf Scald vs. Rice Sheath Blight).
 * **Here's why**: The model was trained primarily on standardized plant leaf datasets that do not fully capture complex field conditions such as leaf shadowing, background soil noise, and multiple co-occurring nutrient deficiencies.
-* **Here's what I'm doing about it**: I implemented a multi-tier safety net: mandatory low-confidence gating ($\tau = 0.60$), Google Gemini 1.5 Flash visual cloud audits for uncertain scans, and built-in escalation paths to certified Agricultural Extension Officers. Future work focuses on fine-tuning on locally collected field imagery from Ghanaian farms.
+* **Here's what I'm doing about it**: I implemented a multi-tier safety net: mandatory low-confidence gating ($\tau = 0.60$), Google Gemini multimodal visual cloud audits for uncertain scans, and built-in escalation paths to certified Agricultural Extension Officers. Future work focuses on fine-tuning on locally collected field imagery from Ghanaian farms.
 
 ### Limitation 2: Out-of-Domain (OOD) Non-Plant Classification Risk
 * **Here's what I found**: If a user scans a non-plant object (e.g., a shoe, furniture, or human hand), the model may still assign it to one of the 51 crop disease classes with moderate confidence.
@@ -85,7 +85,7 @@
 ## 5. Anticipated Supervisor Questions & Model Answers
 
 ### Q1: "Why is your on-device model accuracy lower on field benchmark images than on training validation?"
-> **Answer**: "That is a common challenge in agricultural computer vision known as the domain shift problem. Training datasets like PlantVillage feature leaves photographed against uniform, clean backgrounds under artificial lighting. Field images from real Ghanaian farms contain background soil, complex leaf overlapping, shadows, and varying sunlight. While our model achieved ~63.9% validation accuracy on split data, field benchmark performance drops due to these environmental variables. This is exactly why we engineered our low-confidence safety gate and Gemini cloud fallback system."
+> **Answer**: "That is a common challenge in agricultural computer vision known as the domain shift problem. Training datasets like PlantVillage feature leaves photographed against uniform, clean backgrounds under artificial lighting. Field images from real Ghanaian farms contain background soil, complex leaf overlapping, shadows, and varying sunlight. While our model achieved ~63.9% validation accuracy on split data, field benchmark performance drops to ~25.5% due to these environmental variables. This is exactly why we engineered our low-confidence safety gate and Gemini cloud fallback system."
 
 ### Q2: "What happens if a farmer uses the app completely offline in a remote village?"
 > **Answer**: "The app is designed to be fully functional offline. The MobileNetV2 model runs on-device via TensorFlow Lite, delivering instant diagnosis without internet. Treatment plans, organic remedies, and SQLite persistence all work locally. Text-to-speech audio that was previously generated or synthesized is cached on disk. Any new scans or treatment updates are placed into our SQLite `pending_sync` queue and automatically uploaded to Firestore when the farmer returns to an area with connectivity."
@@ -120,34 +120,34 @@
 1. THE 60-SECOND SUMMARY
    - What: Offline-first mobile crop disease diagnostic & outbreak surveillance app.
    - Target: Smallholder farmers & extension officers in Ghana / Sub-Saharan Africa.
-   - Core Tech: Flutter, TFLite (MobileNetV2), Firebase Cloud Functions v2, Gemini 1.5 Flash, 
+   - Core Tech: Flutter, TFLite (MobileNetV2), Supabase Edge Functions / Firebase, Gemini Multimodal Cloud AI, 
                 SQLite, Khaya AI (ASR v3 / TTS v2), OpenStreetMap.
    - Status: Working prototype with complete end-to-end integration; model field accuracy 
-             currently below release target (~16.7% field / 63.9% val), protected by cloud fallback.
+             currently below release target (~25.5% field / 63.9% val), protected by cloud fallback.
 
 2. USER JOURNEY & ARCHITECTURE SPINE
    [Camera Capture] ➔ [ImageQualityAnalyzer (Blur/Light Check)] ➔ [TFLite On-Device ML (<120ms)]
-   ➔ [Confidence Gate (τ >= 0.60)] ──(If Low)──> [Gemini 1.5 Flash Cloud Second Opinion]
+   ➔ [Confidence Gate (τ >= 0.60)] ──(If Low)──> [Gemini Cloud AI Second Opinion]
    ➔ [Result UI + Khaya TTS Audio (Twi/Ewe/Dagbani)] ➔ [SQLite Local DB] 
-   ➔ [PendingSyncQueue FIFO] ──(On Reconnect)──> [Cloud Firestore & Outbreak Map]
+   ➔ [PendingSyncQueue FIFO] ──(On Reconnect)──> [Supabase / Cloud & Outbreak Map]
 
 3. KEY DECISIONS & REASONS
    - 3-Tier Edge Hybrid: On-device ML for 100% offline rural use; Cloud AI for hard cases.
-   - Zero-Secret Client: Keys stored in GCP Secret Manager; Cloud Functions v2 proxy handles Auth.
+   - Zero-Secret Client: Keys stored in server secrets; Backend Edge Functions proxy handles Auth.
    - Confidence Gating (60%): Prevents false diagnostic confidence & agrochemical misapplication.
    - SQLite + FIFO Queue: Guarantees zero data loss in intermittent connectivity regions.
    - Centralized Language Config: Single source of truth for Khaya API versions (v3 ASR / v2 TTS).
 
 4. HONEST LIMITATIONS (HOW TO STATE THEM)
-   - Accuracy Floor: Validation ~63.9%, Field ~16.7% Top-1 due to background soil/lighting domain shift.
+   - Accuracy Floor: Validation ~63.9%, Field ~25.5% Top-1 (95% CI: [14.2%, 39.7%]) due to background soil/lighting domain shift.
      Mitigation: Low-confidence gating + Gemini cloud audit + Extension Officer escalation.
    - OOD Detection: In-engine green-ratio check used instead of heavy binary model.
      Mitigation: UI warning advisories prompting clean foliar framing.
    - Sync Duplication: Patched by moving from .add() auto-IDs to deterministic document upserts.
 
 5. MUST-REMEMBER STATS & LOCATION PATHS
-   - Test Suite: 623 / 623 Automated Tests Passing (100% Pass Rate).
-   - Mobile Model: 14.8 MB Quantized MobileNetV2 (51 Disease Classes).
+   - Test Suite: 629 / 629 Automated Tests Passing (100% Pass Rate).
+   - Mobile Model: 9.1 MB MobileNetV2 (51 Disease Classes).
    - Android APK Location: build/app/outputs/flutter-apk/app-debug.apk (205 MB).
    - Full Academic Report: docs/CropGuard_AI_Final_Year_Project_Report.docx.
 ========================================================================================
