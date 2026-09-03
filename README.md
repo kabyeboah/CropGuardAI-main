@@ -19,7 +19,7 @@ Global Dependency Injection is configured using [GetIt](https://pub.dev/packages
 
 ```
 lib/
-├── main.dart                  # Zone-guarded bootstrap, Firebase initialization & background workers
+├── main.dart                  # Zone-guarded bootstrap, Supabase initialization & background workers
 ├── app.dart                   # MaterialApp.router config, global theme, and localized locales
 ├── core/
 │   ├── config/                # Secrets resolution (AppSecrets) & feature flag configurations
@@ -34,7 +34,7 @@ lib/
 ├── data/
 │   ├── local/                 # On-device SQLite database helpers (sqflite) & cache storage
 │   ├── ml/                    # TFLite classifier engine & ImageQualityAnalyzer validation
-│   ├── remote/                # Cloudinary, Firebase (Auth, Firestore, Storage, Remote Config), GhanaNLP API
+│   ├── remote/                # Cloudinary, Supabase (Auth, Database, Storage, Edge Functions), GhanaNLP API
 │   └── repositories/          # Concrete implementation of domain repository interfaces
 └── presentation/
     ├── components/            # Standardized accessible UI widgets (CropGuardCard, PrimaryButton, etc.)
@@ -75,7 +75,7 @@ lib/
 
 ### 2. Offline-First Architecture & Auto-Sync Engine
 * **SQLite Storage**: Scan history, custom treatment tracker tasks, and cached disease info are stored locally using `sqflite`.
-* **Auto-Sync Queue**: Community posts, scan logs, and farmer feedback submitted while offline enter a local pending queue. `ConnectivityService` monitors network status changes and automatically drains the pending queue to Cloud Firestore & Cloudinary when connectivity is re-established.
+* **Auto-Sync Queue**: Community posts, scan logs, and farmer feedback submitted while offline enter a local pending queue. `ConnectivityService` monitors network status changes and automatically drains the pending queue to Supabase & Cloudinary when connectivity is re-established.
 
 ### 3. Native Localization & GhanaNLP Audio Synthesis
 * **Regional Dialect Support**: Built-in support for **English (`en`)**, **Twi (`tw`)**, **Ewe (`ee`)**, and **Dagbani (`dag`)** via standard `.arb` localization files.
@@ -94,11 +94,11 @@ lib/
 
 ## ⚙️ App Secrets Resolution Order
 
-Sensitive API keys and endpoints are never hardcoded. [CURRENT] [`AppSecrets`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) resolves values in the following order (first available wins): [CURRENT]
+Sensitive API keys and endpoints are never hardcoded. [`AppSecrets`](file:///Users/kwameyeboah/Downloads/CropGuardAI-main/CropGuardAI-main/lib/core/config/app_secrets.dart) resolves values in the following order (first available wins):
 
-1. [CURRENT] **Compile-Time `--dart-define` Flags**: e.g., `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key` [CURRENT]
-2. [CURRENT] **Local `.env` File**: Loaded at runtime in local debug mode. [CURRENT]
-3. [CURRENT] **Firebase Remote Config**: Dynamic production patching via `AppBootstrap.runStartupTasks()`. [CURRENT]
+1. **Compile-Time `--dart-define` Flags**: e.g., `--dart-define=GHANA_NLP_SUBSCRIPTION_KEY=your_key`
+2. **Local `.env` File**: Loaded at runtime in local debug mode.
+3. **Server-held Supabase Secrets**: Sensitive third-party credentials accessed exclusively via backend Edge Functions.
 
 ---
 
@@ -119,18 +119,17 @@ cd <repository_directory>
 flutter pub get
 ```
 
-### 2. Firebase Configuration
-* **CLI Setup (Recommended)**:
-  ```bash
-  dart pub global activate flutterfire_cli
-  # Run interactively to select/create your Firebase project:
-  flutterfire configure
-  # Or explicitly specify your project ID:
-  # flutterfire configure --project=<your-firebase-project-id>
-  ```
-* **Manual Setup**: Place configuration files in the appropriate platform directories:
-  * Android: `android/app/google-services.json`
-  * iOS: `ios/Runner/GoogleService-Info.plist`
+### 2. Backend Configuration (Supabase)
+Configure your `.env` file or provide build arguments:
+```bash
+cp .env.example .env
+# Set your SUPABASE_URL and SUPABASE_ANON_KEY in .env
+```
+Database tables and Row Level Security rules are applied via the Supabase CLI:
+```bash
+supabase db push
+supabase functions deploy
+```
 
 ### 3. Verify Asset Bundling
 Ensure the following AI models and metadata files exist in `assets/`: [CURRENT]

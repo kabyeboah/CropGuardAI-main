@@ -93,6 +93,11 @@ class AppRouter {
       if (!isSignedIn && !isPublic) {
         return '/login';
       }
+
+      if (isSignedIn && (path == '/login' || path == '/register')) {
+        return '/home';
+      }
+
       return null;
     },
     routes: [

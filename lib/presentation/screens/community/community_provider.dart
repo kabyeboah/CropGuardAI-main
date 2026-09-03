@@ -355,7 +355,7 @@ class CommunityProvider extends ChangeNotifier {
           try {
             imageUrl = await _uploader.uploadImage(localPath, userId: userId);
           } catch (e) {
-            // Upload failed across Cloudinary and Firebase Storage, treat as local/offline and queue it
+            // Upload failed across Cloudinary and Supabase Storage, treat as local/offline and queue it
             imageUrl = localPath;
           } finally {
             isUploadingImage = false;

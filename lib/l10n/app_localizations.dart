@@ -2481,7 +2481,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacySection4Body.
   ///
   /// In en, this message translates to:
-  /// **'We use Firebase for secure authentication and optional sync (governed by Google\'s Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.'**
+  /// **'We use Supabase for secure authentication and optional sync, OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.'**
   String get privacySection4Body;
 
   /// No description provided for @privacySection5Title.

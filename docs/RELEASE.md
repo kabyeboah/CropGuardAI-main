@@ -7,11 +7,9 @@ App id: `com.crop.guard.app` · version is in `pubspec.yaml` (`version: x.y.z+bu
 - Local signing: create `android/key.properties` (gitignored) with
 `keyAlias`, `keyPassword`, `storeFile=../cropguard-release.jks`, `storePassword`. [CURRENT] [CURRENT]
 - CI signing: add GitHub Secrets `KEYSTORE_BASE64` (base64 of the .jks),
-`KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`, [CURRENT]
-`GOOGLE_SERVICES_JSON_BASE64` (base64 of android/app/google-services.json), plus [CURRENT]
-`GHANA_NLP_SUBSCRIPTION_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET`. [CURRENT] [CURRENT]
-- Firebase: register the release SHA-256 for App Check (Play Integrity) and
-enable App Check enforcement per service. [CURRENT] [CURRENT]
+`KEY_ALIAS`, `KEY_PASSWORD`, `STORE_PASSWORD`,
+`GHANA_NLP_SUBSCRIPTION_KEY`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_UPLOAD_PRESET`,
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`.
 
 ## Build locally
 ```bash
@@ -24,23 +22,21 @@ flutter build appbundle --release \
   --dart-define=CLOUDINARY_UPLOAD_PRESET=***
 # output: build/app/outputs/bundle/release/app-release.aab
 ```
-(Secrets can instead come from Firebase Remote Config; see `docs/SECURITY.md`.) [CURRENT]
 
 ## CI build
-Pushing to `main` runs `.github/workflows/flutter.yml` → analyze + test, then a [CURRENT]
+Pushing to `main` runs `.github/workflows/flutter.yml` → analyze + test, then a
 **signed** release AAB (artifact `app-release-aab`).
 
 ## Pre-submission checklist
 - [ ] Bump `version:` in `pubspec.yaml`.
 - [ ] `flutter analyze` clean, `flutter test` green.
 - [ ] Smoke-test a release build on a low-end Android: app starts (no bundled
-`.env`), Ghana NLP/Cloudinary work via dart-define/Remote Config, scan → [CURRENT]
-result → treatment → community flows survive rapid back-navigation. [CURRENT] [CURRENT]
-- [ ] Firestore/Storage rules deployed (`firebase deploy --only firestore:rules,storage`).
-- [ ] App Check enforcement on; release SHA-256 registered.
+`.env`), Ghana NLP/Cloudinary work via dart-define/server config, scan →
+result → treatment → community flows survive rapid back-navigation.
+- [ ] Supabase migrations & Storage policies deployed (`supabase db push`).
 - [ ] Play Console: Data Safety form, privacy policy URL, store listing, screenshots.
 - [ ] Deep links: host `assetlinks.json` for `com.crop.guard.app` (see
-`docs/PASSWORD_RESET_DEEPLINK.md`). [CURRENT] [CURRENT]
+`docs/PASSWORD_RESET_DEEPLINK.md`).
 
 ## Model accuracy
 Before release, produce/refresh `docs/MODEL_ACCURACY.md` via the harness [CURRENT]

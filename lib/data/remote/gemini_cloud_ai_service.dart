@@ -57,7 +57,7 @@ class GeminiCloudAiService {
     final apiKey = _getApiKey();
     if (_functions == null && apiKey.isEmpty) {
       throw const GeminiCloudAiException(
-          'Gemini API key is not configured. Please set gemini_api_key in Firebase Remote Config.');
+          'Gemini API key is not configured. Ensure backend analyze-crop function has GEMINI_API_KEY secret configured, or supply GEMINI_API_KEY in AppSecrets/environment.');
     }
 
     final file = File(imagePath);
@@ -101,7 +101,7 @@ class GeminiCloudAiService {
     final apiKey = _getApiKey();
     if (apiKey.isEmpty) {
       throw const GeminiCloudAiException(
-          'Gemini API key is not configured. Please set gemini_api_key in Firebase Remote Config.');
+          'Gemini API key is not configured. Ensure backend analyze-crop function has GEMINI_API_KEY secret configured, or supply GEMINI_API_KEY in AppSecrets/environment.');
     }
 
     try {

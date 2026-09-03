@@ -6,12 +6,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// Resolution order (first non-empty value wins):
 ///   1. Compile-time  --dart-define=KEY=...
 ///   2. Runtime       KEY in a local .env (debug/dev only; not shipped)
-///   3. Remote Config fetched at startup by AppBootstrap
+///   3. Server-held   Supabase Edge Function secrets (server-side operations)
 ///
 /// `.env` is intentionally NOT a Flutter asset, so it is never packaged into a
-/// release binary. Production builds supply secrets via --dart-define or Remote
-/// Config. The dotenv lookups below are guarded with [_env] so they no-op when
-/// dotenv was never loaded (the normal case in release).
+/// release binary. Production builds supply secrets via --dart-define or server
+/// Edge Function environment variables. The dotenv lookups below are guarded
+/// with [_env] so they no-op when dotenv was never loaded (the normal case in release).
 class AppSecrets {
   AppSecrets._();
 
@@ -42,8 +42,6 @@ class AppSecrets {
   static String? dartDefineSupabaseUrlOverride;
   @visibleForTesting
   static String? dartDefineSupabaseAnonKeyOverride;
-  @visibleForTesting
-  static String? dartDefineFirebaseProjectIdOverride;
 
   /// Resets all overrides and remote keys back to default/empty values.
   /// Intended for unit testing.
@@ -62,7 +60,6 @@ class AppSecrets {
     dartDefineGoogleIosClientIdOverride = null;
     dartDefineSupabaseUrlOverride = null;
     dartDefineSupabaseAnonKeyOverride = null;
-    dartDefineFirebaseProjectIdOverride = null;
 
     _remoteGhanaNlpKey = null;
     _remoteCloudName = null;
@@ -154,11 +151,10 @@ class AppSecrets {
       cloudinaryCloudName.isNotEmpty && cloudinaryUploadPreset.isNotEmpty;
 
   // ── Password-reset deep-link URLs ───────────────────────────────────────────
-  // The continue URL embedded in the password-reset email must be an Authorized
-  // Domain in Firebase Console → Authentication → Settings, and must serve the
-  // correct assetlinks.json / apple-app-site-association files so the OS opens
-  // the app instead of a browser. Moving these values to Remote Config lets us
-  // patch the domain without a Play Store / App Store release.
+  // The continue URL embedded in the password-reset email must be configured
+  // in Supabase Auth redirect URLs, and must serve the correct assetlinks.json /
+  // apple-app-site-association files so the OS opens the app instead of a browser.
+  // Configuring these values lets us update the domain without a Play Store / App Store release.
 
   static String? _remotePasswordResetUrl;
   static String? _remoteAndroidPackage;
@@ -177,9 +173,7 @@ class AppSecrets {
     defaultValue: '',
   );
 
-  // Fallback values — match the constants that were previously hardcoded in
-  // FirebaseAuthService. These are safe to ship in the binary (they are not
-  // secrets) but still benefit from Remote Config patching.
+  // Fallback values — safe to ship in the binary (they are not secrets).
   static const _defaultPasswordResetUrl =
       'https://cropguardai.app/reset-password';
   static const _defaultAndroidPackage = 'com.cropguard.ai.app';
@@ -316,8 +310,10 @@ class AppSecrets {
     defaultValue: '',
   );
 
-  static const defaultGoogleServerClientId = '';
-  static const defaultGoogleIosClientId = '';
+  static const defaultGoogleServerClientId =
+      '395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs.apps.googleusercontent.com';
+  static const defaultGoogleIosClientId =
+      '395929072901-51lj1b4octeuegobi0k44k6ir8thi5g4.apps.googleusercontent.com';
 
   /// Web/Server OAuth Client ID used by GoogleSignIn on Android to request ID tokens.
   static String get googleServerClientId {
@@ -391,22 +387,6 @@ class AppSecrets {
   static void setSupabaseConfig({String? url, String? anonKey}) {
     if (url != null && url.isNotEmpty) _remoteSupabaseUrl = url;
     if (anonKey != null && anonKey.isNotEmpty) _remoteSupabaseAnonKey = anonKey;
-  }
-
-  // ── Firebase Project Configuration ──────────────────────────────────────────
-  static const defaultFirebaseProjectId = 'cropguard-6ada8';
-  static const _dartDefineFirebaseProjectId = String.fromEnvironment(
-    'FIREBASE_PROJECT_ID',
-    defaultValue: '',
-  );
-
-  static String get firebaseProjectId {
-    final ddVal =
-        dartDefineFirebaseProjectIdOverride ?? _dartDefineFirebaseProjectId;
-    if (ddVal.isNotEmpty) return ddVal;
-    final envVal = _env('FIREBASE_PROJECT_ID');
-    if (envVal.isNotEmpty) return envVal;
-    return defaultFirebaseProjectId;
   }
 }
 

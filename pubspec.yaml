@@ -113,6 +113,7 @@ dependencies:
 
   package_info_plus: ^10.1.0
   flutter_windowmanager_plus: ^1.0.1
+  flutter_web_auth_2: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -131,9 +132,9 @@ flutter:
   uses-material-design: true
   assets:
     # NOTE: .env is intentionally NOT bundled — secrets must never ship inside
-    # the app binary. Release builds supply secrets via --dart-define or Firebase
-    # Remote Config (see core/config/app_secrets.dart). .env is loaded at runtime
-    # only when present (local dev); see main.dart.
+    # the app binary. Production builds supply secrets via --dart-define or
+    # Supabase Edge Function secrets. .env is loaded at runtime only when present
+    # (local dev); see main.dart.
     - assets/cropguard_plant_disease.tflite
     - assets/labels.txt
     - assets/model_metadata.json

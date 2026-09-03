@@ -31,7 +31,7 @@ class DiagnosticSanitizer {
     caseSensitive: false,
   );
 
-  // Generic Google / Firebase API keys (AIzaSy...)
+  // Generic Google / Cloud API keys (AIzaSy...)
   static final RegExp _googleApiKeyRegex = RegExp(
     r'AIza[0-9A-Za-z\-_]{28,40}',
   );

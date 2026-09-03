@@ -1,6 +1,8 @@
 import 'dart:async';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
@@ -8,7 +10,7 @@ import '../../core/utils/app_logger.dart';
 import '../../core/utils/retry_utils.dart';
 
 
-/// Wraps Supabase Auth — replaces FirebaseAuthService
+/// Wraps Supabase Auth operations for authentication, session recovery, and user profiles.
 class SupabaseAuthService {
   final SupabaseClient _client;
 
@@ -80,7 +82,11 @@ class SupabaseAuthService {
         () => _client.auth.signUp(
           email: email.trim(),
           password: password,
-          data: {'full_name': name.trim()},
+          data: {
+            'full_name': name.trim(),
+            'display_name': name.trim(),
+            'name': name.trim(),
+          },
         ),
         maxAttempts: 3,
         timeout: const Duration(seconds: 15),
@@ -171,42 +177,37 @@ class SupabaseAuthService {
     }
   }
 
-  // ─── Google Sign-In (Supabase OAuth web flow) ─────────────────────────
-  // Opens browser → Google OAuth → Supabase callback → deep-links back via
-  // io.supabase.cropguard://login-callback/
-  // No google-services.json / SHA-1 matching required.
+  // ─── Google Sign-In (Secure ASWebAuthenticationSession / Custom Tabs) ─
+  // Uses ASWebAuthenticationSession on iOS / Custom Tabs on Android.
+  // Directly captures the io.supabase.cropguard redirect scheme, returns the
+  // session tokens into the app, and avoids Safari popups and blank screens.
   Future<AuthResponse> signInWithGoogle() async {
     try {
-      await _client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: (Platform.isAndroid || Platform.isIOS)
-            ? 'io.supabase.cropguard://login-callback/'
-            : null,
-        authScreenLaunchMode: LaunchMode.externalApplication,
+      final authUrl = await _client.auth.getOAuthSignInUrl(
+        provider: OAuthProvider.google,
+        redirectTo: 'io.supabase.cropguard://login-callback/',
       );
-      // Wait for the auth state change triggered by the deep-link callback
-      final completer = Completer<AuthResponse>();
-      late StreamSubscription<AuthState> sub;
-      sub = _client.auth.onAuthStateChange.listen((data) {
-        if (data.session != null && !completer.isCompleted) {
-          sub.cancel();
-          completer.complete(AuthResponse(
-            session: data.session,
-            user: data.session!.user,
-          ));
-        }
-      });
-      // Allow up to 3 minutes for the user to complete the browser flow
-      return await completer.future.timeout(
-        const Duration(minutes: 3),
-        onTimeout: () {
-          sub.cancel();
-          throw const AuthFailure(
-            'Google sign-in timed out. Please try again.',
-            code: 'timeout',
-          );
-        },
+
+      final resultUrl = await FlutterWebAuth2.authenticate(
+        url: authUrl.url,
+        callbackUrlScheme: 'io.supabase.cropguard',
       );
+
+      final response =
+          await _client.auth.getSessionFromUrl(Uri.parse(resultUrl));
+      return AuthResponse(
+        session: response.session,
+        user: response.session.user,
+      );
+    } on PlatformException catch (e) {
+      if (e.code == 'CANCELED' ||
+          e.message?.toLowerCase().contains('cancel') == true) {
+        throw const AuthFailure('Google sign-in was cancelled.',
+            code: 'cancelled');
+      }
+      AppLogger.e(
+          'FlutterWebAuth2 PlatformException: ${e.message} (${e.code})');
+      throw AuthFailure('Google sign-in failed: ${e.message}');
     } on AuthException catch (e) {
       AppLogger.e('Supabase Google sign-in AuthException: ${e.message}');
       throw AuthFailure(

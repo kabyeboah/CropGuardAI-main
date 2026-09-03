@@ -19,8 +19,11 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs</string>
+				<string>io.supabase.cropguard</string>
 				<string>cropguard</string>
+				<string>com.kwameyeboah.cropguard</string>
+				<string>com.googleusercontent.apps.395929072901-51lj1b4octeuegobi0k44k6ir8thi5g4</string>
+				<string>com.googleusercontent.apps.395929072901-k4ou5rm47r7ikaa30bsqtu3rikft9tgs</string>
 			</array>
 		</dict>
 	</array>

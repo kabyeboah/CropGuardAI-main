@@ -572,25 +572,41 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.volume_up_rounded,
-                            color: colors.primary),
-                        tooltip: 'Listen to Disease Info',
-                        onPressed: () {
-                          final langCode =
-                              Localizations.localeOf(context).languageCode;
-                          final speakText = StringBuffer()
-                            ..write(
-                                '${info.displayName}. ${info.cropType} disease. ');
-                          if (info.cause.isNotEmpty) {
-                            speakText.write('Cause: ${info.cause}. ');
-                          }
-                          if (info.treatments.isNotEmpty) {
-                            speakText.write(
-                                'Treatments: ${info.treatments.join('. ')}');
-                          }
-                          TtsManager().speak(speakText.toString(),
-                              languageCode: langCode);
+                      ValueListenableBuilder<bool>(
+                        valueListenable: TtsManager().isPlayingNotifier,
+                        builder: (context, isPlaying, _) {
+                          return IconButton(
+                            icon: Icon(
+                              isPlaying
+                                  ? Icons.stop_circle_rounded
+                                  : Icons.volume_up_rounded,
+                              color:
+                                  isPlaying ? colors.diseaseRed : colors.primary,
+                            ),
+                            tooltip: isPlaying
+                                ? 'Stop reading'
+                                : 'Listen to Disease Info',
+                            onPressed: () {
+                              if (isPlaying) {
+                                TtsManager().stop();
+                              } else {
+                                final langCode =
+                                    Localizations.localeOf(context).languageCode;
+                                final speakText = StringBuffer()
+                                  ..write(
+                                      '${info.displayName}. ${info.cropType} disease. ');
+                                if (info.cause.isNotEmpty) {
+                                  speakText.write('Cause: ${info.cause}. ');
+                                }
+                                if (info.treatments.isNotEmpty) {
+                                  speakText.write(
+                                      'Treatments: ${info.treatments.join('. ')}');
+                                }
+                                TtsManager().speak(speakText.toString(),
+                                    languageCode: langCode);
+                              }
+                            },
+                          );
                         },
                       ),
                       SeverityBadge(severity: info.severity),
@@ -710,7 +726,15 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      TtsManager().stop();
+    });
+  }
+
+  @override
+  void dispose() {
+    TtsManager().stop();
+    super.dispose();
   }
 
   @override
@@ -722,11 +746,37 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
     return PopScope(
       canPop: Navigator.of(context).canPop(),
       onPopInvokedWithResult: (didPop, result) {
+        TtsManager().stop();
         if (didPop) return;
         context.go('/home');
       },
       child: Scaffold(
         backgroundColor: colors.background,
+        appBar: AppBar(
+          backgroundColor: colors.surface,
+          title: Text(
+            context.l10n.diseaseLibrary,
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          leading: Navigator.of(context).canPop()
+              ? BackButton(
+                  onPressed: () {
+                    TtsManager().stop();
+                    Navigator.of(context).pop();
+                  },
+                )
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () {
+                    TtsManager().stop();
+                    context.go('/home');
+                  },
+                ),
+        ),
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -736,31 +786,6 @@ class _DiseaseLibraryScreenState extends State<DiseaseLibraryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InkWell(
-                      onTap: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go('/home');
-                        }
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_back, size: 16, color: colors.muted),
-                          const SizedBox(width: 4),
-                          Text(context.l10n.backLabel,
-                              style:
-                                  TextStyle(color: colors.muted, fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(context.l10n.diseaseLibrary,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold)),
                     Text(context.l10n.diseaseLibrarySubtitle,
                         style: TextStyle(color: colors.muted, fontSize: 13)),
                     const SizedBox(height: 12),
@@ -873,6 +898,7 @@ class _DiseaseActions extends StatelessWidget {
   /// Closes the sheet, then navigates. The router is captured before the pop so
   /// navigation still works once the sheet's own context is gone.
   void _go(BuildContext context, String route) {
+    TtsManager().stop();
     final router = GoRouter.of(context);
     Navigator.of(sheetContext).pop();
     router.push(route);
@@ -881,6 +907,7 @@ class _DiseaseActions extends StatelessWidget {
   /// Creates a treatment plan for this disease (from its treatment steps) and
   /// opens the tracker — the plan is seeded by [TreatmentTrackerProvider].
   void _startTreatmentPlan(BuildContext context) {
+    TtsManager().stop();
     final router = GoRouter.of(context);
     Navigator.of(sheetContext).pop();
     router.push(

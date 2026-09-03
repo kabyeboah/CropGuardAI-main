@@ -21,14 +21,14 @@ Clean Architecture with three layers. [CURRENT] Dependency direction is strict: 
 
 ```
 lib/
-  main.dart                    # Bootstraps Firebase, GetIt, notifications, background tasks
+  main.dart                    # Bootstraps Supabase, GetIt, notifications, background tasks
   app.dart                     # MaterialApp.router + theming + localization
   core/
     di/service_locator.dart    # GetIt registrations for all data sources, repos, use cases, providers
     theme/                     # AppColors, AppTheme, DeviceLayout
     utils/                     # Cross-cutting helpers (Result, AppLogger, AppBootstrap, etc.)
     error/failures.dart        # Failure types for Result propagation
-    config/app_secrets.dart    # Secrets resolved from --dart-define or Remote Config
+    config/app_secrets.dart    # Secrets resolved from --dart-define or local env
   domain/
     models/                    # Pure Dart data classes (DetectionResult, AppUser, …)
     repositories/              # Abstract interfaces (IAuthRepository, IDetectionRepository, …)
@@ -36,7 +36,7 @@ lib/
   data/
     local/database_helper.dart # sqflite (SQLite) — scan history, treatment plans
     ml/crop_disease_classifier.dart  # tflite_flutter wrapper — on-device CNN inference
-    remote/                    # Firebase Auth/Firestore/Storage, GhanaNLP HTTP, Cloudinary
+    remote/                    # Supabase Auth/Database/Storage, GhanaNLP HTTP, Cloudinary
     repositories/              # Concrete implementations of domain interfaces
   presentation/
     navigation/app_router.dart # go_router — all routes including ShellRoute for bottom nav
@@ -52,7 +52,7 @@ State management is **Provider** (`ChangeNotifier`) registered globally in `buil
 
 **Result pattern** — all fallible operations return `Result<T>` (see `lib/core/utils/result.dart`). Use `result.fold(onSuccess, onError)` in providers; never let Failures reach widgets.
 
-**No direct data-layer access from UI** — widgets and providers must not import Firebase, sqflite, or tflite directly. All calls go through use cases.
+**No direct data-layer access from UI** — widgets and providers must not import Supabase, sqflite, or tflite directly. All calls go through use cases.
 
 **ML model contract** — `CropDiseaseClassifier` uses `assets/cropguard_plant_disease.tflite`, input 128×128 RAW [0, 255] RGB with internal Rescaling layer, confidence threshold 0.60. Do not change input dimensions or normalisation without shipping a matching `.tflite` and updating `labels.txt`.
 
@@ -60,9 +60,9 @@ State management is **Provider** (`ChangeNotifier`) registered globally in `buil
 
 **Routing** — add new routes to `AppRouter` in `app_router.dart`. The bottom-nav shell (`ShellRoute`) wraps `/home`, `/history`, and `/more` only. Scanner and result screens are full-screen push routes.
 
-**New Firestore collections** — update `firestore.rules` and redeploy (`firebase deploy --only firestore:rules` or via Console, see `docs/FIRESTORE_DEPLOY.md`).
+**Database migrations & RLS** — update migrations in `supabase/migrations/` and redeploy (`supabase db push` or via Supabase Dashboard).
 
-**Secrets** — the only secret is `GHANA_NLP_SUBSCRIPTION_KEY`. Pass it via `--dart-define` or let `AppBootstrap` fetch it from Firebase Remote Config. Never commit real values.
+**Secrets** — sensitive keys (GHANA_NLP_SUBSCRIPTION_KEY, GEMINI_API_KEY) reside server-side in Supabase Secrets or can be supplied via `--dart-define` for development. Never commit real values.
 
 **Theme** — use tokens from `AppColors` and `AppTheme`; prefer shared components from `lib/presentation/components/` before creating one-off styled widgets.
 

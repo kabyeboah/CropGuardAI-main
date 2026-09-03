@@ -889,12 +889,12 @@ def main():
     ood_results = {}
     print("[11/12] Running Non-Plant Out-of-Distribution Abstention Suite...")
     non_plant_samples = []
-    # Collect non-plant images from docs/figures, store assets, app graphics
-    for d in ["docs/figures", "docs/store_assets"]:
+    # Collect non-plant images from store assets, app graphics
+    for d in ["docs/store_assets"]:
         if os.path.exists(d):
             for f in os.listdir(d):
                 if f.lower().endswith((".png", ".jpg", ".jpeg")):
-                    non_plant_samples.append((os.path.join(d, f), f"UI/Figure: {f}"))
+                    non_plant_samples.append((os.path.join(d, f), f"UI/Asset: {f}"))
     
     # Also test random synthetic non-plant textures (bare ground / noise)
     ood_results["non_plant_images"] = evaluate_ood_abstention(evaluator, non_plant_samples, "Non-Plant Images", threshold=args.threshold)

@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Purpose
 
-CropGuard AI is committed to respecting user privacy, data sovereignty, and agricultural intelligence confidentiality. [CURRENT] [CURRENT] This document outlines the formal retention, archiving, anonymization, and deletion policies for all data managed by the CropGuard AI platform across mobile clients, local SQLite databases, Firebase Cloud Firestore, Firebase Storage, and Cloud Functions. [CURRENT]
+CropGuard AI is committed to respecting user privacy, data sovereignty, and agricultural intelligence confidentiality. [CURRENT] [CURRENT] This document outlines the formal retention, archiving, anonymization, and deletion policies for all data managed by the CropGuard AI platform across mobile clients, local SQLite databases, Supabase PostgreSQL, Supabase Storage, and Supabase Edge Functions. [CURRENT]
 
 ---
 
@@ -16,12 +16,12 @@ CropGuard AI is committed to respecting user privacy, data sovereignty, and agri
 
 | Data Category | Data Elements | Storage Location | Active Retention | Retention Trigger / Deletion Action | Anonymization Policy | [CURRENT]
 | :--- | :--- | :--- | :--- | :--- | :--- | [CURRENT]
-| **User Profile & Account** | Name, Email, Phone, Preferred Language, Auth UID | Firestore (`/users/{uid}`) & Firebase Auth | Duration of active account + 30 days grace | Account deletion request by user or 24 months inactivity | Complete purge via `onUserDeleted` Cloud Function | [CURRENT]
-| **Diagnostic Scans & Images** | Leaf photos, disease diagnosis, confidence score, timestamps | Firebase Storage (`scans/{uid}/*`) & Firestore (`/scans/*`) | 12 months from scan creation | Automated purge upon user account deletion or manual user scan delete | Images & scan metadata permanently deleted | [CURRENT]
+| **User Profile & Account** | Name, Email, Phone, Preferred Language, Auth UID | Supabase `profiles` & Supabase Auth | Duration of active account + 30 days grace | Account deletion request by user or 24 months inactivity | Complete purge via `delete-account` Edge Function | [CURRENT]
+| **Diagnostic Scans & Images** | Leaf photos, disease diagnosis, confidence score, timestamps | Supabase Storage (`scan-images/{uid}/*`) & `scans` table | 12 months from scan creation | Automated purge upon user account deletion or manual user scan delete | Images & scan metadata permanently deleted | [CURRENT]
 | **Local Device Cache** | Offline scans, pending sync queue, SQLite database | On-device SQLite (`cropguard.db`) & SharedPreferences | 30 days max offline cache | Explicit app sign-out, "Clear Local Data" trigger, or app uninstall | Local database destroyed on device | [CURRENT]
-| **Outbreak Reports & Telemetry** | Disease type, geohash, severity, confidence score, reporter ID | Firestore (`/outbreak_reports/*`) | Permanent (epidemiological dataset) | Account deletion scrubs `userId` and PII notes | `userId` replaced with `"deleted_user"`; reporter name set to `"Anonymous"`; personal notes scrubbed | [CURRENT]
-| **Notification Tokens** | FCM Device Tokens, platform push topics | Firestore (`/users/{uid}/fcmToken`) & Firebase Messaging | Active session | Invalidated token refresh, sign-out, or user deletion | Token record permanently deleted | [CURRENT]
-| **Analytics & Crash Diagnostics** | Crash logs, performance metrics, feature usage | Firebase Crashlytics & Analytics (opt-in) | 90 days rolling window | Automatically purged by Firebase backend after 90 days | Fully anonymized aggregated metrics | [CURRENT]
+| **Outbreak Reports & Telemetry** | Disease type, geohash, severity, confidence score, reporter ID | Supabase `outbreak_reports` | Permanent (epidemiological dataset) | Account deletion scrubs `userId` and PII notes | `userId` set to NULL / anonymous; personal notes scrubbed | [CURRENT]
+| **Notification Tokens** | Push Device Tokens, platform push topics | Supabase `profiles` / device tokens | Active session | Invalidated token refresh, sign-out, or user deletion | Token record permanently deleted | [CURRENT]
+| **Diagnostics & Telemetry** | Diagnostic logs, performance metrics, feature usage | App diagnostics (opt-in) | 90 days rolling window | Automatically purged after 90 days | Fully anonymized aggregated metrics | [CURRENT]
 
 ---
 
@@ -29,16 +29,16 @@ CropGuard AI is committed to respecting user privacy, data sovereignty, and agri
 
 CropGuard AI provides a multi-tiered data deletion architecture ensuring immediate user privacy protection while maintaining scalability: [CURRENT]
 
-### 3.1 Pilot-Tier Client-Side Purge
+### 3.1 Client-Side Purge
 When a user requests account deletion from the app settings screen (`SettingsScreen`): [CURRENT]
 1. [CURRENT] [CURRENT] **Local Cleanup:** Immediate erasure of all SQLite database records (`cropguard.db`), cached images, and local key-value stores. [CURRENT]
-2. [CURRENT] [CURRENT] **Auth Deletion:** Firebase Auth user record is revoked and deleted. [CURRENT]
+2. [CURRENT] [CURRENT] **Auth Deletion:** Supabase Auth user record is revoked and deleted. [CURRENT]
 
-### 3.2 Scale-Tier Server-Side Cascade Delete (`onUserDeleted`)
-For enterprise and public-scale deployments, account deletion triggers the `onUserDeleted` serverless Cloud Function (`functions/index.js`), executing the following atomic actions: [CURRENT]
-- **Profile Purge:** Recursively deletes `/users/{userId}` document and all subcollections.
-- **Top-Level Data Purge:** Batch deletes user-owned documents in `/scans`, `/treatments`, `/community_posts`, `/feedback`, `/expert_requests`, and `/missing_crops`.
-- **Cloud Storage Purge:** Deletes all uploaded images under `scans/{userId}/*` and `users/{userId}/*`.
+### 3.2 Server-Side Cascade Delete (`delete-account` Edge Function)
+Account deletion triggers the `delete-account` serverless Supabase Edge Function (`supabase/functions/delete-account`), executing the following atomic actions: [CURRENT]
+- **Profile Purge:** Deletes row from `profiles` table and triggers database foreign key cascades.
+- **Data Purge:** Cascading deletion of user-owned records in `scans`, `treatment_records`, `community_posts`, `feedback`, `expert_requests`, and `missing_crops`.
+- **Storage Purge:** Deletes all uploaded images in user-scoped folders.
 - **Public Health Anonymization:** Converts user-submitted `outbreak_reports` to anonymous records (scrubbing PII while preserving regional crop disease tracking data for community protection).
 
 ---

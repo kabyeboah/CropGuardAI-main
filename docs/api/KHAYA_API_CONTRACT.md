@@ -55,7 +55,7 @@ Supports long-form audio with optional segment-level timing.
 |-------|-------|
 | Header name | `Ocp-Apim-Subscription-Key` |
 | Credential type | Subscription key (Azure APIM) |
-| Credential location | Server-side only (Firebase Secret Manager) |
+| Credential location | Server-side only (Supabase Secrets) |
 
 ### Request
 
@@ -141,7 +141,7 @@ Supports 32+ African languages and dialects.
 |-------|-------|
 | Header name | `Ocp-Apim-Subscription-Key` |
 | Credential type | Subscription key (Azure APIM) |
-| Credential location | Server-side only (Firebase Secret Manager) |
+| Credential location | Server-side only (Supabase Secrets) |
 
 ### Request
 
@@ -221,7 +221,7 @@ Translates text between English and 10+ Ghanaian languages.
 |-------|-------|
 | Header name | `Ocp-Apim-Subscription-Key` |
 | Credential type | Subscription key (Azure APIM) |
-| Credential location | Server-side only (Firebase Secret Manager) |
+| Credential location | Server-side only (Supabase Secrets) |
 
 ### Request
 
@@ -304,17 +304,17 @@ If any of these appear in active code, they must be migrated immediately.
 
 | Service | Online | Offline |
 |---------|--------|---------|
-| ASR | Proxied via Firebase Function → Khaya ASR v3 | Show error: "Voice input requires an internet connection." Never fabricate transcript. |
-| TTS | Proxied via Firebase Function → Khaya TTS v2, then `flutter_tts` fallback | Fall back to `flutter_tts` local engine for supported locales only. Log when falling back. |
-| Translation | Firebase Function → Khaya Translation v2 (future) | Retain original text. Never display original as translated. |
+| ASR | Proxied via Supabase Edge Function → Khaya ASR v3 | Show error: "Voice input requires an internet connection." Never fabricate transcript. |
+| TTS | Proxied via Supabase Edge Function → Khaya TTS v2, then `flutter_tts` fallback | Fall back to `flutter_tts` local engine for supported locales only. Log when falling back. |
+| Translation | Supabase Edge Function → Khaya Translation v2 | Retain original text. Never display original as translated. |
 
 ---
 
 ## 7. Security Contract
 
-- Subscription key MUST be stored in Firebase Secret Manager on the server side only
+- Subscription key MUST be stored in Supabase Secrets on the server side only
 - Flutter client MUST NOT contain the subscription key
-- Firebase Functions act as the authenticated proxy
+- Supabase Edge Functions act as the authenticated proxy
 - All requests MUST use HTTPS
 - Subscription key MUST NOT appear in logs at any level
 

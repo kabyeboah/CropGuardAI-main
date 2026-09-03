@@ -12,9 +12,9 @@
 |---|---|---|---|---|
 | **Active Gemini Model** | `lib/data/remote/gemini_cloud_ai_service.dart:104` (`gemini-3-flash-preview`) | `supabase/functions/analyze-crop/index.ts:80` (`gemini-1.5-flash`), `gemini_cloud_ai_service.dart:20,46,71` ("Gemini 1.5 Flash") | **`gemini-3-flash-preview` ran; `gemini-1.5-flash` is retired.** | Live query to Google Generative Language ModelService returned HTTP 404 for `gemini-1.5-flash` ("not found or not supported in v1beta"). `gemini-3-flash-preview` is the active model executing inference. |
 | **Model Accuracy Benchmark** | `docs/MODEL_ACCURACY.md:6,14,22` & `docs/eval_metrics.json:7` (**25.49% Top-1, 49.02% Top-3**, ECE 20.04%, n=51) | `assets/model_metadata.json:23-24` (`validation_accuracy: 0.639185`, `field_test_accuracy: 0.627225`) | **25.49% is the honest held-out field benchmark; 63.92% / 62.72% are synthetic training splits.** | Traced to Colab notebook (`cropguard_retrain_v2_optimized (3).ipynb`). 63.92% is synthetic validation split; 62.72% was mislabelled as `field_test_accuracy` at export. Real Ghanaian field evaluation (`tools/evaluate_model.py` on `test_set/`, n=51) measured 25.49% (13/51 correct). |
-| **Historical Interim Accuracy** | `SUPERVISOR_PREP.md:69` ("16.67% Top-1 across 22 classes") | `docs/MODEL_ACCURACY.md:35` (**25.49% Top-1 across all 51 classes**) | **16.67% was an interim 24-sample spot check; 25.49% is the complete 51-class benchmark.** | `SUPERVISOR_PREP.md` had not been synchronized after the 51-sample full benchmark was executed. Updated to reflect 25.49% Top-1 (95% CI: [14.2%, 39.7%]) and 49.02% Top-3. |
-| **End-to-End Latency** | `CROPGUARD_MASTER_AUDIT.md:1089` (Claimed 6,710 ms) | Reported runs reaching ~23,000 ms | **6,710 ms is pure direct inference; 23,000 ms is proxy retry burnout on network failure.** | `CloudFunctionsService.analyzeCropWithGemini` uses `RetryUtils.retry` (3 attempts with 30s timeouts). When proxy fails, 3 timeouts occur before falling through to direct `GenerativeModel`. |
-| **Test Suite Count** | `SUPERVISOR_PREP.md:149` (Claimed 623 tests) | Active Flutter test runner output (**629 tests**) | **629 tests active and passing (100% pass rate).** | Verified with `flutter test`. 629 tests executed and passed cleanly. |
+| **Historical Interim Accuracy** | `Historical Supervisor Guide` ("16.67% Top-1 across 22 classes") | `docs/MODEL_ACCURACY.md:35` (**25.49% Top-1 across all 51 classes**) | **16.67% was an interim 24-sample spot check; 25.49% is the complete 51-class benchmark.** | Interim supervisor guide had not been synchronized after the 51-sample full benchmark was executed. Updated to reflect 25.49% Top-1 (95% CI: [14.2%, 39.7%]) and 49.02% Top-3. |
+| **End-to-End Latency** | `Historical Audit Log` (Claimed 6,710 ms) | Reported runs reaching ~23,000 ms | **6,710 ms is pure direct inference; 23,000 ms is proxy retry burnout on network failure.** | `CloudFunctionsService.analyzeCropWithGemini` uses `RetryUtils.retry` (3 attempts with 30s timeouts). When proxy fails, 3 timeouts occur before falling through to direct `GenerativeModel`. |
+| **Test Suite Count** | `Historical Supervisor Guide` (Claimed 623 tests) | Active Flutter test runner output (**629 tests**) | **629 tests active and passing (100% pass rate).** | Verified with `flutter test`. 629 tests executed and passed cleanly. |
 
 ---
 
@@ -36,7 +36,7 @@ Only stale labels, literals, and model constants were updated. No premature refa
 ### 4. `tools/evaluate_model.py`
 - Replaced hardcoded literal string `**63.9%**` in Markdown report generator (line 539) with dynamic interpolation from `baseline_metrics.get('validation_accuracy', ...)` loaded from `model_metadata.json`.
 
-### 5. `SUPERVISOR_PREP.md` & `scripts/generate_supervisor_prep_docx.py`
+### 5. `Historical Supervisor Guide & Documentation Generators`
 - Reconciled interim 16.67% / 45.83% statements to the formal 51-class benchmark figures: **25.49% Top-1** (95% CI: [14.2%, 39.7%]) and **49.02% Top-3**, with **63.92%** validation split accuracy and **629/629 tests passing**.
 
 ---

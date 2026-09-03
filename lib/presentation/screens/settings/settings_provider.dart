@@ -275,7 +275,7 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  /// Checks bundled model metadata version against Firebase Remote Config
+  /// Checks bundled model metadata version against remote configuration
   /// parameter `latest_model_version` via [VersionCheckService].
   Future<void> checkForModelUpdates() async {
     if (isCheckingUpdates) return;

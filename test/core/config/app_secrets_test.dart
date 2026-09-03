@@ -214,11 +214,11 @@ GOOGLE_IOS_CLIENT_ID=env-ios
         expect(AppSecrets.googleIosClientId, equals('env-ios'));
       });
 
-      test('3. Fallback to empty string default when all sources are absent', () {
-        expect(AppSecrets.googleServerClientId, isEmpty);
-        expect(AppSecrets.googleIosClientId, isEmpty);
-        expect(AppSecrets.hasGoogleServerClientId, isFalse);
-        expect(AppSecrets.hasGoogleIosClientId, isFalse);
+      test('3. Fallback to default client IDs when environment sources are absent', () {
+        expect(AppSecrets.googleServerClientId, equals(AppSecrets.defaultGoogleServerClientId));
+        expect(AppSecrets.googleIosClientId, equals(AppSecrets.defaultGoogleIosClientId));
+        expect(AppSecrets.hasGoogleServerClientId, isTrue);
+        expect(AppSecrets.hasGoogleIosClientId, isTrue);
       });
     });
   });

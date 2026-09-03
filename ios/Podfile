@@ -73,7 +73,7 @@ post_install do |installer|
       # (covers local_auth_darwin Swift 6 actor-isolation warnings and in_app_review check)
       config.build_settings['SWIFT_SUPPRESS_WARNINGS'] = 'YES'
 
-      # Disable explicit module builds to prevent dependency resolution errors (e.g. FirebaseInstallations)
+      # Disable explicit module builds to prevent native dependency resolution errors
       config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
 
       # Preserve symbols specifically for tflite_flutter dynamic native libraries

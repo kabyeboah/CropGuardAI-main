@@ -22,20 +22,36 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- Trigger to create profile automatically on auth.users creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
 BEGIN
     INSERT INTO public.profiles (id, email, display_name, created_at, updated_at)
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'full_name', 'Farmer'),
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            NEW.raw_user_meta_data->>'display_name',
+            NEW.raw_user_meta_data->>'name',
+            'Farmer'
+        ),
         now(),
         now()
     )
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE
+        SET email = EXCLUDED.email,
+            display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name),
+            updated_at = now();
     RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Prevent profile insert errors from failing user registration
+        RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -178,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.reported_posts (
 CREATE INDEX IF NOT EXISTS idx_reported_posts_post_id ON public.reported_posts(post_id);
 
 -- ─── 11. Remote App Configuration Table ──────────────────────────────────────
--- Replaces Firebase Remote Config for dynamic configuration and feature flags
+-- Dynamic runtime configuration and feature flags store
 CREATE TABLE IF NOT EXISTS public.app_config (
     key TEXT PRIMARY KEY,
     value JSONB NOT NULL,

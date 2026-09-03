@@ -36,19 +36,12 @@
 -keep class org.tensorflow.lite.support.** { *; }
 -dontwarn org.tensorflow.**
 
-# Firebase
--keep class com.google.firebase.** { *; }
+# Google Play Services
 -keep class com.google.android.gms.** { *; }
--dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
-
-# Firebase Crashlytics
--keepattributes SourceFile,LineNumberTable
--keep public class * extends java.lang.Exception
-
-# Firebase App Check / Play Integrity
 -keep class com.google.android.play.core.** { *; }
 -dontwarn com.google.android.play.core.**
+
 
 # Google Maps
 -keep class com.google.android.gms.maps.** { *; }

@@ -4,31 +4,21 @@ This document describes the design, execution lifecycle, and operational constra
 
 ---
 
-## 1. Push Notification Architecture (FCM)
+## 1. Push Notification Architecture
 
-CropGuard AI uses Firebase Cloud Messaging (FCM) along with Apple Push Notification service (APNs) and Android FCM channels to deliver outbreak alerts, disease warnings, and reminders. [CURRENT] [CURRENT]
+CropGuard AI supports push notifications along with Apple Push Notification service (APNs) and Android notification channels to deliver outbreak alerts, disease warnings, and reminders.
 
 ### 1.1 Token Lifecycle
-- **Acquisition & Sync**: On application startup or user authentication (`authStateChanges`), `PushNotificationService.syncFcmToken(userId)` retrieves the device FCM token and persists it to Cloud Firestore:
-  ```json
-  // Firestore document: users/{userId}
-  {
-    "fcmToken": "cE3z...",
-    "fcmTokenUpdatedAt": "<SERVER_TIMESTAMP>",
-    "platform": "android | iOS"
-  }
-  ```
-- **Token Refresh**: The `_fcm.onTokenRefresh` stream automatically captures newly rotated tokens and syncs them to Firestore without requiring user interaction.
-- **Sign-Out & Account Deletion**: When a user logs out or deletes their profile, `PushNotificationService.clearFcmToken(userId)` explicitly deletes the token from Firestore (`FieldValue.delete()`) and calls `_fcm.deleteToken()` on the client to prevent stale notification leakage.
+- **Acquisition & Sync**: On application startup or user authentication, device notification tokens are synced to the user profile in Supabase.
+- **Sign-Out & Account Deletion**: When a user logs out or deletes their profile, the notification token is cleared to prevent stale notification delivery.
 
 ### 1.2 Message Handling Across States
 
 | App State | Handling Mechanism | User Presentation | [CURRENT]
 | :--- | :--- | :--- | [CURRENT]
-| **Foreground** | `FirebaseMessaging.onMessage` | Displays a local heads-up banner via `FlutterLocalNotificationsPlugin` (`NotificationHelper.showRiskAlert` / `showScanReminder`) and inserts the alert into SQLite `notifications` inbox. [CURRENT] [CURRENT] | [CURRENT]
-| **Background (Awake/Paused)** | System Notification Tray + `FirebaseMessaging.onMessageOpenedApp` | System tray notification displayed natively by OS. [CURRENT] [CURRENT] Tapping executes route handler (`_onNotificationTap`). [CURRENT] | [CURRENT]
-| **Background (Isolate)** | `@pragma('vm:entry-point') _firebaseMessagingBackgroundHandler` | Initializes minimal Firebase instance to log background message metadata. [CURRENT] [CURRENT] | [CURRENT]
-| **Terminated / Cold Start** | `FirebaseMessaging.instance.getInitialMessage()` | App boots up and immediately consumes the launch message payload to deep-link to the target screen. [HISTORICAL] [HISTORICAL] | [CURRENT]
+| **Foreground** | `NotificationHelper` | Displays a local heads-up banner via `FlutterLocalNotificationsPlugin` (`NotificationHelper.showRiskAlert` / `showScanReminder`) and inserts the alert into SQLite `notifications` inbox. [CURRENT] [CURRENT] | [CURRENT]
+| **Background (Awake/Paused)** | System Notification Tray | System tray notification displayed natively by OS. Tapping executes route handler (`_onNotificationTap`). | [CURRENT]
+| **Terminated / Cold Start** | Initial Launch Payload | App boots up and immediately consumes the launch notification payload to deep-link to the target screen. | [CURRENT]
 
 ---
 
@@ -71,7 +61,7 @@ CropGuard AI is engineered to operate reliably within the strict power-managemen
   - `requiresBatteryNotLow: true` (respects Android battery saver and power tiers).
 - **Execution Safeguards**:
   - Tasks running in the background isolate are wrapped with `.timeout(const Duration(minutes: 2))` to strictly prevent battery drain or wakelock leaks.
-  - Background isolates refresh the Firebase Auth ID token (`getIdToken(true)`) prior to Firestore writes to prevent stale session permission denials.
+  - Background isolates refresh the Supabase Auth session prior to cloud database writes to prevent stale session permission denials.
 - **Cadence**: Android WorkManager enforces a **minimum periodic interval of 15 minutes**. Periodic tasks may be delayed further by Doze mode or Android App Standby buckets.
 
 ### 4.2 iOS Background Scheduling (`BGTaskScheduler`)

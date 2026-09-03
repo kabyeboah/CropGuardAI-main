@@ -88,7 +88,7 @@ class LoginProvider extends ChangeNotifier {
       status = LoginStatus.success;
       unawaited(_analytics.logLogin(method: 'email'));
       notifyListeners();
-      // Post-microtask: let Firebase authStateChanges emit so the GoRouter
+      // Post-microtask: let auth state changes emit so the GoRouter
       // refreshListenable (AuthStateNotifier) updates isSignedIn before
       // onSuccess calls context.go('/home').
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -126,7 +126,7 @@ class LoginProvider extends ChangeNotifier {
       } else if (f is AuthFailure && f.code == 'invalid-credential') {
         errorMessage =
             'Google sign-in configuration error. '
-            'Please ensure your app SHA-1 is registered in Firebase Console.';
+            'Please ensure your app OAuth client ID and SHA-1 certificate are properly configured.';
       } else {
         errorMessage = _mapFailure(f);
       }
@@ -237,6 +237,10 @@ class LoginProvider extends ChangeNotifier {
         e.contains('rate limit') ||
         e.contains('over_email_send_rate_limit')) {
       return 'Access temporarily disabled due to many failed attempts. Please try again later or reset password.';
+    }
+    if (e.contains('database error saving new user') ||
+        e.contains('database error')) {
+      return 'Database error saving user. Please update the handle_new_user trigger in Supabase SQL Editor.';
     }
     if (e.contains('apiexception: 10') || e.contains('apiexception: 12500')) {
       return 'Google sign-in configuration error. Please ensure SHA-1 fingerprint and OAuth Client IDs match.';

@@ -10,7 +10,7 @@ Google requires you to fill out a Data Safety form in the Play Console. [CURRENT
 | Question | Answer | [CURRENT]
 | --- | --- | [CURRENT]
 | Does your app collect or share any of the required user data types? [CURRENT] [CURRENT] | **Yes** | [CURRENT]
-| Is all of the user data collected by your app encrypted in transit? [CURRENT] [CURRENT] | **Yes** (Firebase & HTTPS) | [CURRENT]
+| Is all of the user data collected by your app encrypted in transit? [CURRENT] [CURRENT] | **Yes** (HTTPS / TLS) | [CURRENT]
 | Do you provide a way for users to request that their data be deleted? [CURRENT] [CURRENT] | **Yes** | [CURRENT]
 
 ## Data Types Collected
@@ -26,10 +26,10 @@ Google requires you to fill out a Data Safety form in the Play Console. [CURRENT
 - **Photos**: Uploaded when submitting community forum posts or outbreak report attachments. (Collected, Encrypted in transit, Optional/App Functionality, tied to user account)
 
 ### App Information and Performance
-- **Crash Logs**: Collected via Firebase Crashlytics to improve the app. (Collected, Encrypted, Mandatory, Analytics)
+- **Diagnostic Logs**: Anonymous technical logs to improve app reliability. (Collected, Encrypted, Mandatory, Analytics)
 
 ### Device or Other IDs
-- **Device or Other IDs**: FCM tokens for push notifications. (Collected, Encrypted, Mandatory, App Functionality)
+- **Device or Other IDs**: Device tokens for push notifications. (Collected, Encrypted, Mandatory, App Functionality)
 
 ## Privacy Policy URL
 Use the hosted version of `docs/privacy_policy.html`. [CURRENT] [CURRENT] You can host this for free on GitHub Pages by enabling it for your repository. [CURRENT]
