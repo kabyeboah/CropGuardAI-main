@@ -24,23 +24,36 @@ void main() {
 
   group('DetectionResult toMap / fromMap round-trip', () {
     test('all fields survive a toMap → fromMap round-trip', () {
-      final map = tResult.toMap();
+      final withExtras = tResult.copyWith(
+        remoteId: 'uuid-1234-5678',
+        topCandidates: [
+          (label: 'Tomato___Late_blight', confidence: 0.91),
+          (label: 'Tomato___Early_blight', confidence: 0.08),
+        ],
+      );
+      final map = withExtras.toMap();
       final restored = DetectionResult.fromMap(map);
 
-      expect(restored.id, tResult.id);
-      expect(restored.userId, tResult.userId);
-      expect(restored.imagePath, tResult.imagePath);
-      expect(restored.diseaseLabel, tResult.diseaseLabel);
-      expect(restored.displayName, tResult.displayName);
-      expect(restored.confidence, tResult.confidence);
-      expect(restored.severity, tResult.severity);
-      expect(restored.isHealthy, tResult.isHealthy);
-      expect(restored.cropType, tResult.cropType);
-      expect(restored.cause, tResult.cause);
-      expect(restored.treatments, tResult.treatments);
-      expect(restored.timestamp, tResult.timestamp);
-      expect(restored.isSynced, tResult.isSynced);
-      expect(restored.syncedAt, tResult.syncedAt);
+      expect(restored.id, withExtras.id);
+      expect(restored.remoteId, 'uuid-1234-5678');
+      expect(restored.userId, withExtras.userId);
+      expect(restored.imagePath, withExtras.imagePath);
+      expect(restored.diseaseLabel, withExtras.diseaseLabel);
+      expect(restored.displayName, withExtras.displayName);
+      expect(restored.confidence, withExtras.confidence);
+      expect(restored.severity, withExtras.severity);
+      expect(restored.isHealthy, withExtras.isHealthy);
+      expect(restored.cropType, withExtras.cropType);
+      expect(restored.cause, withExtras.cause);
+      expect(restored.treatments, withExtras.treatments);
+      expect(restored.timestamp, withExtras.timestamp);
+      expect(restored.isSynced, withExtras.isSynced);
+      expect(restored.syncedAt, withExtras.syncedAt);
+      expect(restored.topCandidates.length, 2);
+      expect(restored.topCandidates[0].label, 'Tomato___Late_blight');
+      expect(restored.topCandidates[0].confidence, 0.91);
+      expect(restored.topCandidates[1].label, 'Tomato___Early_blight');
+      expect(restored.topCandidates[1].confidence, 0.08);
     });
 
     test('isSynced and syncedAt round-trip correctly', () {

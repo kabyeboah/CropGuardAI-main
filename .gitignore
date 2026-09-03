@@ -70,3 +70,7 @@ extracted_plant_disease/
 test_set/
 # Office lock files
 ~$*
+
+# Supabase temp artifacts
+supabase/.temp/
+

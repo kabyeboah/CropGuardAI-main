@@ -99,14 +99,25 @@ class SupabaseDatabaseService {
   // ─── Scan Sync ────────────────────────────────────────────────────────
   Future<void> upsertScan(String docId, Map<String, dynamic> scanData) async {
     try {
+      final rawImageUrl = scanData['imageUrl'] ?? scanData['image_url'];
+      final rawImagePath = scanData['imagePath'] ?? scanData['image_path'];
+      final validHttpUrl = (rawImageUrl is String && rawImageUrl.startsWith('http'))
+          ? rawImageUrl
+          : ((rawImagePath is String && rawImagePath.startsWith('http'))
+              ? rawImagePath
+              : null);
+
       await RetryUtils.retry(
         () => _client.from('scans').upsert({
           'id': docId,
-          'user_id': scanData['userId'],
-          'disease_name': scanData['diseaseName'] ?? scanData['disease'],
-          'crop_type': scanData['cropType'] ?? scanData['crop'],
+          'user_id': scanData['userId'] ?? scanData['user_id'],
+          'disease_name': scanData['displayName'] ??
+              scanData['diseaseLabel'] ??
+              scanData['diseaseName'] ??
+              scanData['disease'],
+          'crop_type': scanData['cropType'] ?? scanData['crop_type'] ?? scanData['crop'],
           'confidence': scanData['confidence'],
-          'image_url': scanData['imageUrl'] ?? scanData['imagePath'],
+          'image_url': validHttpUrl,
           'data': scanData,
           'created_at': scanData['timestamp'] != null
               ? DateTime.fromMillisecondsSinceEpoch(
@@ -126,13 +137,24 @@ class SupabaseDatabaseService {
 
   Future<void> uploadScan(Map<String, dynamic> scanData) async {
     try {
+      final rawImageUrl = scanData['imageUrl'] ?? scanData['image_url'];
+      final rawImagePath = scanData['imagePath'] ?? scanData['image_path'];
+      final validHttpUrl = (rawImageUrl is String && rawImageUrl.startsWith('http'))
+          ? rawImageUrl
+          : ((rawImagePath is String && rawImagePath.startsWith('http'))
+              ? rawImagePath
+              : null);
+
       await RetryUtils.retry(
         () => _client.from('scans').insert({
-          'user_id': scanData['userId'],
-          'disease_name': scanData['diseaseName'] ?? scanData['disease'],
-          'crop_type': scanData['cropType'] ?? scanData['crop'],
+          'user_id': scanData['userId'] ?? scanData['user_id'],
+          'disease_name': scanData['displayName'] ??
+              scanData['diseaseLabel'] ??
+              scanData['diseaseName'] ??
+              scanData['disease'],
+          'crop_type': scanData['cropType'] ?? scanData['crop_type'] ?? scanData['crop'],
           'confidence': scanData['confidence'],
-          'image_url': scanData['imageUrl'] ?? scanData['imagePath'],
+          'image_url': validHttpUrl,
           'data': scanData,
         }),
         maxAttempts: 3,
@@ -208,26 +230,43 @@ class SupabaseDatabaseService {
     required bool confirm,
   }) async {
     try {
-      final report = await _client.from('outbreaks').select().eq('id', reportId).maybeSingle();
-      if (report == null) throw const ServerFailure('Outbreak report not found');
-
-      final verifiedBy = List<String>.from(report['verified_by'] ?? []);
-      final refutedBy = List<String>.from(report['refuted_by'] ?? []);
-
-      if (confirm) {
-        if (!verifiedBy.contains(userId)) verifiedBy.add(userId);
-        refutedBy.remove(userId);
-      } else {
-        if (!refutedBy.contains(userId)) refutedBy.add(userId);
-        verifiedBy.remove(userId);
-      }
-
-      await _client.from('outbreaks').update({
-        'verified_by': verifiedBy,
-        'refuted_by': refutedBy,
-      }).eq('id', reportId);
+      await RetryUtils.retry(
+        () => _client.rpc(
+          'verify_outbreak',
+          params: {
+            'p_report_id': reportId,
+            'p_user_id': userId,
+            'p_confirm': confirm,
+          },
+        ),
+        maxAttempts: 3,
+        timeout: const Duration(seconds: 15),
+        retryIf: _isTransientError,
+      );
     } catch (e) {
-      throw ServerFailure('Failed to verify outbreak: $e');
+      AppLogger.w('Supabase verifyOutbreak RPC failed, attempting fallback: $e');
+      try {
+        final report = await _client.from('outbreaks').select().eq('id', reportId).maybeSingle();
+        if (report == null) throw const ServerFailure('Outbreak report not found');
+
+        final verifiedBy = List<String>.from(report['verified_by'] ?? []);
+        final refutedBy = List<String>.from(report['refuted_by'] ?? []);
+
+        if (confirm) {
+          if (!verifiedBy.contains(userId)) verifiedBy.add(userId);
+          refutedBy.remove(userId);
+        } else {
+          if (!refutedBy.contains(userId)) refutedBy.add(userId);
+          verifiedBy.remove(userId);
+        }
+
+        await _client.from('outbreaks').update({
+          'verified_by': verifiedBy,
+          'refuted_by': refutedBy,
+        }).eq('id', reportId);
+      } catch (fallbackError) {
+        throw ServerFailure('Failed to verify outbreak: $fallbackError');
+      }
     }
   }
 

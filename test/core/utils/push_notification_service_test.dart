@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cropguard_flutter/core/utils/push_notification_service.dart';
 
 void main() {
@@ -35,7 +34,7 @@ void main() {
         tappedRoute = route;
       });
 
-      const message = RemoteMessage(
+      const message = AlertMessage(
         data: {'route': '/treatment_tracker', 'type': 'reminder'},
       );
 
@@ -50,7 +49,7 @@ void main() {
         tappedRoute = route;
       });
 
-      const message = RemoteMessage(
+      const message = AlertMessage(
         data: {'type': 'outbreak_alert'},
       );
 
@@ -61,7 +60,7 @@ void main() {
     test(
         'handleForegroundMessage executes without uncaught errors on outbreak alert',
         () async {
-      const message = RemoteMessage(
+      const message = AlertMessage(
         messageId: 'msg-test-123',
         data: {
           'title': 'High Risk: Cocoa Swollen Shoot',
@@ -79,7 +78,7 @@ void main() {
     test(
         'handleForegroundMessage executes without uncaught errors on scan reminder',
         () async {
-      const message = RemoteMessage(
+      const message = AlertMessage(
         messageId: 'msg-test-456',
         data: {
           'title': 'Scan Follow-up',

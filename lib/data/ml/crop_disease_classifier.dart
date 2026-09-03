@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
@@ -311,15 +310,6 @@ class CropDiseaseClassifier {
       AppLogger.w(
         'CropDiseaseClassifier: hardware delegate options failed ($e); retrying with CPU options.',
       );
-      try {
-        unawaited(FirebaseCrashlytics.instance.recordError(
-          e,
-          null,
-          reason:
-              'TFLite hardware delegate failed — falling back to CPU options',
-          fatal: false,
-        ));
-      } catch (_) {}
     }
 
     // Attempt 2: Explicit CPU options (disable NNAPI)
@@ -333,15 +323,6 @@ class CropDiseaseClassifier {
       AppLogger.w(
         'CropDiseaseClassifier: CPU options failed ($e); retrying default Interpreter.fromBuffer.',
       );
-      try {
-        unawaited(FirebaseCrashlytics.instance.recordError(
-          e,
-          null,
-          reason:
-              'TFLite CPU options failed — falling back to raw Interpreter.fromBuffer',
-          fatal: false,
-        ));
-      } catch (_) {}
     }
 
     // Attempt 3: Minimal default Interpreter.fromBuffer with no options object
@@ -391,15 +372,6 @@ class CropDiseaseClassifier {
       _engineAvailable = false;
       AppLogger.e(
           'CropDiseaseClassifier: verified asset load failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e,
-          stack,
-          reason:
-              'TFLite model load failure (asset load) — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
       throw ModelLoadException('Failed to load model or label assets: $e');
     }
 
@@ -423,15 +395,6 @@ class CropDiseaseClassifier {
       _engineAvailable = false;
       AppLogger.e(
           'CropDiseaseClassifier: interpreter creation failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e,
-          stack,
-          reason:
-              'TFLite model load failure (interpreter creation) — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
       throw ModelLoadException('Failed to create TFLite interpreter: $e');
     }
 
@@ -495,15 +458,6 @@ class CropDiseaseClassifier {
       _interpreter = null;
       AppLogger.e(
           'CropDiseaseClassifier: tensor contract validation failed', e, stack);
-      try {
-        await FirebaseCrashlytics.instance.recordError(
-          e,
-          stack,
-          reason:
-              'TFLite tensor contract validation failure — engine marked unavailable',
-          fatal: false,
-        );
-      } catch (_) {}
       if (e is MLException) rethrow;
       throw ModelContractException('TFLite tensor contract error: $e');
     }

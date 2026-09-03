@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../data/remote/ghana_nlp_service.dart';
@@ -15,6 +16,9 @@ class TtsManager {
   // Speech Cache
   final Map<String, File> _speechCache = {};
 
+  final ValueNotifier<bool> isPlayingNotifier = ValueNotifier<bool>(false);
+  bool get isPlaying => isPlayingNotifier.value;
+
   late final Future<void> _initFuture;
 
   TtsManager._internal() {
@@ -22,21 +26,52 @@ class TtsManager {
   }
 
   Future<void> _init() async {
-    await _tts.setLanguage("en-US");
-    await _tts.setSpeechRate(0.5);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
+    _tts.setStartHandler(() {
+      isPlayingNotifier.value = true;
+    });
+    _tts.setCompletionHandler(() {
+      isPlayingNotifier.value = false;
+    });
+    _tts.setErrorHandler((msg) {
+      isPlayingNotifier.value = false;
+    });
+    _tts.setCancelHandler(() {
+      isPlayingNotifier.value = false;
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      isPlayingNotifier.value = (state == PlayerState.playing);
+    });
+    _audioPlayer.onPlayerComplete.listen((_) {
+      isPlayingNotifier.value = false;
+    });
+
+    try {
+      await _tts.setLanguage("en-US");
+      await _tts.setSpeechRate(0.5);
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.0);
+    } catch (e) {
+      AppLogger.w('TTS init failed: $e');
+    }
   }
 
   Future<void> speak(String text, {String languageCode = "en"}) async {
+    await stop();
     await _initFuture;
+    isPlayingNotifier.value = true;
 
     final cacheKey = "${text.hashCode}_$languageCode";
 
     // Check Cache [Priority 5]
     if (_speechCache.containsKey(cacheKey)) {
       AppLogger.d('TTS cache hit: $text');
-      await _audioPlayer.play(DeviceFileSource(_speechCache[cacheKey]!.path));
+      try {
+        await _audioPlayer.play(DeviceFileSource(_speechCache[cacheKey]!.path));
+      } catch (e) {
+        AppLogger.w('AudioPlayer play cache hit failed: $e');
+        isPlayingNotifier.value = false;
+      }
       return;
     }
 
@@ -77,17 +112,34 @@ class TtsManager {
     }
 
     // Fallback [Priority 3]
-    await _tts.setLanguage(locale);
-    await _tts.speak(text);
+    try {
+      await _tts.setLanguage(locale);
+      await _tts.speak(text);
+    } catch (e) {
+      AppLogger.w('TTS speak fallback failed: $e');
+      isPlayingNotifier.value = false;
+    }
   }
 
   Future<void> stop() async {
-    await _tts.stop();
-    await _audioPlayer.stop();
+    isPlayingNotifier.value = false;
+    try {
+      await _tts.stop();
+    } catch (e) {
+      AppLogger.w('TTS stop failed: $e');
+    }
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      AppLogger.w('AudioPlayer stop failed: $e');
+    }
   }
 
   void dispose() {
-    _tts.stop();
-    _audioPlayer.dispose();
+    stop();
+    try {
+      _tts.stop();
+      _audioPlayer.dispose();
+    } catch (_) {}
   }
 }

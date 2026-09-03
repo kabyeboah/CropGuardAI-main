@@ -3,30 +3,28 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/config/app_secrets.dart';
 import '../../core/error/failures.dart';
 import '../../core/utils/retry_utils.dart';
 
-/// CloudFunctionsService — executes trusted server-side mutations for privileged
-/// actions such as outbreak verification voting, confidence recalculation, and administrative flows.
+/// CloudFunctionsService (Supabase Edge Functions Client) — executes trusted server-side
+/// routines for multimodal Gemini diagnosis, GhanaNLP voice/translation, and account purge.
 class CloudFunctionsService {
   final http.Client _client;
   final Future<String?> Function()? _authTokenProvider;
-  final String _region;
-  final String _projectId;
+  final String _baseUrl;
 
   CloudFunctionsService({
     http.Client? client,
     Future<String?> Function()? authTokenProvider,
-    String region = 'us-central1',
-    String projectId = 'cropguard-ai',
+    String? baseUrl,
+    String? projectId,
   })  : _client = client ?? http.Client(),
         _authTokenProvider = authTokenProvider,
-        _region = region,
-        _projectId = projectId;
+        _baseUrl = baseUrl ?? '${AppSecrets.supabaseUrl}/functions/v1';
 
   Future<String?> _getAuthToken() async {
     final provider = _authTokenProvider;
@@ -42,8 +40,7 @@ class CloudFunctionsService {
   }
 
   Uri _getFunctionUri(String functionName) {
-    return Uri.parse(
-        'https://$_region-$_projectId.cloudfunctions.net/$functionName');
+    return Uri.parse('$_baseUrl/$functionName');
   }
 
   Future<Map<String, dynamic>> _callFunction({
@@ -57,21 +54,14 @@ class CloudFunctionsService {
           'User must be signed in to perform this operation.');
     }
 
-    String? appCheckToken;
-    try {
-      appCheckToken = await FirebaseAppCheck.instance.getToken();
-    } catch (_) {
-      // Best effort in local dev/testing environments
-    }
-
     final uri = _getFunctionUri(functionName);
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $idToken',
-      if (appCheckToken != null) 'X-Firebase-AppCheck': appCheckToken,
+      'apikey': AppSecrets.supabaseAnonKey,
     };
 
-    final body = jsonEncode({'data': data});
+    final body = jsonEncode(data);
 
     try {
       final response = await RetryUtils.retry(
@@ -111,7 +101,7 @@ class CloudFunctionsService {
     required bool confirm,
   }) async {
     return _callFunction(
-      functionName: 'verifyOutbreak',
+      functionName: 'verify-outbreak',
       data: {
         'reportId': reportId,
         'confirm': confirm,
@@ -119,7 +109,7 @@ class CloudFunctionsService {
     );
   }
 
-  /// Calls the trusted backend `analyzeCropWithGemini` Cloud Function.
+  /// Calls the trusted Supabase `analyze-crop` Edge Function.
   /// Securely proxies crop pathology diagnosis using server-held GEMINI_API_KEY.
   Future<Map<String, dynamic>> analyzeCropWithGemini({
     required String imageBase64,
@@ -127,7 +117,7 @@ class CloudFunctionsService {
     List<String>? initialTopCandidates,
   }) async {
     final res = await _callFunction(
-      functionName: 'analyzeCropWithGemini',
+      functionName: 'analyze-crop',
       data: {
         'imageBase64': imageBase64,
         if (cropType != null) 'cropType': cropType,
@@ -139,14 +129,14 @@ class CloudFunctionsService {
     return res['result'] as Map<String, dynamic>? ?? res;
   }
 
-  /// Calls the trusted backend `synthesizeGhanaNlp` Cloud Function.
+  /// Calls the trusted Supabase `khaya-tts` Edge Function.
   /// Returns decoded audio bytes without exposing GHANA_NLP_SUBSCRIPTION_KEY.
   Future<Uint8List> synthesizeGhanaNlp({
     required String text,
     required String language,
   }) async {
     final res = await _callFunction(
-      functionName: 'synthesizeGhanaNlp',
+      functionName: 'khaya-tts',
       data: {
         'text': text,
         'language': language,
@@ -161,7 +151,7 @@ class CloudFunctionsService {
     return base64Decode(audioBase64);
   }
 
-  /// Calls the trusted backend `transcribeGhanaNlp` Cloud Function (ASR v3).
+  /// Calls the trusted Supabase `khaya-asr` Edge Function (ASR v3).
   /// Returns transcription text without exposing GHANA_NLP_SUBSCRIPTION_KEY.
   Future<String> transcribeGhanaNlp({
     required Uint8List audioBytes,
@@ -169,7 +159,7 @@ class CloudFunctionsService {
   }) async {
     final audioBase64 = base64Encode(audioBytes);
     final res = await _callFunction(
-      functionName: 'transcribeGhanaNlp',
+      functionName: 'khaya-asr',
       data: {
         'audioBase64': audioBase64,
         'language': language,
@@ -179,7 +169,7 @@ class CloudFunctionsService {
     return res['transcription'] as String? ?? '';
   }
 
-  /// Calls the trusted backend `translateGhanaNlp` Cloud Function (Translation v2).
+  /// Calls the trusted Supabase `khaya-translate` Edge Function (Translation v2).
   /// Returns translated text without exposing GHANA_NLP_SUBSCRIPTION_KEY.
   ///
   /// [languagePair] format: `<source>-<target>` (e.g. `en-tw`, `tw-en`).
@@ -188,7 +178,7 @@ class CloudFunctionsService {
     required String languagePair,
   }) async {
     final res = await _callFunction(
-      functionName: 'translateGhanaNlp',
+      functionName: 'khaya-translate',
       data: {
         'text': text,
         'languagePair': languagePair,
@@ -196,5 +186,14 @@ class CloudFunctionsService {
       timeout: const Duration(seconds: 15),
     );
     return res['translation'] as String? ?? '';
+  }
+
+  /// Calls the trusted Supabase `delete-account` Edge Function to purge user profile and data.
+  Future<void> deleteAccount() async {
+    await _callFunction(
+      functionName: 'delete-account',
+      data: {},
+      timeout: const Duration(seconds: 15),
+    );
   }
 }

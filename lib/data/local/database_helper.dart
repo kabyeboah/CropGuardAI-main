@@ -13,7 +13,7 @@ import 'pending_sync_queue.dart';
 
 class DatabaseHelper {
   static const _dbName = 'cropguard.db';
-  static const _dbVersion = 17;
+  static const _dbVersion = 18;
 
   static const tableDetections = 'detections';
   static const tableFields = 'fields';
@@ -79,6 +79,7 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE $tableDetections (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remoteId TEXT NOT NULL DEFAULT '',
         userId TEXT NOT NULL DEFAULT '',
         imagePath TEXT NOT NULL,
         diseaseLabel TEXT NOT NULL,
@@ -91,6 +92,7 @@ class DatabaseHelper {
         treatments TEXT NOT NULL DEFAULT '',
         timestamp INTEGER NOT NULL,
         isDegraded INTEGER NOT NULL DEFAULT 0,
+        topCandidates TEXT,
         modelVersion TEXT,
         isSynced INTEGER NOT NULL DEFAULT 0,
         syncedAt INTEGER
@@ -172,6 +174,11 @@ class DatabaseHelper {
       await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_detections_userId_isSynced ON $tableDetections (userId, isSynced)');
     }
+    if (oldVersion < 18) {
+      await _addColumnIfMissing(
+          db, tableDetections, 'remoteId', "TEXT NOT NULL DEFAULT ''");
+      await _addColumnIfMissing(db, tableDetections, 'topCandidates', 'TEXT');
+    }
   }
 
   /// Adds [column] to [table] only when the table exists and the column does not yet exist.
@@ -238,9 +245,12 @@ class DatabaseHelper {
 
   Future<int> insertDetection(DetectionResult result) async {
     final db = await database;
+    final toInsert = result.remoteId.isEmpty
+        ? result.copyWith(remoteId: _uuid.v4())
+        : result;
     return db.insert(
       tableDetections,
-      result.toMap()..remove('id'),
+      toInsert.toMap()..remove('id'),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }

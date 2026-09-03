@@ -26,12 +26,11 @@ void main() {
     service = CloudFunctionsService(
       client: mockHttpClient,
       authTokenProvider: () async => currentToken,
-      region: 'us-central1',
-      projectId: 'test-project',
+      baseUrl: 'https://test-project.supabase.co/functions/v1',
     );
   });
 
-  group('CloudFunctionsService', () {
+  group('CloudFunctionsService (Supabase Edge Functions)', () {
     test('verifyOutbreak throws AuthFailure when user is not signed in',
         () async {
       currentToken = null;
@@ -69,16 +68,14 @@ void main() {
 
       verify(() => mockHttpClient.post(
             Uri.parse(
-                'https://us-central1-test-project.cloudfunctions.net/verifyOutbreak'),
+                'https://test-project.supabase.co/functions/v1/verify-outbreak'),
             headers: any(
               named: 'headers',
               that: containsPair('Authorization', 'Bearer fake-jwt-token-123'),
             ),
             body: jsonEncode({
-              'data': {
-                'reportId': 'rep_123',
-                'confirm': true,
-              }
+              'reportId': 'rep_123',
+              'confirm': true,
             }),
           )).called(1);
     });
@@ -135,7 +132,7 @@ void main() {
 
       verify(() => mockHttpClient.post(
             Uri.parse(
-                'https://us-central1-test-project.cloudfunctions.net/analyzeCropWithGemini'),
+                'https://test-project.supabase.co/functions/v1/analyze-crop'),
             headers: any(
               named: 'headers',
               that: containsPair('Authorization', 'Bearer fake-jwt-token-123'),

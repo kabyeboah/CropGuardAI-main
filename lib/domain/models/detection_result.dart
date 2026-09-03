@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import '../../../core/utils/scan_severity.dart';
 import '../../data/ml/crop_disease_classifier.dart';
 
 /// Equivalent of DetectionResult.kt domain data class
 class DetectionResult {
   final int id;
+  final String remoteId;
   final String userId;
   final String imagePath;
   final String diseaseLabel;
@@ -27,6 +30,7 @@ class DetectionResult {
 
   const DetectionResult({
     this.id = 0,
+    this.remoteId = '',
     this.userId = '',
     required this.imagePath,
     required this.diseaseLabel,
@@ -47,6 +51,7 @@ class DetectionResult {
 
   DetectionResult copyWith({
     int? id,
+    String? remoteId,
     String? userId,
     String? imagePath,
     String? diseaseLabel,
@@ -66,6 +71,7 @@ class DetectionResult {
   }) {
     return DetectionResult(
       id: id ?? this.id,
+      remoteId: remoteId ?? this.remoteId,
       userId: userId ?? this.userId,
       imagePath: imagePath ?? this.imagePath,
       diseaseLabel: diseaseLabel ?? this.diseaseLabel,
@@ -88,6 +94,7 @@ class DetectionResult {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'remoteId': remoteId,
       'userId': userId,
       'imagePath': imagePath,
       'diseaseLabel': diseaseLabel,
@@ -100,6 +107,11 @@ class DetectionResult {
       'treatments': treatments.join('||'),
       'timestamp': timestamp,
       'isDegraded': isDegraded ? 1 : 0,
+      'topCandidates': jsonEncode(
+        topCandidates
+            .map((c) => {'label': c.label, 'confidence': c.confidence})
+            .toList(),
+      ),
       'modelVersion': modelVersion,
       'isSynced': isSynced ? 1 : 0,
       'syncedAt': syncedAt,
@@ -114,8 +126,28 @@ class DetectionResult {
       return null;
     }
 
+    List<TopCandidate> parseTopCandidates(dynamic raw) {
+      if (raw == null || raw is! String || raw.isEmpty) {
+        return const <TopCandidate>[];
+      }
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded.map<TopCandidate>((item) {
+            final m = item as Map<String, dynamic>;
+            return (
+              label: m['label'] as String? ?? '',
+              confidence: (m['confidence'] as num?)?.toDouble() ?? 0.0,
+            );
+          }).toList();
+        }
+      } catch (_) {}
+      return const <TopCandidate>[];
+    }
+
     return DetectionResult(
       id: map['id'] as int? ?? 0,
+      remoteId: map['remoteId'] as String? ?? '',
       userId: map['userId'] as String? ?? '',
       imagePath: map['imagePath'] as String? ?? '',
       diseaseLabel: map['diseaseLabel'] as String? ?? '',
@@ -131,6 +163,7 @@ class DetectionResult {
           .toList(),
       timestamp: map['timestamp'] as int? ?? 0,
       isDegraded: (map['isDegraded'] as int? ?? 0) == 1,
+      topCandidates: parseTopCandidates(map['topCandidates']),
       modelVersion: map['modelVersion'] as String?,
       isSynced: (map['isSynced'] as int? ?? 0) == 1,
       syncedAt: parseSyncedAt(map['syncedAt']),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
@@ -9,7 +10,7 @@ import '../config/app_secrets.dart';
 import 'app_logger.dart';
 
 /// Receives inbound deep links (Android App Links / iOS Universal Links) and
-/// routes them in-app. Currently handles Firebase password-reset links so the
+/// routes them in-app. Currently handles password-reset links so the
 /// email link opens the app's in-app reset screen instead of a web page.
 ///
 /// For this to deliver links to the app (rather than a browser), the link's
@@ -47,7 +48,28 @@ class DeepLinkService {
   }
 
   @visibleForTesting
-  void handleUri(Uri uri, GoRouter router) {
+  void handleUri(Uri uri, GoRouter router) async {
+    // 0. Handle Supabase OAuth callback URI
+    if (uri.scheme == 'io.supabase.cropguard' ||
+        uri.host == 'login-callback' ||
+        uri.path.contains('login-callback')) {
+      AppLogger.i('Handling Supabase OAuth callback deep link: $uri');
+      try {
+        await Supabase.instance.client.auth.getSessionFromUrl(uri);
+        if (Supabase.instance.client.auth.currentSession != null) {
+          router.go('/home');
+        } else {
+          await Future<void>.delayed(const Duration(milliseconds: 300));
+          if (Supabase.instance.client.auth.currentSession != null) {
+            router.go('/home');
+          }
+        }
+      } catch (e, s) {
+        AppLogger.e('Failed to extract Supabase session from URL', e, s);
+      }
+      return;
+    }
+
     // 1. Validate scheme
     if (uri.scheme != 'http' && uri.scheme != 'https') {
       AppLogger.w('Rejected deep link with invalid scheme: ${uri.scheme}');
@@ -85,7 +107,7 @@ class DeepLinkService {
 
     if (isReset && ((code != null && code.isNotEmpty) || isRecoveryFragment)) {
       final safeCode = code ?? '';
-      // 4. Validate code against safe characters (Supabase/Firebase tokens)
+      // 4. Validate code against safe characters (Supabase tokens)
       if (safeCode.isNotEmpty) {
         final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
         if (!codeRegex.hasMatch(safeCode)) {

@@ -8,7 +8,7 @@ import 'analytics_service.dart';
 /// the router re-evaluates its redirect whenever the lock state changes.
 ///
 /// When enabled (Settings → biometric lock), the app is locked on cold start and
-/// re-locks when resuming from background after [_grace]. Firebase keeps the
+/// re-locks when resuming from background after [_grace]. Supabase keeps the
 /// user signed in; this only gates UI access.
 class AppLockController extends ChangeNotifier with WidgetsBindingObserver {
   final AnalyticsService? _analytics;

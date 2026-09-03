@@ -118,7 +118,11 @@ Future<void> setupServiceLocator() async {
         sl<ImageUploadService>(),
       ));
   sl.registerLazySingleton<IClassifierRepository>(
-      () => ClassifierRepositoryImpl(CropDiseaseClassifier()));
+      () => ClassifierRepositoryImpl(
+            CropDiseaseClassifier(),
+            null,
+            sl<ClassifierHealthService>(),
+          ));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
         sl<SupabaseAuthService>(),
         sl<DatabaseHelper>(),

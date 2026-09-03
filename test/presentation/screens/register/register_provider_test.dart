@@ -34,6 +34,7 @@ void main() {
     mockAuth = _MockAuthService();
 
     when(() => mockAuth.isAnonymous).thenReturn(false);
+    when(() => mockAuth.isSignedIn).thenReturn(true);
 
     provider = RegisterProvider(
       mockRegisterUseCase,

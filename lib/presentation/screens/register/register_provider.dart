@@ -206,9 +206,9 @@ class RegisterProvider extends ChangeNotifier {
     final msg = failure.message.toLowerCase();
 
     // Always log the raw code in debug so developers can see exactly what
-    // Firebase returned — especially useful for tracking new error codes.
+    // the auth service returned — especially useful for tracking new error codes.
     AppLogger.e(
-      'RegisterProvider: Firebase error code="${code ?? 'none'}" '
+      'RegisterProvider: Auth error code="${code ?? 'none'}" '
       'message="${failure.message}"',
     );
 
@@ -220,7 +220,7 @@ class RegisterProvider extends ChangeNotifier {
         msg.contains('already in use')) {
       return 'An account already exists with that email.';
     }
-    // Firebase returns INVALID_LOGIN_CREDENTIALS when email enumeration
+    // Auth backend returns INVALID_LOGIN_CREDENTIALS when email enumeration
     // protection is enabled — it replaces email-already-in-use.
     if (code == 'INVALID_LOGIN_CREDENTIALS' ||
         code == 'invalid-credential' ||
@@ -248,8 +248,14 @@ class RegisterProvider extends ChangeNotifier {
     }
     if (code == 'network-request-failed' ||
         msg.contains('network') ||
-        msg.contains('socketexception')) {
+        msg.contains('socketexception') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('clientexception')) {
       return 'No internet connection. Please check your network.';
+    }
+    if (msg.contains('database error saving new user') ||
+        msg.contains('database error')) {
+      return 'Database error saving user. Please update the handle_new_user trigger in Supabase SQL Editor.';
     }
     if (code == 'too-many-requests' || msg.contains('too-many-requests')) {
       return 'Too many attempts. Please try again later.';

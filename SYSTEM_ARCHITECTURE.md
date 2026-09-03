@@ -15,13 +15,13 @@ The application follows a strict **Clean Architecture** structure combined with 
     - **Use Cases**: Encapsulated business logic (`ScanCropUseCase`, `LoginUseCase`). Use cases orchestrate multiple repositories and ensure business rules are followed.
 - **Data Layer**: Implementation details.
     - **Repositories (Implementations)**: Concrete implementations that wrap data sources.
-    - **Data Sources**: Low-level services like **sqflite** (SQLite), **Firebase Auth**, **Cloud Firestore**, and **tflite_flutter**.
+    - **Data Sources**: Low-level services like **sqflite** (SQLite), **Supabase Auth**, **Supabase Database (PostgreSQL)**, and **tflite_flutter**.
 - **Presentation Layer**: UI logic.
     - **Providers (MVVM)**: `ChangeNotifier` classes that hold UI state and interact exclusively with **Use Cases**.
     - **Widgets**: Reusable UI components and feature screens.
 
 ### 2. Implementation Strategies
-- **Decoupling**: The UI never interacts directly with Firebase or the Database. All calls go through Use Cases.
+- **Decoupling**: The UI never interacts directly with Supabase or the Database. All calls go through Use Cases.
 - **Error Handling**: A unified `Result` pattern is used to propagate `Failure` objects from the data layer to the UI.
 - **Data Integrity**: Database operations utilize SQLite transactions to ensure consistency.
 - **Offline Capability**: Core functionality, including AI inference and local history, is 100% functional without an internet connection.
@@ -55,7 +55,7 @@ CropGuard AI utilizes a Convolutional Neural Network (CNN) based on the **Mobile
   - **Nominatim Geocoding**: Rate-limited to max 1 request/second via `NominatimService`, identifies with compliant project contact User-Agent, and caches coordinate-bucket reverse lookups in memory and `SharedPreferences`.
 - **Data Retention & User Controls**:
   - Scans are persisted locally in SQLite.
-  - Users can clear local scan history at any time from Settings or initiate full cloud account deletion via Cloud Functions (`deleteUserData`).
+  - Users can clear local scan history at any time from Settings or initiate full cloud account deletion via Edge Functions (`deleteAccount`).
 - **Screen Security**: `ScreenSecurityHelper` prevents screenshots on sensitive pages.
 - **Root & Tamper Detection**: `RootDetectionHelper` checks for device integrity.
 

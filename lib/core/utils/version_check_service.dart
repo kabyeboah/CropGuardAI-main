@@ -1,7 +1,7 @@
 import 'dart:math' as math;
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_secrets.dart';
@@ -11,15 +11,21 @@ class VersionCheckService {
   VersionCheckService._();
 
   /// Checks if the installed app version falls below the `min_required_app_version`
-  /// configured in Firebase Remote Config. Returns `true` if an update is mandatory.
+  /// configured in Supabase app_config table. Returns `true` if an update is mandatory.
   static Future<bool> isUpdateRequired() async {
     try {
       final info = await PackageInfo.fromPlatform();
       final currentVersion = info.version;
 
-      final rc = FirebaseRemoteConfig.instance;
-      await rc.fetchAndActivate().timeout(const Duration(seconds: 4));
-      final minRequiredVersion = rc.getString('min_required_app_version');
+      final client = Supabase.instance.client;
+      final row = await client
+          .from('app_config')
+          .select('value')
+          .eq('key', 'min_app_version')
+          .maybeSingle()
+          .timeout(const Duration(seconds: 4));
+
+      final minRequiredVersion = row?['value']?.toString() ?? '';
 
       if (minRequiredVersion.isEmpty) return false;
       return _isVersionLower(currentVersion, minRequiredVersion);
@@ -29,13 +35,19 @@ class VersionCheckService {
     }
   }
 
-  /// Checks if a newer model version is published in Firebase Remote Config.
-  /// Compares bundled model version [currentVersion] against Remote Config parameter `latest_model_version`.
+  /// Checks if a newer model version is published in Supabase app_config.
+  /// Compares bundled model version [currentVersion] against app_config parameter `latest_model_version`.
   static Future<bool> isModelUpdateAvailable(String currentVersion) async {
     try {
-      final rc = FirebaseRemoteConfig.instance;
-      await rc.fetchAndActivate().timeout(const Duration(seconds: 4));
-      final latestModelVersion = rc.getString('latest_model_version');
+      final client = Supabase.instance.client;
+      final row = await client
+          .from('app_config')
+          .select('value')
+          .eq('key', 'latest_model_version')
+          .maybeSingle()
+          .timeout(const Duration(seconds: 4));
+
+      final latestModelVersion = row?['value']?.toString() ?? '';
 
       if (latestModelVersion.isEmpty) return false;
       return _isVersionLower(currentVersion, latestModelVersion);

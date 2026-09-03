@@ -16,9 +16,7 @@ class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 class MockImageUploadService extends Mock implements ImageUploadService {}
 
 Future<Database> _openTestDb() async {
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
-  final db = await databaseFactoryFfi.openDatabase(
+  return databaseFactoryFfi.openDatabase(
     inMemoryDatabasePath,
     options: OpenDatabaseOptions(
       version: 1,
@@ -27,10 +25,14 @@ Future<Database> _openTestDb() async {
       },
     ),
   );
-  return db;
 }
 
 void main() {
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
   late MockSupabaseDatabaseService mockDatabaseService;
   late MockDatabaseHelper mockDbHelper;
   late MockImageUploadService mockImageUpload;

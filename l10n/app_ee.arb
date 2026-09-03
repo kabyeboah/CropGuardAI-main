@@ -625,7 +625,7 @@
   "privacySection3Title": "3. Data Storage & Retention",
   "privacySection3Body": "Scan records are stored locally on your device via SQLite. Map tiles and geocoding names are cached on device disk to enable offline functionality. Cloud sync is optional and gated behind authentication. You can delete your local scan history in Settings or request complete account deletion at any time.",
   "privacySection4Title": "4. Third-Party Services",
-  "privacySection4Body": "We use Firebase for secure authentication and optional sync (governed by Google's Privacy Policy), OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.",
+  "privacySection4Body": "We use Supabase for secure authentication and optional sync, OpenStreetMap and Nominatim for map tiles and place names, Open-Meteo for localized weather, and Ghana NLP for local language synthesis. We do not share data with any other third parties.",
   "privacySection5Title": "5. Contact",
   "privacySection5Body": "For privacy enquiries or data deletion requests, contact privacy@cropguardai.com.",
   "termsSection1Title": "1. Acceptance of Terms",

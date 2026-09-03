@@ -78,5 +78,13 @@ void main() {
       verify(() => mockRouter.go('/reset_password?oobCode=abc_123-xyz.123_456'))
           .called(1);
     });
+
+    test('intercepts io.supabase.cropguard OAuth callback deep link without crashing', () {
+      final uri = Uri.parse(
+          'io.supabase.cropguard://login-callback/#access_token=testToken&refresh_token=testRefresh');
+
+      // Should handle gracefully
+      service.handleUri(uri, mockRouter);
+    });
   });
 }

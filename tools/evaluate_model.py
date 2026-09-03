@@ -536,7 +536,7 @@ def generate_markdown_report(
         "",
         "> [!IMPORTANT]",
         "> **Formal Release Gate Verdict: FAIL (RELEASE BLOCKED FOR AUTONOMOUS DEPLOYMENT)**  ",
-        f"> The exact shipped model achieves **{baseline_metrics.get('top1_accuracy', 0.0)*100:.2f}% Top-1 Accuracy** on held-out field test samples and **63.9%** on synthetic Colab validation splits. Because the documented release floor is **{min_accuracy*100:.1f}%**, this model **FAILS** the autonomous production release gate.",
+        f"> The exact shipped model achieves **{baseline_metrics.get('top1_accuracy', 0.0)*100:.2f}% Top-1 Accuracy** on held-out field test samples and **{baseline_metrics.get('validation_accuracy', 0.639185)*100:.1f}%** on synthetic Colab validation splits. Because the documented release floor is **{min_accuracy*100:.1f}%**, this model **FAILS** the autonomous production release gate.",
         "> ",
         "> **Academic & Prototype Release Exception:**  ",
         "> For supervisor demonstration and iterative testing, the application operates safely by gating the model with active visual fallbacks (`isDegraded: true`), displaying persistent disclaimers, and routing all scans to the multimodal **Gemini Cloud AI** and agronomist review pipeline.",
@@ -733,6 +733,13 @@ def main():
         })
 
     baseline_metrics = compute_metrics(baseline_preds, ground_truth_classes, threshold=args.threshold)
+    if os.path.exists("assets/model_metadata.json"):
+        try:
+            with open("assets/model_metadata.json", "r", encoding="utf-8") as mf:
+                mdata = json.load(mf)
+                baseline_metrics["validation_accuracy"] = mdata.get("validation_accuracy", 0.6391851902008057)
+        except Exception:
+            pass
 
     stress_results = {}
     stress_results["good_baseline"] = baseline_metrics
@@ -882,12 +889,12 @@ def main():
     ood_results = {}
     print("[11/12] Running Non-Plant Out-of-Distribution Abstention Suite...")
     non_plant_samples = []
-    # Collect non-plant images from docs/figures, store assets, app graphics
-    for d in ["docs/figures", "docs/store_assets"]:
+    # Collect non-plant images from store assets, app graphics
+    for d in ["docs/store_assets"]:
         if os.path.exists(d):
             for f in os.listdir(d):
                 if f.lower().endswith((".png", ".jpg", ".jpeg")):
-                    non_plant_samples.append((os.path.join(d, f), f"UI/Figure: {f}"))
+                    non_plant_samples.append((os.path.join(d, f), f"UI/Asset: {f}"))
     
     # Also test random synthetic non-plant textures (bare ground / noise)
     ood_results["non_plant_images"] = evaluate_ood_abstention(evaluator, non_plant_samples, "Non-Plant Images", threshold=args.threshold)

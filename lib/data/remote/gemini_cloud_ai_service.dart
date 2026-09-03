@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../core/config/app_secrets.dart';
@@ -18,37 +17,29 @@ class GeminiCloudAiException implements Exception {
   String toString() => 'GeminiCloudAiException: $message';
 }
 
-/// Service providing secondary / fallback multimodal crop disease diagnosis using Gemini 1.5 Flash.
+/// Service providing secondary / fallback multimodal crop disease diagnosis using Gemini Cloud AI.
 ///
 /// Architecture:
-/// - In production: Proxies requests through authenticated backend [CloudFunctionsService]
-///   where master API keys are securely stored on Google Cloud / Firebase Secret Manager.
+/// - In production: Proxies requests through authenticated backend [CloudFunctionsService] / Supabase Edge Functions.
 /// - In local debug / testing: Falls back to direct on-client [GenerativeModel] if an API key is
 ///   explicitly provided via AppSecrets / .env.
 class GeminiCloudAiService {
-  final FirebaseRemoteConfig? _remoteConfig;
+  /// Default Gemini model used for multimodal crop disease inference.
+  static const String defaultModelName = 'gemini-3-flash-preview';
+
   final CloudFunctionsService? _functions;
+  final String modelName;
 
   GeminiCloudAiService({
-    FirebaseRemoteConfig? remoteConfig,
     CloudFunctionsService? functions,
-  })  : _remoteConfig = remoteConfig,
-        _functions = functions;
+    this.modelName = defaultModelName,
+  }) : _functions = functions;
 
-  /// Retrieves the active Gemini API key from AppSecrets (dart-define / .env / RemoteConfig).
+  /// Retrieves the active Gemini API key from AppSecrets.
   String _getApiKey() {
     final key = AppSecrets.geminiApiKey;
     if (key != null && key.isNotEmpty) {
       return key;
-    }
-    try {
-      final config = _remoteConfig ?? FirebaseRemoteConfig.instance;
-      final remoteKey = config.getString('gemini_api_key');
-      if (remoteKey.isNotEmpty) {
-        return remoteKey;
-      }
-    } catch (_) {
-      // RemoteConfig not initialized or unavailable in test environment
     }
     const envKey = String.fromEnvironment('GEMINI_API_KEY');
     if (envKey.isNotEmpty) {
@@ -57,7 +48,7 @@ class GeminiCloudAiService {
     return '';
   }
 
-  /// Analyzes a crop leaf image file using Gemini 1.5 Flash multimodal vision model.
+  /// Analyzes a crop leaf image file using Gemini Cloud AI multimodal vision model.
   Future<CloudAiAnalysisResult> analyzeCropImage({
     required String imagePath,
     String? cropType,
@@ -66,7 +57,7 @@ class GeminiCloudAiService {
     final apiKey = _getApiKey();
     if (_functions == null && apiKey.isEmpty) {
       throw const GeminiCloudAiException(
-          'Gemini API key is not configured. Please set gemini_api_key in Firebase Remote Config.');
+          'Gemini API key is not configured. Ensure backend analyze-crop function has GEMINI_API_KEY secret configured, or supply GEMINI_API_KEY in AppSecrets/environment.');
     }
 
     final file = File(imagePath);
@@ -82,7 +73,7 @@ class GeminiCloudAiService {
     );
   }
 
-  /// Analyzes raw crop image bytes using Gemini 1.5 Flash.
+  /// Analyzes raw crop image bytes using Gemini Cloud AI multimodal vision model.
   Future<CloudAiAnalysisResult> analyzeCropImageBytes({
     required Uint8List imageBytes,
     String? cropType,
@@ -110,12 +101,12 @@ class GeminiCloudAiService {
     final apiKey = _getApiKey();
     if (apiKey.isEmpty) {
       throw const GeminiCloudAiException(
-          'Gemini API key is not configured. Please set gemini_api_key in Firebase Remote Config.');
+          'Gemini API key is not configured. Ensure backend analyze-crop function has GEMINI_API_KEY secret configured, or supply GEMINI_API_KEY in AppSecrets/environment.');
     }
 
     try {
       final model = GenerativeModel(
-        model: 'gemini-3-flash-preview',
+        model: modelName,
         apiKey: apiKey,
         generationConfig: GenerationConfig(
           responseMimeType: 'application/json',

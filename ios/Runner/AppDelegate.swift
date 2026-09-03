@@ -7,42 +7,42 @@ import BackgroundTasks
 private let kSyncTaskId = "com.cropguard.ai.sync"
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate {
 
   // Weak ref to the Flutter channel so the BG handler can invoke Dart
   // without retaining the engine.
-  private weak var syncChannel: FlutterMethodChannel?
+  private var syncChannel: FlutterMethodChannel?
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     registerBGSyncTask()
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
+    GeneratedPluginRegistrant.register(with: self)
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let success = super.application(application, didFinishLaunchingWithOptions: launchOptions)
 
-    // Wire up the method channel that Dart uses to ask iOS to schedule/cancel
-    // the next BGAppRefreshTask wake-up.
-    let messenger = engineBridge.binaryMessenger
-    syncChannel = FlutterMethodChannel(
-      name: "com.cropguard.ai/bg_sync",
-      binaryMessenger: messenger
-    )
-    syncChannel?.setMethodCallHandler { [weak self] call, result in
-      switch call.method {
-      case "scheduleBGSync":
-        self?.scheduleBGAppRefresh()
-        result(nil)
-      case "cancelBGSync":
-        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: kSyncTaskId)
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let channel = FlutterMethodChannel(
+        name: "com.cropguard.ai/bg_sync",
+        binaryMessenger: controller.binaryMessenger
+      )
+      self.syncChannel = channel
+      channel.setMethodCallHandler { [weak self] call, result in
+        switch call.method {
+        case "scheduleBGSync":
+          self?.scheduleBGAppRefresh()
+          result(nil)
+        case "cancelBGSync":
+          BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: kSyncTaskId)
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
       }
     }
+
+    return success
   }
 
   // ─── BGTaskScheduler ─────────────────────────────────────────────────────

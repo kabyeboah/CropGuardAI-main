@@ -486,7 +486,11 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final avgConfidence = _averageConfidence;
-    final pct = (avgConfidence * 100).toInt();
+    final topCandidateConfidence = _mergedCandidates.isNotEmpty
+        ? _mergedCandidates.first.confidence
+        : avgConfidence;
+    final pct = (topCandidateConfidence * 100).toInt();
+    final rawPct = (avgConfidence * 100).toInt();
 
     return PopScope(
       canPop: Navigator.of(context).canPop(),
@@ -649,7 +653,9 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                                   ),
                             ),
                             subtitle: Text(
-                              'Local model estimate below 0.60 threshold (unverified)',
+                              rawPct != pct
+                                  ? 'Regional risk-adjusted: $pct% (Raw model: $rawPct%)'
+                                  : 'Local model estimate below 0.60 threshold (unverified)',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: colors.onBackgroundSecondary,
@@ -662,7 +668,7 @@ class _LowConfidenceScreenState extends State<LowConfidenceScreen> {
                               ),
                               const SizedBox(height: 10),
                               ConfidenceBar(
-                                confidence: avgConfidence,
+                                confidence: topCandidateConfidence,
                                 color: colors.lowConfidence,
                               ),
                               if (_anglesCaptured > 1) ...[

@@ -18,11 +18,6 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.8.3
 
-  # Firebase
-  firebase_core: 4.10.0
-  firebase_remote_config: ^6.5.2
-  firebase_app_check: ^0.4.4
-  firebase_messaging: ^16.3.0
   google_sign_in: ^6.2.2
 
   # Local storage
@@ -117,9 +112,8 @@ dependencies:
   flutter_cache_manager: ^3.4.1
 
   package_info_plus: ^10.1.0
-  firebase_crashlytics: ^5.2.3
-  firebase_analytics: ^12.0.0
   flutter_windowmanager_plus: ^1.0.1
+  flutter_web_auth_2: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -131,7 +125,6 @@ dev_dependencies:
   sqflite_common_ffi: ^2.3.3
 
 dependency_overrides:
-  firebase_core_platform_interface: 6.0.3
   record_linux: ^1.2.0
 
 flutter:
@@ -139,9 +132,9 @@ flutter:
   uses-material-design: true
   assets:
     # NOTE: .env is intentionally NOT bundled — secrets must never ship inside
-    # the app binary. Release builds supply secrets via --dart-define or Firebase
-    # Remote Config (see core/config/app_secrets.dart). .env is loaded at runtime
-    # only when present (local dev); see main.dart.
+    # the app binary. Production builds supply secrets via --dart-define or
+    # Supabase Edge Function secrets. .env is loaded at runtime only when present
+    # (local dev); see main.dart.
     - assets/cropguard_plant_disease.tflite
     - assets/labels.txt
     - assets/model_metadata.json

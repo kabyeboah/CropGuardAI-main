@@ -21,7 +21,7 @@
       "authentication": {
         "headerName": "Ocp-Apim-Subscription-Key",
         "credentialType": "subscription_key",
-        "storageLocation": "Firebase Secret Manager (server-side only)"
+        "storageLocation": "Supabase Secrets (server-side only)"
       },
       "request": {
         "contentType": "audio/wav",
@@ -92,7 +92,7 @@
       "authentication": {
         "headerName": "Ocp-Apim-Subscription-Key",
         "credentialType": "subscription_key",
-        "storageLocation": "Firebase Secret Manager (server-side only)"
+        "storageLocation": "Supabase Secrets (server-side only)"
       },
       "request": {
         "contentType": "application/json",
@@ -155,7 +155,7 @@
       "authentication": {
         "headerName": "Ocp-Apim-Subscription-Key",
         "credentialType": "subscription_key",
-        "storageLocation": "Firebase Secret Manager (server-side only)"
+        "storageLocation": "Supabase Secrets (server-side only)"
       },
       "request": {
         "contentType": "application/json",

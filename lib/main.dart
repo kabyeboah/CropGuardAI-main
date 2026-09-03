@@ -1,49 +1,39 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/config/app_secrets.dart';
-import 'core/utils/push_notification_service.dart';
 import 'app.dart';
+import 'core/config/app_secrets.dart';
 import 'core/di/service_locator.dart';
-import 'core/utils/notification_helper.dart';
-import 'core/utils/background_tasks.dart';
-import 'core/utils/app_bootstrap.dart';
 import 'core/utils/analytics_service.dart';
+import 'core/utils/app_bootstrap.dart';
 import 'core/utils/app_lock_controller.dart';
-import 'core/utils/deep_link_service.dart';
-import 'presentation/navigation/app_router.dart';
-import 'firebase_options.dart';
-
-import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'core/utils/app_logger.dart';
-import 'core/utils/diagnostic_sanitizer.dart';
+import 'core/utils/background_tasks.dart';
+import 'core/utils/deep_link_service.dart';
+import 'core/utils/notification_helper.dart';
+import 'core/utils/push_notification_service.dart';
+import 'presentation/navigation/app_router.dart';
 
 // Start the stopwatch immediately when the app entrypoint file is loaded
 final Stopwatch startupStopwatch = Stopwatch()..start();
 
 void main() async {
-  // firebaseReady is set to true once Firebase.initializeApp() completes so
-  // the zone error handler can safely decide whether Crashlytics is available.
-  bool firebaseReady = false;
-
   unawaited(runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     // Optional local-dev convenience only. `.env` is NOT bundled as an asset
     // (secrets must never ship in the binary), so this load is expected to be a
-    // no-op in release — production secrets come from --dart-define / Firebase
-    // Remote Config (see core/config/app_secrets.dart). To use a .env locally,
-    // a developer can temporarily add it back to pubspec assets.
+    // no-op in release — production secrets come from --dart-define / Supabase
+    // app_config table.
     if (kDebugMode) {
       try {
         await dotenv.load(fileName: '.env');
       } catch (_) {
-        // No .env present — fine; AppSecrets falls back to dart-define/Remote Config.
+        // No .env present — fine; AppSecrets falls back to dart-define/app_config.
       }
     }
 
@@ -58,37 +48,10 @@ void main() async {
       AppLogger.e('Supabase initialization failed', e, s);
     }
 
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      firebaseReady = true;
-    } catch (e, s) {
-      AppLogger.w('Firebase initialization non-fatal warning: $e', s);
-    }
-
     FlutterError.onError = (details) {
-      final cleanException =
-          DiagnosticSanitizer.sanitizeError(details.exception);
-      final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(details.stack);
-      if (AppLogger.isCrashlyticsEnabled) {
-        FirebaseCrashlytics.instance.recordError(
-          cleanException,
-          cleanStack,
-          reason: DiagnosticSanitizer.sanitizeString(
-              details.context?.toString() ?? 'Flutter Error'),
-          fatal: true,
-        );
-      }
       AppLogger.e('Flutter Error', details.exception, details.stack);
     };
     PlatformDispatcher.instance.onError = (error, stack) {
-      final cleanErr = DiagnosticSanitizer.sanitizeError(error);
-      final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(stack);
-      if (AppLogger.isCrashlyticsEnabled) {
-        FirebaseCrashlytics.instance
-            .recordError(cleanErr, cleanStack, fatal: true);
-      }
       AppLogger.e('Platform Error', error, stack);
       return true;
     };
@@ -136,8 +99,7 @@ void main() async {
       AppLogger.e('AppLockController startup failed', e, s);
     }
 
-    // Attribute crashes and analytics to the current user across every auth
-    // path (login/register/google/anonymous/logout) ONLY when user consented.
+    // Handle auth state changes and route redirects
     try {
       Supabase.instance.client.auth.onAuthStateChange.listen((data) {
         final user = data.session?.user;
@@ -147,13 +109,7 @@ void main() async {
         final analytics =
             sl.isRegistered<AnalyticsService>() ? sl<AnalyticsService>() : null;
         if (analytics?.isEnabled == true) {
-          if (firebaseReady) {
-            unawaited(
-                FirebaseCrashlytics.instance.setUserIdentifier(user?.id ?? ''));
-          }
           unawaited(analytics?.setUser(isAnonymous: user?.isAnonymous ?? false));
-        } else if (firebaseReady) {
-          unawaited(FirebaseCrashlytics.instance.setUserIdentifier(''));
         }
       });
     } catch (_) {}
@@ -165,10 +121,8 @@ void main() async {
       ),
     );
 
-    // Non-critical startup work runs *after* the first frame so a slow or
-    // flaky network (Remote Config fetch can take up to its 1-min timeout)
-    // never blocks the splash screen. Nothing in the first seconds of app
-    // life depends on these; secrets fall back to .env until they resolve.
+    // Non-critical startup work runs *after* the first frame so a slow network
+    // never blocks the splash screen.
     unawaited(AppBootstrap.runStartupTasks());
     // Register the periodic outbreak-proximity check (no-op on non-Android and
     // a no-op re-register thanks to the `keep` policy).
@@ -177,14 +131,6 @@ void main() async {
     // opens the in-app reset screen rather than a web page.
     unawaited(sl<DeepLinkService>().init(AppRouter.router));
   }, (error, stack) {
-    if (firebaseReady && AppLogger.isCrashlyticsEnabled) {
-      try {
-        final cleanErr = DiagnosticSanitizer.sanitizeError(error);
-        final cleanStack = DiagnosticSanitizer.sanitizeStackTrace(stack);
-        unawaited(FirebaseCrashlytics.instance
-            .recordError(cleanErr, cleanStack, fatal: true));
-      } catch (_) {}
-    }
     AppLogger.e('Uncaught Error', error, stack);
   }));
 }

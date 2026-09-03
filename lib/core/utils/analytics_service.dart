@@ -1,51 +1,29 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/widgets.dart';
 
 import 'app_logger.dart';
 import 'diagnostic_sanitizer.dart';
 
-/// Thin wrapper around Firebase Analytics for product funnel tracking.
+/// Clean privacy-first AnalyticsService for product funnel tracking.
 ///
 /// Every call is best-effort and swallows errors so analytics can never crash a
-/// user flow. Keep event names <=40 chars and snake_case (Firebase constraint).
-/// The matching navigator observer ([observer]) is wired in `app.dart` to log
-/// `screen_view` automatically for go_router routes.
+/// user flow. When user consent is disabled, no tracking occurs.
 class AnalyticsService {
-  AnalyticsService([
-    FirebaseAnalytics? analytics,
-    FirebaseCrashlytics? crashlytics,
-  ])  : _analytics = analytics ?? FirebaseAnalytics.instance,
-        _crashlytics = crashlytics ?? FirebaseCrashlytics.instance;
-
-  final FirebaseAnalytics _analytics;
-  final FirebaseCrashlytics _crashlytics;
-
-  /// User-controlled consent (Settings → "Share usage analytics"). When false,
-  /// no events are sent and Firebase collection is disabled at the SDK level.
-  /// Strict opt-in default: false until user grants consent.
   bool _enabled = false;
+  final List<Map<String, dynamic>> _inMemoryEvents = [];
 
   bool get isEnabled => _enabled;
+  List<Map<String, dynamic>> get recordedEvents => List.unmodifiable(_inMemoryEvents);
 
-  FirebaseAnalyticsObserver get observer =>
-      FirebaseAnalyticsObserver(analytics: _analytics);
+  NavigatorObserver get observer => _AnalyticsNavigatorObserver(this);
 
-  /// Applies the user's analytics consent across Analytics, Crashlytics, and AppLogger.
+  /// Applies the user's analytics consent.
   /// Persisted by SettingsProvider and re-applied on startup.
   Future<void> setEnabled(bool enabled) async {
     _enabled = enabled;
     AppLogger.setCrashlyticsEnabled(enabled);
-
-    try {
-      await _analytics.setAnalyticsCollectionEnabled(enabled);
-    } catch (_) {/* best-effort */}
-
-    try {
-      await _crashlytics.setCrashlyticsCollectionEnabled(enabled);
-      if (!enabled) {
-        await _crashlytics.setUserIdentifier('');
-      }
-    } catch (_) {/* best-effort */}
+    if (!enabled) {
+      _inMemoryEvents.clear();
+    }
   }
 
   Future<void> _log(String name, [Map<String, Object>? params]) async {
@@ -53,7 +31,15 @@ class AnalyticsService {
     try {
       final cleanParams =
           params != null ? DiagnosticSanitizer.sanitizeMap(params) : null;
-      await _analytics.logEvent(name: name, parameters: cleanParams);
+      _inMemoryEvents.add({
+        'name': name,
+        'params': cleanParams,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+      if (_inMemoryEvents.length > 500) {
+        _inMemoryEvents.removeAt(0);
+      }
+      AppLogger.d('Analytics: $name ${cleanParams ?? ""}');
     } catch (e, s) {
       AppLogger.e('Analytics event "$name" failed', e, s);
     }
@@ -61,10 +47,7 @@ class AnalyticsService {
 
   Future<void> setUser({required bool isAnonymous}) async {
     if (!_enabled) return;
-    try {
-      await _analytics.setUserProperty(
-          name: 'is_anonymous', value: isAnonymous.toString());
-    } catch (_) {/* best-effort */}
+    AppLogger.d('Analytics: setUser(isAnonymous: $isAnonymous)');
   }
 
   // ── Funnel events ──────────────────────────────────────────────────────────
@@ -134,4 +117,18 @@ class AnalyticsService {
 
   Future<void> logModelFallbackUsed({required String reason}) =>
       _log('model_fallback_used', {'reason': reason});
+}
+
+class _AnalyticsNavigatorObserver extends NavigatorObserver {
+  final AnalyticsService _service;
+  _AnalyticsNavigatorObserver(this._service);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    final name = route.settings.name;
+    if (name != null && name.isNotEmpty) {
+      _service._log('screen_view', {'screen_name': name});
+    }
+  }
 }

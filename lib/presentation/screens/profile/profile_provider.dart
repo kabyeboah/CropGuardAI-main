@@ -65,7 +65,7 @@ class ProfileProvider extends ChangeNotifier {
   String get userName => _authRepository.currentUser?.displayName ?? 'Farmer';
   String get userEmail => _authRepository.currentUser?.email ?? '';
 
-  /// Cloud copy of the avatar (synced to Firebase Auth) — used as a fallback
+  /// Cloud copy of the avatar (synced to Auth backend) — used as a fallback
   /// when there is no local file (e.g. fresh install on a new device).
   String? get avatarUrl => _authRepository.currentUser?.photoUrl;
 

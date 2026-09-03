@@ -296,5 +296,44 @@ void main() {
       expect(
           find.textContaining('On-Device Preliminary Guess'), findsOneWidget);
     });
+
+    testWidgets(
+        'displays consistent adjusted top candidate confidence in preliminary guess title and top guesses list',
+        (tester) async {
+      final candidates = [
+        (label: 'Tomato___Late_blight', confidence: 0.35),
+        (label: 'Tomato___Early_blight', confidence: 0.30),
+      ];
+
+      final realRisks = [
+        const DiseaseRisk(
+          type: DiseaseRiskType.lateBlight,
+          level: RiskLevel.high,
+          humidity: 90,
+          temp: 22,
+          hasNearbyOutbreak: true,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        buildWidget(
+          child: LowConfidenceScreen(
+            confidence: 0.35,
+            imagePath: '/fake/path.jpg',
+            topCandidates: candidates,
+            regionalRisks: realRisks,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Expand on-device ExpansionTile
+      await tester.tap(find.byType(ExpansionTile));
+      await tester.pumpAndSettle();
+
+      // Subtitle clearly documents both adjusted percentage and raw model percentage
+      expect(find.textContaining('Regional risk-adjusted:'), findsOneWidget);
+      expect(find.textContaining('Raw model: 35%'), findsOneWidget);
+    });
   });
 }

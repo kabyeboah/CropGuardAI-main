@@ -5,12 +5,17 @@ import '../../domain/repositories/i_classifier_repository.dart';
 import '../ml/crop_disease_classifier.dart';
 import '../ml/ood_gate.dart';
 
+import '../../core/utils/classifier_health_service.dart';
+
 class ClassifierRepositoryImpl implements IClassifierRepository {
   final CropDiseaseClassifier _classifier;
   final OODGate _oodGate;
+  final ClassifierHealthService? _healthService;
 
-  ClassifierRepositoryImpl(this._classifier, [OODGate? oodGate])
-      : _oodGate = oodGate ?? AlwaysAcceptOODGate();
+  ClassifierRepositoryImpl(this._classifier,
+      [OODGate? oodGate, ClassifierHealthService? healthService])
+      : _oodGate = oodGate ?? AlwaysAcceptOODGate(),
+        _healthService = healthService;
 
   Failure _mapException(Object e) {
     if (e is ModelLoadException) {
@@ -65,11 +70,17 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
             result.qualityResult!.issue, 'Image quality check failed'));
       }
       if (result.engineUnavailable) {
+        _healthService?.updateHealth(isHealthy: false);
         return Result.error(const ModelLoadFailure(
             'ML engine unavailable on this platform or device'));
       }
+      _healthService?.updateHealth(
+        isHealthy: true,
+        modelVersion: result.modelVersion,
+      );
       return Result.success(_mapClassification(result));
     } catch (e) {
+      _healthService?.updateHealth(isHealthy: false);
       return Result.error(_mapException(e));
     }
   }
@@ -94,11 +105,17 @@ class ClassifierRepositoryImpl implements IClassifierRepository {
             result.qualityResult!.issue, 'Image quality check failed'));
       }
       if (result.engineUnavailable) {
+        _healthService?.updateHealth(isHealthy: false);
         return Result.error(const ModelLoadFailure(
             'ML engine unavailable on this platform or device'));
       }
+      _healthService?.updateHealth(
+        isHealthy: true,
+        modelVersion: result.modelVersion,
+      );
       return Result.success(_mapClassification(result));
     } catch (e) {
+      _healthService?.updateHealth(isHealthy: false);
       return Result.error(_mapException(e));
     }
   }

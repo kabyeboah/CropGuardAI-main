@@ -9,7 +9,7 @@ import '../../components/primary_button.dart';
 
 /// In-app completion of a password reset. Reached when the user taps the reset
 /// link in their email and the app intercepts the deep link (see
-/// DeepLinkService). The [oobCode] is the Firebase one-time action code carried
+/// DeepLinkService). The [oobCode] is the one-time action code / token carried
 /// in the link — never the user's password.
 class ResetPasswordScreen extends StatefulWidget {
   final String oobCode;

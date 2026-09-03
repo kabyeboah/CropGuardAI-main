@@ -49,7 +49,49 @@ void main() {
 
       expect(res.isSuccess, isTrue);
       expect(res.data, 42);
-      verify(() => mockDb.insertDetection(_kDetection)).called(1);
+      verify(() => mockDb.insertDetection(any(that: isA<DetectionResult>()
+          .having((d) => d.id, 'id', _kDetection.id)))).called(1);
+    });
+
+    test('saveDetection ensures remoteId is populated and distinct across calls',
+        () async {
+      final captured = <DetectionResult>[];
+      when(() => mockDb.insertDetection(any())).thenAnswer((inv) async {
+        final d = inv.positionalArguments[0] as DetectionResult;
+        captured.add(d);
+        return captured.length;
+      });
+
+      const d1 = DetectionResult(
+        imagePath: 'p1',
+        diseaseLabel: 'l1',
+        displayName: 'd1',
+        confidence: 0.9,
+        isHealthy: true,
+        cropType: 'c1',
+        cause: '',
+        treatments: [],
+        timestamp: 100,
+      );
+      const d2 = DetectionResult(
+        imagePath: 'p2',
+        diseaseLabel: 'l2',
+        displayName: 'd2',
+        confidence: 0.8,
+        isHealthy: false,
+        cropType: 'c2',
+        cause: '',
+        treatments: [],
+        timestamp: 200,
+      );
+
+      await repository.saveDetection(d1);
+      await repository.saveDetection(d2);
+
+      expect(captured.length, 2);
+      expect(captured[0].remoteId, isNotEmpty);
+      expect(captured[1].remoteId, isNotEmpty);
+      expect(captured[0].remoteId, isNot(equals(captured[1].remoteId)));
     });
 
     test('saveDetection returns error on cache/db failure', () async {
