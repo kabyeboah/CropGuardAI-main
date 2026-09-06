@@ -175,7 +175,7 @@ class AppSecrets {
 
   // Fallback values — safe to ship in the binary (they are not secrets).
   static const _defaultPasswordResetUrl =
-      'https://cropguardai.app/reset-password';
+      'io.supabase.cropguard://reset-password';
   static const _defaultAndroidPackage = 'com.cropguard.ai.app';
   static const _defaultIosBundleId = 'com.cropguard.ai.app';
 

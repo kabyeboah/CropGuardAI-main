@@ -292,6 +292,8 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
   final _auth = sl<SupabaseAuthService>();
   // Raw reports as fetched, kept so filters can re-aggregate without re-querying.
   List<Map<String, dynamic>> _allReports = [];
+  // Locally submitted reports during the session (optimistic UI & seed data integration).
+  final List<Map<String, dynamic>> _localSubmittedReports = [];
   List<_Hotspot> _hotspots = [];
   bool _loading = true;
   // True when we are displaying seed/demo data rather than real Firestore reports.
@@ -964,9 +966,33 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                     r['source'] != 'seed' &&
                     !blockedIds.contains(r['userId'] as String? ?? ''))
                 .toList();
+
+        // Merge cloud/pending fetched reports and local submitted reports, deduplicating by id.
+        final combinedReal = <Map<String, dynamic>>[];
+        final seenIds = <String>{};
+
+        for (final r in _localSubmittedReports) {
+          final id = r['id']?.toString() ?? '';
+          if (id.isNotEmpty) seenIds.add(id);
+          combinedReal.add(r);
+        }
+
+        for (final r in fetched) {
+          final id = r['id']?.toString() ?? '';
+          if (id.isNotEmpty && seenIds.contains(id)) {
+            final idx =
+                combinedReal.indexWhere((x) => x['id']?.toString() == id);
+            if (idx != -1) combinedReal[idx] = r;
+          } else {
+            if (id.isNotEmpty) seenIds.add(id);
+            combinedReal.add(r);
+          }
+        }
+
         final useSeed = fetched.isEmpty;
-        _allReports = useSeed ? _kSeedOutbreakReports : fetched;
         _isShowingSeedData = useSeed;
+        _allReports =
+            useSeed ? [...combinedReal, ..._kSeedOutbreakReports] : combinedReal;
         setState(() {
           var aggregated = _aggregate(_filteredReports());
           if (_severityFilter != 'All') {
@@ -983,7 +1009,7 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _allReports = _kSeedOutbreakReports;
+        _allReports = [..._localSubmittedReports, ..._kSeedOutbreakReports];
         _isShowingSeedData = true;
         setState(() {
           var aggregated = _aggregate(_filteredReports());
@@ -1515,7 +1541,28 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                         position!.latitude, position!.longitude)
                                     : manualRegion!;
 
+                                double? lat;
+                                double? lng;
+                                if (position != null) {
+                                  lat = LocationHelper.coarsen(
+                                      position!.latitude,
+                                      precision: 2);
+                                  lng = LocationHelper.coarsen(
+                                      position!.longitude,
+                                      precision: 2);
+                                } else {
+                                  final centroid =
+                                      GhanaRegion.regionCentroid(reportRegion);
+                                  if (centroid != null) {
+                                    lat = centroid.$1;
+                                    lng = centroid.$2;
+                                  }
+                                }
+
+                                final tempId =
+                                    'local_${DateTime.now().millisecondsSinceEpoch}';
                                 final reportPayload = <String, dynamic>{
+                                  'id': tempId,
                                   'userId': currentUserId,
                                   'disease': diseaseName,
                                   'diseaseName': diseaseName,
@@ -1526,20 +1573,40 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                   'region': reportRegion,
                                   if (prefillConfidence != null)
                                     'confidence': prefillConfidence,
-                                  if (position != null) ...{
-                                    // Coarsen GPS coordinates to 2 decimal places (~1.1 km)
-                                    // to protect exact farm boundaries and private property.
-                                    'latitude': LocationHelper.coarsen(
-                                        position!.latitude,
-                                        precision: 2),
-                                    'longitude': LocationHelper.coarsen(
-                                        position!.longitude,
-                                        precision: 2),
-                                  },
+                                  if (lat != null) 'latitude': lat,
+                                  if (lng != null) 'longitude': lng,
                                   'notes': notesController.text.trim(),
                                   'timestamp':
                                       DateTime.now().toUtc().toIso8601String(),
                                 };
+
+                                // Optimistically add to local submitted reports and update UI immediately
+                                _localSubmittedReports.insert(0, reportPayload);
+                                _allReports = _isShowingSeedData
+                                    ? [
+                                        ..._localSubmittedReports,
+                                        ..._kSeedOutbreakReports
+                                      ]
+                                    : [
+                                        ..._localSubmittedReports,
+                                        ..._allReports
+                                      ];
+
+                                var aggregated =
+                                    _aggregate(_filteredReports());
+                                if (_severityFilter != 'All') {
+                                  aggregated = aggregated
+                                      .where((h) =>
+                                          h.severity == _severityFilter)
+                                      .toList();
+                                }
+                                _hotspots = aggregated;
+                                _buildMarkers();
+                                setState(() {});
+
+                                if (lat != null && lng != null && _mapReady) {
+                                  _mapController.move(LatLng(lat, lng), 9.0);
+                                }
 
                                 final res = await _communityRepo
                                     .submitOutbreakReport(reportPayload);
@@ -1980,17 +2047,19 @@ class _OutbreakMapScreenState extends State<OutbreakMapScreen> {
                                           borderRadius:
                                               BorderRadius.circular(10),
                                         ),
-                                        child: const Row(
+                                        child: Row(
                                           children: [
-                                            Icon(Icons.info_outline,
+                                            const Icon(Icons.info_outline,
                                                 color: Color(0xFFF59E0B),
                                                 size: 18),
-                                            SizedBox(width: 10),
+                                            const SizedBox(width: 10),
                                             Expanded(
                                               child: Text(
-                                                'Example data — no real reports yet. '
-                                                'These are illustrative outbreaks for demonstration.',
-                                                style: TextStyle(
+                                                _localSubmittedReports.isNotEmpty
+                                                    ? 'Showing your recent report(s) alongside example demonstration outbreaks.'
+                                                    : 'Example data — no real reports yet. '
+                                                        'These are illustrative outbreaks for demonstration.',
+                                                style: const TextStyle(
                                                   fontSize: 12,
                                                   color: Color(0xFF92400E),
                                                 ),

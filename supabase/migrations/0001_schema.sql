@@ -11,14 +11,31 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
     display_name TEXT DEFAULT 'Farmer',
+    full_name TEXT DEFAULT 'Farmer',
     photo_url TEXT,
+    avatar_url TEXT,
     phone_number TEXT,
     region TEXT,
     district TEXT,
     language_preference TEXT DEFAULT 'en',
+    crop_types TEXT[] DEFAULT '{}',
+    farm_size_acres NUMERIC,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure columns exist if table was previously created with an older schema
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT 'Farmer';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT DEFAULT 'Farmer';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS region TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS language_preference TEXT DEFAULT 'en';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS crop_types TEXT[] DEFAULT '{}';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS farm_size_acres NUMERIC;
 
 -- Trigger to create profile automatically on auth.users creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -27,23 +44,40 @@ SECURITY DEFINER
 SET search_path = public
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_name TEXT;
+    v_avatar TEXT;
 BEGIN
-    INSERT INTO public.profiles (id, email, display_name, created_at, updated_at)
+    v_name := COALESCE(
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'display_name',
+        NEW.raw_user_meta_data->>'name',
+        'Farmer'
+    );
+    v_avatar := COALESCE(
+        NEW.raw_user_meta_data->>'avatar_url',
+        NEW.raw_user_meta_data->>'picture',
+        NEW.raw_user_meta_data->>'photo_url',
+        NULL
+    );
+
+    INSERT INTO public.profiles (id, email, display_name, full_name, photo_url, avatar_url, created_at, updated_at)
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(
-            NEW.raw_user_meta_data->>'full_name',
-            NEW.raw_user_meta_data->>'display_name',
-            NEW.raw_user_meta_data->>'name',
-            'Farmer'
-        ),
+        v_name,
+        v_name,
+        v_avatar,
+        v_avatar,
         now(),
         now()
     )
     ON CONFLICT (id) DO UPDATE
-        SET email = EXCLUDED.email,
+        SET email = COALESCE(EXCLUDED.email, public.profiles.email),
             display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name),
+            full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
+            photo_url = COALESCE(EXCLUDED.photo_url, public.profiles.photo_url),
+            avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
             updated_at = now();
     RETURN NEW;
 EXCEPTION
@@ -57,6 +91,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 
 -- ─── 2. Community Posts Table ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.posts (

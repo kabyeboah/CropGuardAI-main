@@ -42,8 +42,21 @@ class LoginProvider extends ChangeNotifier {
 
   int get anonScanCount => _anonScanCount;
 
+  void reset() {
+    status = LoginStatus.idle;
+    errorMessage = null;
+    _anonUid = null;
+    _anonScanCount = 0;
+    _pendingOnSuccess = null;
+    notifyListeners();
+  }
+
   Future<void> _captureAnonState() async {
-    if (!_auth.isAnonymous) return;
+    if (!_auth.isAnonymous) {
+      _anonUid = null;
+      _anonScanCount = 0;
+      return;
+    }
     _anonUid = _auth.currentUserId;
     _anonScanCount = await _db.countDetectionsForUser(_anonUid!);
   }
@@ -68,12 +81,13 @@ class LoginProvider extends ChangeNotifier {
     VoidCallback onSuccess, {
     void Function(int count)? onMigrationNeeded,
   }) async {
-    if (email.isEmpty || password.isEmpty) {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty || password.isEmpty) {
       errorMessage = 'Please fill in all fields.';
       notifyListeners();
       return;
     }
-    if (!EmailValidator.isValid(email)) {
+    if (!EmailValidator.isValid(normalizedEmail)) {
       errorMessage = 'Please enter a valid email address.';
       notifyListeners();
       return;
@@ -83,7 +97,7 @@ class LoginProvider extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
 
-    final result = await _loginUseCase(email, password);
+    final result = await _loginUseCase(normalizedEmail, password);
     if (result.isSuccess) {
       status = LoginStatus.success;
       unawaited(_analytics.logLogin(method: 'email'));

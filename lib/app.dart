@@ -32,9 +32,8 @@ class _CropGuardAppState extends State<CropGuardApp> {
         return MaterialApp.router(
           title: 'CropGuard AI',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: settings.themeMode,
+          theme: AppTheme.green,
+          themeMode: ThemeMode.light,
           routerConfig: AppRouter.router,
           locale: settings.locale,
           localizationsDelegates: const [

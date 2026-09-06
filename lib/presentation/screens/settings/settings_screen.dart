@@ -58,14 +58,6 @@ class SettingsScreen extends StatelessWidget {
             ),
             // Display section
             _SectionHeader(l10n.sectionDisplay),
-            _ThemeModeRow(
-              value: provider.themeMode,
-              onChanged: provider.setThemeMode,
-              labelLight: l10n.themeLight,
-              labelAuto: l10n.themeAuto,
-              labelDark: l10n.themeDark,
-              themeLabel: l10n.theme,
-            ),
             _ToggleRow(
               label: l10n.largeTextMode,
               value: provider.largeTextMode,
@@ -394,70 +386,6 @@ class _ActionRow extends StatelessWidget {
                 trailing ?? Icon(Icons.chevron_right, color: colors.muted),
               ],
             ),
-          ),
-        ),
-        Divider(height: 0, color: colors.divider, indent: 16, endIndent: 16),
-      ],
-    );
-  }
-}
-
-class _ThemeModeRow extends StatelessWidget {
-  final ThemeMode value;
-  final ValueChanged<ThemeMode> onChanged;
-  final String themeLabel;
-  final String labelLight;
-  final String labelAuto;
-  final String labelDark;
-
-  const _ThemeModeRow({
-    required this.value,
-    required this.onChanged,
-    required this.themeLabel,
-    required this.labelLight,
-    required this.labelAuto,
-    required this.labelDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(themeLabel, style: Theme.of(context).textTheme.bodyLarge),
-              SegmentedButton<ThemeMode>(
-                // Selected segment uses the app's green accent rather than the
-                // default Material secondaryContainer, for token consistency.
-                style: SegmentedButton.styleFrom(
-                  selectedBackgroundColor: colors.primary,
-                  selectedForegroundColor: Colors.white,
-                ),
-                segments: [
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: const Icon(Icons.light_mode, size: 16),
-                    label: Text(labelLight),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: const Icon(Icons.brightness_auto, size: 16),
-                    label: Text(labelAuto),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: const Icon(Icons.dark_mode, size: 16),
-                    label: Text(labelDark),
-                  ),
-                ],
-                selected: {value},
-                onSelectionChanged: (modes) => onChanged(modes.first),
-              ),
-            ],
           ),
         ),
         Divider(height: 0, color: colors.divider, indent: 16, endIndent: 16),

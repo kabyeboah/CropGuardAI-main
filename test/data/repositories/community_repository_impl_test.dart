@@ -105,6 +105,34 @@ void main() {
     });
   });
 
+  group('CommunityRepositoryImpl.getOutbreakReports', () {
+    test('merges pending outbreak reports from PendingSyncQueue with cloud reports',
+        () async {
+      await PendingSyncQueue.enqueue(
+        db,
+        type: PendingSyncType.outbreakReport,
+        payload: {
+          'diseaseName': 'Maize Rust',
+          'region': 'Ashanti',
+        },
+      );
+
+      when(() => mockDatabaseService.getOutbreakReports()).thenAnswer((_) async => [
+            {'id': 'cloud_1', 'diseaseName': 'Cassava Mosaic', 'region': 'Bono'}
+          ]);
+
+      final res = await repo.getOutbreakReports();
+      expect(res.isSuccess, true);
+      final reports = res.data!;
+      expect(reports.length, 2);
+      expect(
+          reports.any((r) =>
+              r['diseaseName'] == 'Maize Rust' && r['isPending'] == true),
+          true);
+      expect(reports.any((r) => r['id'] == 'cloud_1'), true);
+    });
+  });
+
   group('CommunityRepositoryImpl.reportPost', () {
     test('rejects unauthenticated caller when reporterId is empty', () async {
       final res = await repo.reportPost(

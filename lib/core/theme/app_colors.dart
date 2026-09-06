@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 
 /// Exact translation of CropGuardPalette from Color.kt
 class AppColors {
-  // ─── Light Palette ───────────────────────────────────────────────────────
+  // ─── Green Palette (Unified UI) ───────────────────────────────────────────
   static const Color primaryLight = Color(0xFF2D6A1F);
   static const Color primaryLightVariant = Color(0xFF4C9A3C);
   static const Color primaryDarkLight = Color(0xFF1A3D0A);
-  static const Color backgroundLight = Color(0xFFF9FBF8);
+  static const Color backgroundLight = Color(0xFFF1F7EE);
   static const Color surfaceLight = Color(0xFFFFFFFF);
-  static const Color surfaceVariantLight = Color(0xFFF1F5EF);
+  static const Color surfaceVariantLight = Color(0xFFE2EFE0);
   static const Color onPrimaryLight = Color(0xFFFFFFFF);
-  static const Color onBackgroundLight = Color(0xFF1A1A1A);
-  static const Color onSurfaceLight = Color(0xFF1A1A1A);
-  static const Color onBackgroundSecondaryLight = Color(0xFF666666);
-  static const Color borderLight = Color(0xFFE0E6DD);
-  static const Color mutedLight = Color(0xFF888888);
-  static const Color dividerLight = Color(0xFFEEEEEE);
+  static const Color onBackgroundLight = Color(0xFF142612);
+  static const Color onSurfaceLight = Color(0xFF142612);
+  static const Color onBackgroundSecondaryLight = Color(0xFF405F3A);
+  static const Color borderLight = Color(0xFFCFE2CB);
+  static const Color mutedLight = Color(0xFF6B8266);
+  static const Color dividerLight = Color(0xFFDEEADE);
   static const Color errorLight = Color(0xFFB00020);
   static const Color successLight = Color(0xFF4CAF50);
   static const Color warningLight = Color(0xFFFFC107);
-  static const Color healthyLight = Color(0xFF639922);
-  static const Color healthyBgLight = Color(0xFFF0F9EB);
+  static const Color healthyLight = Color(0xFF43A047);
+  static const Color healthyBgLight = Color(0xFFE8F5E9);
   static const Color diseaseRedLight = Color(0xFFE24B4A);
   static const Color diseaseBgLight = Color(0xFFFFF0F0);
   static const Color lowConfidenceLight = Color(0xFFEF9F27);
@@ -28,7 +28,7 @@ class AppColors {
   static const Color accentLight = Color(0xFFD4E157);
   static const Color limeDarkLight = Color(0xFFAFB42B);
   static const Color badgeDiseasedBgLight = Color(0xFFFFF0F0);
-  static const Color badgeHealthyBgLight = Color(0xFFF0F9EB);
+  static const Color badgeHealthyBgLight = Color(0xFFE8F5E9);
   static const Color badgeWarningBgLight = Color(0xFFFDF5E4);
   static const Color severityEarlyLight = Color(0xFFEF9F27);
   static const Color severityModerateLight = Color(0xFFE67E22);
@@ -37,102 +37,81 @@ class AppColors {
   static const Color greenXLLight = Color(0xFF4C9A3C);
   static const Color infoLight = Color(0xFF1565C0);
 
-  // ─── Dark Palette ────────────────────────────────────────────────────────
-  static const Color primaryDark = Color(0xFF4C9A3C);
-  static const Color primaryLightDark = Color(0xFF76C35F);
-  static const Color primaryDarkDark = Color(0xFF2D6A1F);
-  static const Color backgroundDark = Color(0xFF0C1409);
-  static const Color surfaceDark = Color(0xFF162012);
-  static const Color surfaceVariantDark = Color(0xFF253320);
-  static const Color onPrimaryDark = Color(0xFFFFFFFF);
-  static const Color onBackgroundDark = Color(0xFFE8F0E5);
-  static const Color onSurfaceDark = Color(0xFFE8F0E5);
-  static const Color onBackgroundSecondaryDark = Color(0xFFA8B5A5);
-  static const Color borderDark = Color(0xFF2D3B28);
-  static const Color mutedDark = Color(0xFF7A8678);
-  static const Color dividerDark = Color(0xFF1F2B1A);
-  static const Color errorDark = Color(0xFFCF6679);
-  static const Color successDark = Color(0xFF81C784);
-  static const Color warningDark = Color(0xFFFFD54F);
-  static const Color healthyDark = Color(0xFF9CCC65);
-  static const Color healthyBgDark = Color(0xFF1B2B13);
-  static const Color diseaseRedDark = Color(0xFFEF5350);
-  static const Color diseaseBgDark = Color(0xFF331A1A);
-  static const Color lowConfidenceDark = Color(0xFFFFB74D);
-  static const Color lowConfidenceBgDark = Color(0xFF2E2413);
-  static const Color accentDark = Color(0xFFE6EE9C);
-  static const Color limeDarkDark = Color(0xFFC0CA33);
-  static const Color badgeDiseasedBgDark = Color(0xFF331A1A);
-  static const Color badgeHealthyBgDark = Color(0xFF1B2B13);
-  static const Color badgeWarningBgDark = Color(0xFF2E2413);
-  static const Color severityEarlyDark = Color(0xFFFFB74D);
-  static const Color severityModerateDark = Color(0xFFFB8C00);
-  static const Color severitySevereDark = Color(0xFFEF5350);
-  static const Color darkMDark = Color(0xFF0C1409);
-  static const Color greenXLDark = Color(0xFF76C35F);
-  static const Color infoDark = Color(0xFF90CAF9);
+  // ─── Legacy Palette References ───────────────────────────────────────────
+  static const Color primaryDark = primaryLight;
+  static const Color primaryLightDark = primaryLightVariant;
+  static const Color primaryDarkDark = primaryDarkLight;
+  static const Color backgroundDark = backgroundLight;
+  static const Color surfaceDark = surfaceLight;
+  static const Color surfaceVariantDark = surfaceVariantLight;
+  static const Color onPrimaryDark = onPrimaryLight;
+  static const Color onBackgroundDark = onBackgroundLight;
+  static const Color onSurfaceDark = onSurfaceLight;
+  static const Color onBackgroundSecondaryDark = onBackgroundSecondaryLight;
+  static const Color borderDark = borderLight;
+  static const Color mutedDark = mutedLight;
+  static const Color dividerDark = dividerLight;
+  static const Color errorDark = errorLight;
+  static const Color successDark = successLight;
+  static const Color warningDark = warningLight;
+  static const Color healthyDark = healthyLight;
+  static const Color healthyBgDark = healthyBgLight;
+  static const Color diseaseRedDark = diseaseRedLight;
+  static const Color diseaseBgDark = diseaseBgLight;
+  static const Color lowConfidenceDark = lowConfidenceLight;
+  static const Color lowConfidenceBgDark = lowConfidenceBgLight;
+  static const Color accentDark = accentLight;
+  static const Color limeDarkDark = limeDarkLight;
+  static const Color badgeDiseasedBgDark = badgeDiseasedBgLight;
+  static const Color badgeHealthyBgDark = badgeHealthyBgLight;
+  static const Color badgeWarningBgDark = badgeWarningBgLight;
+  static const Color severityEarlyDark = severityEarlyLight;
+  static const Color severityModerateDark = severityModerateLight;
+  static const Color severitySevereDark = severitySevereLight;
+  static const Color darkMDark = darkMLight;
+  static const Color greenXLDark = greenXLLight;
+  static const Color infoDark = infoLight;
 }
 
-/// Helper class that provides context-aware colors (similar to LocalCropGuardColors)
+/// Helper class that provides context-aware colors (unified green palette)
 class CropColors {
   final bool isDark;
 
   const CropColors({this.isDark = false});
 
-  Color get primary => isDark ? AppColors.primaryDark : AppColors.primaryLight;
-  Color get primaryLight =>
-      isDark ? AppColors.primaryLightDark : AppColors.primaryLightVariant;
-  Color get primaryDark_ =>
-      isDark ? AppColors.primaryDarkDark : AppColors.primaryDarkLight;
-  Color get background =>
-      isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-  Color get surface => isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-  Color get surfaceVariant =>
-      isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariantLight;
-  Color get onPrimary =>
-      isDark ? AppColors.onPrimaryDark : AppColors.onPrimaryLight;
-  Color get onBackground =>
-      isDark ? AppColors.onBackgroundDark : AppColors.onBackgroundLight;
-  Color get onSurface =>
-      isDark ? AppColors.onSurfaceDark : AppColors.onSurfaceLight;
-  Color get onBackgroundSecondary => isDark
-      ? AppColors.onBackgroundSecondaryDark
-      : AppColors.onBackgroundSecondaryLight;
-  Color get border => isDark ? AppColors.borderDark : AppColors.borderLight;
-  Color get muted => isDark ? AppColors.mutedDark : AppColors.mutedLight;
-  Color get divider => isDark ? AppColors.dividerDark : AppColors.dividerLight;
-  Color get error => isDark ? AppColors.errorDark : AppColors.errorLight;
-  Color get success => isDark ? AppColors.successDark : AppColors.successLight;
-  Color get warning => isDark ? AppColors.warningDark : AppColors.warningLight;
-  Color get healthy => isDark ? AppColors.healthyDark : AppColors.healthyLight;
-  Color get healthyBg =>
-      isDark ? AppColors.healthyBgDark : AppColors.healthyBgLight;
-  Color get diseaseRed =>
-      isDark ? AppColors.diseaseRedDark : AppColors.diseaseRedLight;
-  Color get diseaseBg =>
-      isDark ? AppColors.diseaseBgDark : AppColors.diseaseBgLight;
-  Color get lowConfidence =>
-      isDark ? AppColors.lowConfidenceDark : AppColors.lowConfidenceLight;
-  Color get lowConfidenceBg =>
-      isDark ? AppColors.lowConfidenceBgDark : AppColors.lowConfidenceBgLight;
-  Color get accent => isDark ? AppColors.accentDark : AppColors.accentLight;
-  Color get limeDark =>
-      isDark ? AppColors.limeDarkDark : AppColors.limeDarkLight;
-  Color get badgeDiseasedBg =>
-      isDark ? AppColors.badgeDiseasedBgDark : AppColors.badgeDiseasedBgLight;
-  Color get badgeHealthyBg =>
-      isDark ? AppColors.badgeHealthyBgDark : AppColors.badgeHealthyBgLight;
-  Color get badgeWarningBg =>
-      isDark ? AppColors.badgeWarningBgDark : AppColors.badgeWarningBgLight;
-  Color get severityEarly =>
-      isDark ? AppColors.severityEarlyDark : AppColors.severityEarlyLight;
-  Color get severityModerate =>
-      isDark ? AppColors.severityModerateDark : AppColors.severityModerateLight;
-  Color get severitySevere =>
-      isDark ? AppColors.severitySevereDark : AppColors.severitySevereLight;
-  Color get darkM => isDark ? AppColors.darkMDark : AppColors.darkMLight;
-  Color get greenXL => isDark ? AppColors.greenXLDark : AppColors.greenXLLight;
-  Color get info => isDark ? AppColors.infoDark : AppColors.infoLight;
+  Color get primary => AppColors.primaryLight;
+  Color get primaryLight => AppColors.primaryLightVariant;
+  Color get primaryDark_ => AppColors.primaryDarkLight;
+  Color get background => AppColors.backgroundLight;
+  Color get surface => AppColors.surfaceLight;
+  Color get surfaceVariant => AppColors.surfaceVariantLight;
+  Color get onPrimary => AppColors.onPrimaryLight;
+  Color get onBackground => AppColors.onBackgroundLight;
+  Color get onSurface => AppColors.onSurfaceLight;
+  Color get onBackgroundSecondary => AppColors.onBackgroundSecondaryLight;
+  Color get border => AppColors.borderLight;
+  Color get muted => AppColors.mutedLight;
+  Color get divider => AppColors.dividerLight;
+  Color get error => AppColors.errorLight;
+  Color get success => AppColors.successLight;
+  Color get warning => AppColors.warningLight;
+  Color get healthy => AppColors.healthyLight;
+  Color get healthyBg => AppColors.healthyBgLight;
+  Color get diseaseRed => AppColors.diseaseRedLight;
+  Color get diseaseBg => AppColors.diseaseBgLight;
+  Color get lowConfidence => AppColors.lowConfidenceLight;
+  Color get lowConfidenceBg => AppColors.lowConfidenceBgLight;
+  Color get accent => AppColors.accentLight;
+  Color get limeDark => AppColors.limeDarkLight;
+  Color get badgeDiseasedBg => AppColors.badgeDiseasedBgLight;
+  Color get badgeHealthyBg => AppColors.badgeHealthyBgLight;
+  Color get badgeWarningBg => AppColors.badgeWarningBgLight;
+  Color get severityEarly => AppColors.severityEarlyLight;
+  Color get severityModerate => AppColors.severityModerateLight;
+  Color get severitySevere => AppColors.severitySevereLight;
+  Color get darkM => AppColors.darkMLight;
+  Color get greenXL => AppColors.greenXLLight;
+  Color get info => AppColors.infoLight;
   Color get diseaseRedBg => diseaseBg;
   Color get diseaseBadgeText => diseaseRed;
   Color get healthyBadgeText => healthy;

@@ -4,16 +4,17 @@ import 'app_colors.dart';
 import 'device_layout.dart';
 
 class AppTheme {
-  static ThemeData get light => _buildTheme(isDark: false);
-  static ThemeData get dark => _buildTheme(isDark: true);
+  static ThemeData get green => _buildTheme(isDark: false);
+  static ThemeData get light => green;
+  static ThemeData get dark => green;
 
   static ThemeData _buildTheme({required bool isDark}) {
-    final colors = CropColors(isDark: isDark);
-    final base = isDark ? ThemeData.dark() : ThemeData.light();
+    const colors = CropColors();
+    final base = ThemeData.light();
 
     return base.copyWith(
       colorScheme: ColorScheme(
-        brightness: isDark ? Brightness.dark : Brightness.light,
+        brightness: Brightness.light,
         primary: colors.primary,
         onPrimary: colors.onPrimary,
         secondary: colors.accent,
@@ -138,7 +139,7 @@ class AppTheme {
         checkColor: WidgetStateProperty.all(Colors.white),
         side: BorderSide(color: colors.border),
       ),
-      extensions: [AppColorsThemeExtension(colors: colors)],
+      extensions: [const AppColorsThemeExtension(colors: colors)],
     );
   }
 

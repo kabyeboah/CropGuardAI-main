@@ -31,7 +31,6 @@ class RegisterProvider extends ChangeNotifier {
   bool needsEmailConfirmation = false;
   String? confirmationEmail;
 
-
   // ── Guest migration state ──────────────────────────────────────────────────
   String? _anonUid;
   int _anonScanCount = 0;
@@ -39,8 +38,23 @@ class RegisterProvider extends ChangeNotifier {
 
   int get anonScanCount => _anonScanCount;
 
+  void reset() {
+    status = RegisterStatus.idle;
+    errorMessage = null;
+    needsEmailConfirmation = false;
+    confirmationEmail = null;
+    _anonUid = null;
+    _anonScanCount = 0;
+    _pendingOnSuccess = null;
+    notifyListeners();
+  }
+
   Future<void> _captureAnonState() async {
-    if (!_auth.isAnonymous) return;
+    if (!_auth.isAnonymous) {
+      _anonUid = null;
+      _anonScanCount = 0;
+      return;
+    }
     _anonUid = _auth.currentUserId;
     _anonScanCount = await _db.countDetectionsForUser(_anonUid!);
   }
@@ -71,15 +85,17 @@ class RegisterProvider extends ChangeNotifier {
     required VoidCallback onSuccess,
     void Function(int count)? onMigrationNeeded,
   }) async {
-    if (name.trim().isEmpty ||
-        email.trim().isEmpty ||
+    final normalizedEmail = email.trim().toLowerCase();
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty ||
+        normalizedEmail.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
       errorMessage = 'Please fill in all fields.';
       notifyListeners();
       return;
     }
-    if (!EmailValidator.isValid(email)) {
+    if (!EmailValidator.isValid(normalizedEmail)) {
       errorMessage = 'Please enter a valid email address.';
       notifyListeners();
       return;
@@ -107,7 +123,7 @@ class RegisterProvider extends ChangeNotifier {
     notifyListeners();
 
     final result =
-        await _registerUseCase(email: email, password: password, name: name);
+        await _registerUseCase(email: normalizedEmail, password: password, name: trimmedName);
 
     if (result.isSuccess) {
       status = RegisterStatus.success;

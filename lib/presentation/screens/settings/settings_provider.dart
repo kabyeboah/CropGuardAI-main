@@ -59,8 +59,7 @@ class SettingsProvider extends ChangeNotifier {
   UiMessage? deleteErrorCode;
   bool isDeleting = false;
 
-  ThemeMode _themeMode = ThemeMode.system;
-  ThemeMode get themeMode => _themeMode;
+  ThemeMode get themeMode => ThemeMode.light;
 
   /// Languages the UI can render. `null` locale means "follow system".
   /// Twi (tw), Ewe (ee) and Dagbani (dag) fall back to English for any string
@@ -84,8 +83,6 @@ class SettingsProvider extends ChangeNotifier {
     biometricLockEnabled =
         _prefs.getBool(AppLockController.kEnabledPref) ?? false;
     _resolveBiometricAvailability();
-    final idx = _prefs.getInt('theme_mode') ?? ThemeMode.system.index;
-    _themeMode = ThemeMode.values[idx.clamp(0, ThemeMode.values.length - 1)];
     final code = _prefs.getString('app_locale');
     _locale = (code != null && code.isNotEmpty) ? Locale(code) : null;
     notificationsEnabled = _prefs.getBool('notifications_enabled') ?? true;
@@ -105,9 +102,7 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   void setThemeMode(ThemeMode mode) {
-    _themeMode = mode;
-    _prefs.setInt('theme_mode', mode.index);
-    notifyListeners();
+    // No-op: App UI is unified green theme
   }
 
   Future<void> _loadAppVersion() async {

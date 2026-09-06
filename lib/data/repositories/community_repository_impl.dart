@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -141,13 +143,36 @@ class CommunityRepositoryImpl implements ICommunityRepository {
 
   @override
   Future<Result<List<Map<String, dynamic>>>> getOutbreakReports() async {
+    List<Map<String, dynamic>> cloudReports = [];
     try {
-      final reports = await _databaseService.getOutbreakReports();
-      return Result.success(reports);
+      cloudReports = await _databaseService.getOutbreakReports();
     } catch (e) {
-      if (e is Failure) return Result.error(e);
-      return Result.error(ServerFailure(e.toString()));
+      AppLogger.w('CommunityRepo.getOutbreakReports cloud fetch failed: $e');
     }
+
+    try {
+      final db = await _dbHelper.database;
+      final pendingRows = await PendingSyncQueue.getPendingItems(
+        db,
+        type: PendingSyncType.outbreakReport,
+      );
+      final pendingReports = pendingRows.map((r) {
+        final payloadJson = r['payload'] as String? ?? '{}';
+        final map = Map<String, dynamic>.from(jsonDecode(payloadJson) as Map);
+        map['id'] = map['id'] ?? 'pending_${r['id']}';
+        map['isPending'] = true;
+        return map;
+      }).toList();
+
+      if (pendingReports.isNotEmpty) {
+        return Result.success([...pendingReports, ...cloudReports]);
+      }
+    } catch (e) {
+      AppLogger.w(
+          'CommunityRepo.getOutbreakReports pending queue fetch failed: $e');
+    }
+
+    return Result.success(cloudReports);
   }
 
   @override

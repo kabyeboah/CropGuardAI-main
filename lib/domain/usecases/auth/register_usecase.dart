@@ -14,11 +14,13 @@ class RegisterUseCase {
     required String password,
     required String name,
   }) {
-    if (name.trim().isEmpty || email.trim().isEmpty || password.isEmpty) {
+    final normalizedEmail = email.trim().toLowerCase();
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty || normalizedEmail.isEmpty || password.isEmpty) {
       return Future.value(Result.error(
           const AuthFailure('Please fill in all required fields.')));
     }
-    if (!EmailValidator.isValid(email)) {
+    if (!EmailValidator.isValid(normalizedEmail)) {
       return Future.value(Result.error(
           const AuthFailure('Please enter a valid email address.')));
     }
@@ -27,9 +29,9 @@ class RegisterUseCase {
           const AuthFailure('Password must be at least 8 characters long.')));
     }
     return _repository.register(
-      email: email,
+      email: normalizedEmail,
       password: password,
-      name: name,
+      name: trimmedName,
     );
   }
 }

@@ -51,9 +51,10 @@ class SupabaseAuthService {
     required String password,
   }) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
       return await RetryUtils.retry(
         () => _client.auth.signInWithPassword(
-          email: email.trim(),
+          email: normalizedEmail,
           password: password,
         ),
         maxAttempts: 3,
@@ -78,9 +79,10 @@ class SupabaseAuthService {
     required String name,
   }) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
       final response = await RetryUtils.retry(
         () => _client.auth.signUp(
-          email: email.trim(),
+          email: normalizedEmail,
           password: password,
           data: {
             'full_name': name.trim(),
@@ -107,9 +109,10 @@ class SupabaseAuthService {
 
   Future<void> sendPasswordReset(String email) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
       await RetryUtils.retry(
         () => _client.auth.resetPasswordForEmail(
-          email.trim(),
+          normalizedEmail,
           redirectTo: AppSecrets.passwordResetContinueUrl,
         ),
         maxAttempts: 3,
@@ -186,11 +189,15 @@ class SupabaseAuthService {
       final authUrl = await _client.auth.getOAuthSignInUrl(
         provider: OAuthProvider.google,
         redirectTo: 'io.supabase.cropguard://login-callback/',
+        queryParams: const {'prompt': 'select_account'},
       );
 
       final resultUrl = await FlutterWebAuth2.authenticate(
         url: authUrl.url,
         callbackUrlScheme: 'io.supabase.cropguard',
+        options: const FlutterWebAuth2Options(
+          preferEphemeral: true,
+        ),
       );
 
       final response =

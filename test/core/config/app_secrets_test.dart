@@ -175,7 +175,7 @@ IOS_BUNDLE_ID=env-ios
       test('4. Fallback to default constants if all sources are absent', () {
         // Act & Assert
         expect(AppSecrets.passwordResetContinueUrl,
-            equals('https://cropguardai.app/reset-password'));
+            equals('io.supabase.cropguard://reset-password'));
         expect(AppSecrets.androidPackageName, equals('com.cropguard.ai.app'));
         expect(AppSecrets.iosBundleId, equals('com.cropguard.ai.app'));
       });

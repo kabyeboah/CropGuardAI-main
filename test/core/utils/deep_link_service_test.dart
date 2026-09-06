@@ -86,5 +86,25 @@ void main() {
       // Should handle gracefully
       service.handleUri(uri, mockRouter);
     });
+
+    test('routes to /reset_password when custom scheme io.supabase.cropguard reset link is received', () {
+      final uri = Uri.parse('io.supabase.cropguard://reset-password?code=safeCode123');
+
+      when(() => mockRouter.go(any())).thenReturn(null);
+
+      service.handleUri(uri, mockRouter);
+
+      verify(() => mockRouter.go('/reset_password?oobCode=safeCode123')).called(1);
+    });
+
+    test('routes to /reset_password when custom scheme cropguard recovery link is received', () {
+      final uri = Uri.parse('cropguard://reset-password#access_token=testToken&type=recovery');
+
+      when(() => mockRouter.go(any())).thenReturn(null);
+
+      service.handleUri(uri, mockRouter);
+
+      verify(() => mockRouter.go('/reset_password?oobCode=')).called(1);
+    });
   });
 }

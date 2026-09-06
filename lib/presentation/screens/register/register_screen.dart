@@ -50,6 +50,11 @@ class _RegisterBodyState extends State<_RegisterBody> {
     super.initState();
     // Rebuild strength bar as the user types.
     _passwordController.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<RegisterProvider>().reset();
+      }
+    });
   }
 
   @override

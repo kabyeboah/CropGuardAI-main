@@ -49,10 +49,85 @@ class DeepLinkService {
 
   @visibleForTesting
   void handleUri(Uri uri, GoRouter router) async {
-    // 0. Handle Supabase OAuth callback URI
-    if (uri.scheme == 'io.supabase.cropguard' ||
-        uri.host == 'login-callback' ||
-        uri.path.contains('login-callback')) {
+    // 1. Check custom handlers first
+    for (final entry in _customHandlers.entries) {
+      if (uri.path.startsWith(entry.key)) {
+        entry.value(uri, router);
+        return;
+      }
+    }
+
+    // 2. Validate scheme
+    final scheme = uri.scheme.toLowerCase();
+    const allowedSchemes = {'http', 'https', 'io.supabase.cropguard', 'cropguard'};
+    if (!allowedSchemes.contains(scheme)) {
+      AppLogger.w('Rejected deep link with invalid scheme: ${uri.scheme}');
+      return;
+    }
+
+    // 3. Check for Password Reset flow
+    final isRecoveryFragment = uri.fragment.contains('type=recovery');
+    final params = uri.queryParameters;
+    final code = params['code'] ?? params['token_hash'] ?? params['oobCode'];
+    final mode = params['mode'];
+    final isReset = mode == 'resetPassword' ||
+        uri.host == 'reset-password' ||
+        uri.path.contains('reset-password') ||
+        isRecoveryFragment ||
+        params['type'] == 'recovery';
+
+    if (isReset) {
+      // Validate host for HTTP/HTTPS links
+      if (scheme == 'http' || scheme == 'https') {
+        try {
+          final expectedUri = Uri.parse(AppSecrets.passwordResetContinueUrl);
+          if (uri.host != expectedUri.host &&
+              uri.host != 'cropguardai.app' &&
+              uri.host != 'localhost') {
+            AppLogger.w('Rejected deep link with unauthorized host: ${uri.host}');
+            return;
+          }
+        } catch (e, s) {
+          AppLogger.e('Failed to parse configured continue URL host', e, s);
+          return;
+        }
+      }
+
+      final safeCode = code ?? '';
+      // Validate code against safe characters (Supabase tokens)
+      if (safeCode.isNotEmpty) {
+        final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
+        if (!codeRegex.hasMatch(safeCode)) {
+          AppLogger.e('Rejected deep link with malformed or suspicious code.');
+          return;
+        }
+      }
+
+      // Validate mode parameter if present
+      if (mode != null && mode.isNotEmpty) {
+        final modeRegex = RegExp(r'^[a-zA-Z0-9]+$');
+        if (!modeRegex.hasMatch(mode)) {
+          AppLogger.e('Rejected deep link with malformed mode.');
+          return;
+        }
+      }
+
+      // If session tokens are present in hash/query, restore Supabase session
+      if (uri.fragment.isNotEmpty || uri.queryParameters.containsKey('access_token')) {
+        try {
+          await Supabase.instance.client.auth.getSessionFromUrl(uri);
+        } catch (e) {
+          AppLogger.w('Supabase getSessionFromUrl error during recovery: $e');
+        }
+      }
+
+      final encodedCode = Uri.encodeComponent(safeCode);
+      router.go('/reset_password?oobCode=$encodedCode');
+      return;
+    }
+
+    // 4. Handle Supabase OAuth callback URI
+    if (uri.host == 'login-callback' || uri.path.contains('login-callback')) {
       AppLogger.i('Handling Supabase OAuth callback deep link: $uri');
       try {
         await Supabase.instance.client.auth.getSessionFromUrl(uri);
@@ -70,66 +145,7 @@ class DeepLinkService {
       return;
     }
 
-    // 1. Validate scheme
-    if (uri.scheme != 'http' && uri.scheme != 'https') {
-      AppLogger.w('Rejected deep link with invalid scheme: ${uri.scheme}');
-      return;
-    }
-
-    // 2. Check custom handlers first
-    for (final entry in _customHandlers.entries) {
-      if (uri.path.startsWith(entry.key)) {
-        entry.value(uri, router);
-        return;
-      }
-    }
-
-    // 3. Validate host (must match password reset continue URL host)
-    try {
-      final expectedUri = Uri.parse(AppSecrets.passwordResetContinueUrl);
-      if (uri.host != expectedUri.host) {
-        AppLogger.w('Rejected deep link with unauthorized host: ${uri.host}');
-        return;
-      }
-    } catch (e, s) {
-      AppLogger.e('Failed to parse configured continue URL host', e, s);
-      return;
-    }
-
-    final params = uri.queryParameters;
-    final code = params['code'] ?? params['token_hash'] ?? params['oobCode'];
-    final mode = params['mode'];
-    final isRecoveryFragment = uri.fragment.contains('type=recovery');
-    final isReset =
-        mode == 'resetPassword' ||
-        uri.path.contains('reset-password') ||
-        isRecoveryFragment;
-
-    if (isReset && ((code != null && code.isNotEmpty) || isRecoveryFragment)) {
-      final safeCode = code ?? '';
-      // 4. Validate code against safe characters (Supabase tokens)
-      if (safeCode.isNotEmpty) {
-        final codeRegex = RegExp(r'^[a-zA-Z0-9\-_=.]+$');
-        if (!codeRegex.hasMatch(safeCode)) {
-          AppLogger.e('Rejected deep link with malformed or suspicious code.');
-          return;
-        }
-      }
-
-      // 5. Validate mode parameter if present
-      if (mode != null && mode.isNotEmpty) {
-        final modeRegex = RegExp(r'^[a-zA-Z0-9]+$');
-        if (!modeRegex.hasMatch(mode)) {
-          AppLogger.e('Rejected deep link with malformed mode.');
-          return;
-        }
-      }
-
-      final encodedCode = Uri.encodeComponent(safeCode);
-      router.go('/reset_password?oobCode=$encodedCode');
-    } else {
-      AppLogger.w('Received deep link that is not a password reset action.');
-    }
+    AppLogger.w('Received deep link that is not recognized: $uri');
   }
 
   void dispose() {
