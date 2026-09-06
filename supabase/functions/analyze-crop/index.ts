@@ -12,24 +12,14 @@ serve(async (req) => {
   }
 
   try {
+    const apiKeyHeader = req.headers.get("apikey");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const isAnonRequest = apiKeyHeader === supabaseAnonKey;
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader && !isAnonRequest) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid user session" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -77,39 +67,55 @@ ${cropContext}
 ${candidateInfo}
 Return strictly valid JSON only.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const modelsToTry = [
+      "gemini-3.6-flash",
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3-flash-preview",
+    ];
+    let lastErrorText = "";
+    let resJson: any = null;
 
-    const payload = {
-      contents: [
-        {
-          parts: [
-            { text: promptText },
-            {
-              inline_data: {
-                mime_type: "image/jpeg",
-                data: imageBase64,
+    for (const model of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: promptText },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg",
+                  data: imageBase64,
+                },
               },
-            },
-          ],
+            ],
+          },
+        ],
+        generationConfig: {
+          response_mime_type: "application/json",
+          temperature: 0.2,
         },
-      ],
-      generationConfig: {
-        response_mime_type: "application/json",
-        temperature: 0.2,
-      },
-    };
+      };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      const errText = await response.text();
+      if (response.ok) {
+        resJson = await response.json();
+        break;
+      } else {
+        lastErrorText = await response.text();
+      }
+    }
+
+    if (!resJson) {
       return new Response(
-        JSON.stringify({ error: `Gemini API returned status ${response.status}`, details: errText }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: `Gemini API call failed on all models`, details: lastErrorText }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

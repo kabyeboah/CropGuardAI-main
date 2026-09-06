@@ -25,7 +25,7 @@ class GeminiCloudAiException implements Exception {
 ///   explicitly provided via AppSecrets / .env.
 class GeminiCloudAiService {
   /// Default Gemini model used for multimodal crop disease inference.
-  static const String defaultModelName = 'gemini-3-flash-preview';
+  static const String defaultModelName = 'gemini-3.6-flash';
 
   final CloudFunctionsService? _functions;
   final String modelName;
@@ -104,25 +104,35 @@ class GeminiCloudAiService {
           'Gemini API key is not configured. Ensure backend analyze-crop function has GEMINI_API_KEY secret configured, or supply GEMINI_API_KEY in AppSecrets/environment.');
     }
 
-    try {
-      final model = GenerativeModel(
-        model: modelName,
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-        ),
-      );
+    final modelsToTry = [
+      modelName,
+      if (modelName != 'gemini-3.6-flash') 'gemini-3.6-flash',
+      if (modelName != 'gemini-3.8-flash') 'gemini-3.8-flash',
+      if (modelName != 'gemini-3.7-flash') 'gemini-3.7-flash',
+      if (modelName != 'gemini-3-flash-preview') 'gemini-3-flash-preview',
+    ];
 
-      final candidateInfo = (initialTopCandidates != null &&
-              initialTopCandidates.isNotEmpty)
-          ? "On-device preliminary model candidates: ${initialTopCandidates.join(', ')}."
-          : "";
-      final cropContext = (cropType != null && cropType.isNotEmpty)
-          ? "Crop Type: $cropType."
-          : "";
+    Object? lastError;
+    for (final candidateModel in modelsToTry) {
+      try {
+        final model = GenerativeModel(
+          model: candidateModel,
+          apiKey: apiKey,
+          generationConfig: GenerationConfig(
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          ),
+        );
 
-      final promptText = '''
+        final candidateInfo = (initialTopCandidates != null &&
+                initialTopCandidates.isNotEmpty)
+            ? "On-device preliminary model candidates: ${initialTopCandidates.join(', ')}."
+            : "";
+        final cropContext = (cropType != null && cropType.isNotEmpty)
+            ? "Crop Type: $cropType."
+            : "";
+
+        final promptText = '''
 You are an expert plant pathologist and agricultural scientist specializing in West African & global crop diseases (e.g., Cocoa, Cassava, Maize, Rice, Tomato, Plantain).
 Analyze this crop leaf/plant image carefully and return a JSON object with the following schema:
 
@@ -169,12 +179,19 @@ Return strictly valid JSON only.
       final Map<String, dynamic> jsonMap =
           jsonDecode(cleanJsonText) as Map<String, dynamic>;
 
-      return CloudAiAnalysisResult.fromJson(jsonMap);
-    } catch (e, st) {
-      AppLogger.e(
-          'GeminiCloudAiService error during image analysis: $e', e, st);
-      if (e is GeminiCloudAiException) rethrow;
-      throw GeminiCloudAiException('Gemini Cloud AI analysis failed: $e');
+        return CloudAiAnalysisResult.fromJson(jsonMap);
+      } catch (e) {
+        lastError = e;
+        AppLogger.w(
+            'GeminiCloudAiService model $candidateModel failed ($e). Trying fallback if available.');
+        if (e is GeminiCloudAiException && e.message.contains('timed out')) {
+          rethrow;
+        }
+      }
     }
+
+    AppLogger.e('GeminiCloudAiService all model fallbacks exhausted: $lastError');
+    if (lastError is GeminiCloudAiException) throw lastError;
+    throw GeminiCloudAiException('Gemini Cloud AI analysis failed: $lastError');
   }
 }

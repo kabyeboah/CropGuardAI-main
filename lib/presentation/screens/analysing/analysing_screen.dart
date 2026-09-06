@@ -11,7 +11,6 @@ import '../../../core/utils/tts_manager.dart';
 import '../../../domain/models/disease_risk.dart';
 import '../home/home_provider.dart';
 import '../scanner/scanner_provider.dart';
-import '../../../data/ml/crop_disease_classifier.dart';
 import '../../../domain/models/low_confidence_extra.dart';
 
 /// Intermediate screen that runs TFLite inference on the captured image
@@ -131,13 +130,10 @@ class _AnalisingScreenState extends State<AnalisingScreen>
 
     if (!mounted) return;
 
-    // Two-tier confidence gate:
-    //   < 0.60  → low-confidence screen (candidates, Gemini Cloud AI, report form).
-    //   ≥ 0.60  → full result screen.
-    const double kLowConfidenceThreshold =
-        CropDiseaseClassifier.confidenceThreshold;
-
-    if (result.confidence < kLowConfidenceThreshold) {
+    // Direct Display: Scans with disease predictions are presented directly on ResultScreen
+    // with the highest percentage match, cause, severity, and treatments immediately visible.
+    // Scans where subject could not be recognized ('Unknown') route to LowConfidenceScreen.
+    if (result.diseaseLabel == 'Unknown') {
       List<DiseaseRisk>? regionalRisks;
       try {
         final homeProvider = context.read<HomeProvider>();

@@ -122,6 +122,7 @@ Future<void> setupServiceLocator() async {
             CropDiseaseClassifier(),
             null,
             sl<ClassifierHealthService>(),
+            sl<GeminiCloudAiService>(),
           ));
   sl.registerLazySingleton<IProfileRepository>(() => ProfileRepositoryImpl(
         sl<SupabaseAuthService>(),

@@ -13,13 +13,13 @@ import '../../components/section_label.dart';
 import '../../components/severity_badge.dart';
 import '../../../data/ml/disease_info.dart';
 import '../../../data/remote/supabase_auth_service.dart';
+import '../../../data/remote/gemini_cloud_ai_service.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/utils/scan_report_pdf_exporter.dart';
 import '../../../core/utils/tts_manager.dart';
 import '../../../core/utils/scan_severity.dart';
 import '../../../domain/models/detection_result.dart';
 import '../outbreak_map/outbreak_map_screen.dart';
-import '../settings/settings_provider.dart';
 import '../treatment_tracker/treatment_tracker_provider.dart';
 import 'result_provider.dart';
 import '../../../core/utils/screen_security_helper.dart';
@@ -37,6 +37,7 @@ class ResultScreen extends StatefulWidget {
 class _ResultScreenState extends State<ResultScreen> {
   List<String> _allLabels = [];
   bool _didSpeakResult = false;
+  String? _selectedAlternativeLabel;
 
   @override
   void initState() {
@@ -70,10 +71,90 @@ class _ResultScreenState extends State<ResultScreen> {
     TtsManager().speak(result.displayName, languageCode: lang);
   }
 
+  bool _isVerifyingWithCloud = false;
+
+  Future<void> _verifyWithCloudAi(DetectionResult result) async {
+    if (_isVerifyingWithCloud) return;
+    setState(() => _isVerifyingWithCloud = true);
+
+    try {
+      final geminiService = sl<GeminiCloudAiService>();
+      final topCandidates = result.topCandidates.map((c) => c.label).toList();
+      final cloudResult = await geminiService.analyzeCropImage(
+        imagePath: result.imagePath,
+        cropType: result.cropType,
+        initialTopCandidates: topCandidates,
+      );
+
+      if (!mounted) return;
+      setState(() => _isVerifyingWithCloud = false);
+
+      unawaited(showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Expanded(child: Text('Cloud AI Double-Check')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Diagnosis: ${cloudResult.label}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Confidence: ${(cloudResult.confidence * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                    color: Colors.green, fontWeight: FontWeight.bold),
+              ),
+              if (cloudResult.rootCause.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Cause: ${cloudResult.rootCause}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+              if (cloudResult.rawReasoning != null &&
+                  cloudResult.rawReasoning!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  cloudResult.rawReasoning!,
+                  style: const TextStyle(
+                      fontSize: 11, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isVerifyingWithCloud = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cloud AI verification unavailable: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ResultProvider>();
-    final showConfidence = context.watch<SettingsProvider>().showConfidence;
     final colors = context.colors;
 
     if (provider.isLoading) {
@@ -97,7 +178,23 @@ class _ResultScreenState extends State<ResultScreen> {
       });
     }
 
-    final isHealthy = result.isHealthy;
+    final activeLabel = _selectedAlternativeLabel ?? result.diseaseLabel;
+    final activeInfo = DiseaseDatabase.getInfo(activeLabel);
+    final activeDisplayName = activeInfo.displayName;
+    final activeCropType = activeInfo.cropType;
+    final activeSeverity = activeInfo.severity;
+    final isHealthy = activeInfo.isHealthy;
+    final activeCause = activeInfo.cause.isNotEmpty ? activeInfo.cause : result.cause;
+    final activeTreatments = activeInfo.treatments.isNotEmpty ? activeInfo.treatments : result.treatments;
+
+    double activeConfidence = result.confidence;
+    for (final c in result.topCandidates) {
+      if (c.label == activeLabel) {
+        activeConfidence = c.confidence;
+        break;
+      }
+    }
+
     final headerColor = isHealthy ? colors.healthy : colors.diseaseRed;
     final headerBg = isHealthy ? colors.healthyBg : colors.diseaseBg;
 
@@ -146,7 +243,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 // Image
                 if (File(result.imagePath).existsSync())
                   Semantics(
-                    label: 'Captured leaf image for ${result.displayName}',
+                    label: 'Captured leaf image for $activeDisplayName',
                     child: SizedBox(
                       height: 220,
                       width: double.infinity,
@@ -185,7 +282,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       Semantics(
                         label: isHealthy
                             ? 'Status: Healthy crop'
-                            : 'Status: Disease detected — ${result.displayName}',
+                            : 'Status: Disease detected — $activeDisplayName',
                         excludeSemantics: true,
                         child: Icon(
                           isHealthy ? Icons.check_circle : Icons.warning_amber,
@@ -198,14 +295,40 @@ class _ResultScreenState extends State<ResultScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(result.displayName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
-                                        color: headerColor,
-                                        fontWeight: FontWeight.bold)),
-                            Text(result.cropType,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(activeDisplayName,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                              color: headerColor,
+                                              fontWeight: FontWeight.bold)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: headerColor.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: headerColor.withValues(alpha: 0.4)),
+                                  ),
+                                  child: Text(
+                                    '${(activeConfidence * 100).toStringAsFixed(0)}% Match',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: headerColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(activeCropType,
                                 style: TextStyle(
                                     color: headerColor.withValues(alpha: 0.8),
                                     fontSize: 13)),
@@ -213,9 +336,9 @@ class _ResultScreenState extends State<ResultScreen> {
                         ),
                       ),
                       Semantics(
-                        label: 'Severity: ${result.severity}',
+                        label: 'Severity: $activeSeverity',
                         excludeSemantics: true,
-                        child: SeverityBadge(severity: result.severity),
+                        child: SeverityBadge(severity: activeSeverity),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
@@ -228,10 +351,10 @@ class _ResultScreenState extends State<ResultScreen> {
                           final lang =
                               Localizations.localeOf(context).languageCode;
                           final treatments =
-                              result.treatments.take(3).join(". ");
+                              activeTreatments.take(3).join(". ");
                           final text = context.l10n.ttsResultSummary(
-                            result.displayName,
-                            result.severity,
+                            activeDisplayName,
+                            activeSeverity,
                             treatments,
                           );
                           TtsManager().speak(text, languageCode: lang);
@@ -246,33 +369,148 @@ class _ResultScreenState extends State<ResultScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (showConfidence) ...[
-                        Semantics(
-                          label:
-                              'Confidence: ${(result.confidence * 100).toStringAsFixed(0)}%',
-                          child: CropGuardCard(
-                            child: ConfidenceBar(
-                              confidence: result.confidence,
+                      // Match & Differential Confidence Card (Highest Percentage Front & Center)
+                      CropGuardCard(
+                        backgroundColor: colors.surface,
+                        borderColor: headerColor.withValues(alpha: 0.35),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      activeConfidence >= 0.65
+                                          ? Icons.verified
+                                          : Icons.auto_graph_rounded,
+                                      size: 18,
+                                      color: headerColor,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      activeConfidence >= 0.65
+                                          ? 'High Confidence Match'
+                                          : activeConfidence >= 0.40
+                                              ? 'Moderate Match (Top Prediction)'
+                                              : 'Preliminary Match (Highest Model Probability)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: colors.onBackground,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '${(activeConfidence * 100).toStringAsFixed(0)}%',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: headerColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ConfidenceBar(
+                              confidence: activeConfidence,
                               color: headerColor,
                             ),
-                          ),
+                            if (result.topCandidates.length > 1) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'Compare Candidate Differentials (Tap to view):',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.onBackgroundSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: result.topCandidates.map((candidate) {
+                                  final isCurrent = candidate.label == activeLabel;
+                                  final candPct = (candidate.confidence * 100).toStringAsFixed(0);
+                                  final candName = candidate.label.replaceAll('_', ' ');
+                                  return ChoiceChip(
+                                    selected: isCurrent,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _selectedAlternativeLabel = selected ? candidate.label : null;
+                                      });
+                                    },
+                                    backgroundColor: colors.primary.withValues(alpha: 0.06),
+                                    selectedColor: colors.primary.withValues(alpha: 0.2),
+                                    label: Text('$candName ($candPct%)'),
+                                    labelStyle: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                      color: isCurrent ? colors.primary : colors.onBackground,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                            if (activeConfidence < 0.65) ...[
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: colors.primary,
+                                    side: BorderSide(color: colors.primary),
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: _isVerifyingWithCloud
+                                      ? SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                                          ),
+                                        )
+                                      : const Icon(Icons.auto_awesome, size: 16),
+                                  label: Text(
+                                    _isVerifyingWithCloud
+                                        ? 'Consulting Gemini Cloud AI...'
+                                        : 'Double-Check with Gemini Cloud AI',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: _isVerifyingWithCloud
+                                      ? null
+                                      : () => _verifyWithCloudAi(result),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                      ],
+                      ),
+                      const SizedBox(height: 16),
 
                       // Cause
-                      if (!isHealthy && result.cause.isNotEmpty) ...[
+                      if (!isHealthy && activeCause.isNotEmpty) ...[
                         SectionLabel(text: context.l10n.causeLabel),
                         const SizedBox(height: 8),
                         CropGuardCard(
-                          child: Text(result.cause,
+                          child: Text(activeCause,
                               style: Theme.of(context).textTheme.bodyMedium),
                         ),
                         const SizedBox(height: 16),
                       ],
 
                       // Treatments
-                      if (result.treatments.isNotEmpty) ...[
+                      if (activeTreatments.isNotEmpty) ...[
                         SectionLabel(
                             text: isHealthy
                                 ? context.l10n.cropCareTips
@@ -282,7 +520,7 @@ class _ResultScreenState extends State<ResultScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ...result.treatments.asMap().entries.map((e) =>
+                              ...activeTreatments.asMap().entries.map((e) =>
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: Row(
@@ -312,8 +550,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                         Expanded(
                                           child: Text(e.value,
                                               style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium),
+                                                  .textTheme.bodyMedium),
                                         ),
                                       ],
                                     ),
@@ -336,7 +573,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        'Source / Basis: ${DiseaseDatabase.getInfo(result.diseaseLabel).sourceBasis}',
+                                        'Source / Basis: ${DiseaseDatabase.getInfo(activeLabel).sourceBasis}',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,

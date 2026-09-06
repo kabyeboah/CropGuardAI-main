@@ -47,17 +47,21 @@ class CloudFunctionsService {
     required String functionName,
     required Map<String, dynamic> data,
     Duration timeout = const Duration(seconds: 20),
+    bool requireAuth = true,
   }) async {
     final idToken = await _getAuthToken();
-    if (idToken == null || idToken.isEmpty) {
+    if (requireAuth && (idToken == null || idToken.isEmpty)) {
       throw const AuthFailure(
           'User must be signed in to perform this operation.');
     }
 
+    final token = (idToken != null && idToken.isNotEmpty)
+        ? idToken
+        : AppSecrets.supabaseAnonKey;
     final uri = _getFunctionUri(functionName);
     final headers = {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $idToken',
+      'Authorization': 'Bearer $token',
       'apikey': AppSecrets.supabaseAnonKey,
     };
 
@@ -124,7 +128,8 @@ class CloudFunctionsService {
         if (initialTopCandidates != null)
           'initialTopCandidates': initialTopCandidates,
       },
-      timeout: const Duration(seconds: 30),
+      timeout: const Duration(seconds: 12),
+      requireAuth: false,
     );
     return res['result'] as Map<String, dynamic>? ?? res;
   }
